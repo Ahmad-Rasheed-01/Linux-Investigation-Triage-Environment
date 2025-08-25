@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, jsonify
-from models.case_model import Case
-from models.artifact_model import Artifact
-from app import db
+from ..models.case_model import Case
+from ..models.artifact_model import Artifact
+from ..database import db
 from sqlalchemy import func
 
 bp = Blueprint('main', __name__)
@@ -40,7 +40,7 @@ def index():
         'processing_counts': processing_counts
     }
     
-    return render_template('dashboard/main.html', stats=stats, recent_cases=recent_cases)
+    return render_template('dashboard.html', stats=stats, recent_cases=recent_cases)
 
 @bp.route('/api/dashboard/stats')
 def dashboard_stats_api():

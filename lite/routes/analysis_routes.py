@@ -1,8 +1,8 @@
-from flask import Blueprint, render_template, request, jsonify, current_app
-from models.case_model import Case
-from models.artifact_model import Artifact
-from services.json_parser import JsonParser
-from app import db
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
+from ..models.case_model import Case
+from ..models.artifact_model import Artifact
+from ..services.json_parser import JsonParser
+from ..database import db
 import json
 import os
 
@@ -107,7 +107,7 @@ def analysis_page(case_id):
         }
     }
     
-    return render_template('analysis/main.html', 
+    return render_template('analysis/analysis.html', 
                          case=case, 
                          artifacts_by_category=artifacts_by_category,
                          nav_structure=nav_structure)

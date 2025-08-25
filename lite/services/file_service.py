@@ -3,8 +3,8 @@ import json
 import threading
 from datetime import datetime
 from werkzeug.utils import secure_filename
-from models.artifact_model import Artifact
-from app import db
+from ..models.artifact_model import Artifact
+from ..database import db
 
 class FileService:
     """Service for handling file uploads and processing"""

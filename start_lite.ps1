@@ -72,7 +72,7 @@ if (Test-Path "requirements.txt") {
 Write-Host ""
 
 # Initialize database if it doesn't exist
-if (-not (Test-Path "lite.db")) {
+if (-not (Test-Path "instance\lite.db")) {
     Write-Host "Database not found. Initializing..." -ForegroundColor Yellow
     python init_db.py
     if ($LASTEXITCODE -ne 0) {
@@ -85,7 +85,7 @@ if (-not (Test-Path "lite.db")) {
 }
 
 # Set environment variables
-$env:FLASK_APP = "app.py"
+$env:FLASK_APP = "lite/app.py"
 $env:FLASK_ENV = "development"
 $env:FLASK_DEBUG = "1"
 
@@ -107,7 +107,7 @@ Write-Host ""
 
 # Start the Flask application
 try {
-    python app.py
+    python -m lite.app
 } catch {
     Write-Host "" 
     Write-Host "Application exited with error: $($_.Exception.Message)" -ForegroundColor Red

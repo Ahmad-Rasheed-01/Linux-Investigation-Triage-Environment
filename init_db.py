@@ -15,7 +15,7 @@ from pathlib import Path
 project_root = Path(__file__).parent
 sys.path.insert(0, str(project_root))
 
-from app import app, db
+from lite.app import app, db
 from lite.models.case_model import Case
 from lite.models.artifact_model import Artifact
 
@@ -211,8 +211,10 @@ def main():
     print("LITE Database Initialization")
     print("=" * 40)
     
-    # Check if database file exists
-    db_path = Path('lite.db')
+    # Check if database file exists (in instance folder)
+    instance_dir = Path('instance')
+    instance_dir.mkdir(exist_ok=True)
+    db_path = instance_dir / 'lite.db'
     if db_path.exists():
         response = input(f"Database file '{db_path}' already exists. Reset it? (y/N): ")
         if response.lower() == 'y':

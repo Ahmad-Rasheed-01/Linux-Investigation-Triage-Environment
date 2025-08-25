@@ -106,7 +106,7 @@
                                 <li><a class="dropdown-item" href="{{ url_for('analysis.analysis_page', case_id=case.case_id) }}">
                                     <i class="fas fa-search me-2"></i>Analyze
                                 </a></li>
-                                <li><a class="dropdown-item" href="{{ url_for('cases.case_detail', case_id=case.case_id) }}">
+                                <li><a class="dropdown-item" href="{{ url_for('cases.view_case', case_id=case.case_id) }}">
                                     <i class="fas fa-info-circle me-2"></i>Details
                                 </a></li>
                                 <li><a class="dropdown-item" href="{{ url_for('cases.upload_artifacts', case_id=case.case_id) }}">
@@ -178,7 +178,7 @@
                             <a href="{{ url_for('analysis.analysis_page', case_id=case.case_id) }}" class="btn btn-primary btn-sm">
                                 <i class="fas fa-search me-1"></i>Analyze
                             </a>
-                            <a href="{{ url_for('cases.case_detail', case_id=case.case_id) }}" class="btn btn-outline-info btn-sm">
+                            <a href="{{ url_for('cases.view_case', case_id=case.case_id) }}" class="btn btn-outline-info btn-sm">
                                 <i class="fas fa-info-circle me-1"></i>Details
                             </a>
                             <button class="btn btn-outline-secondary btn-sm" onclick="updateCaseStatus('{{ case.case_id }}', '{{ 'inactive' if case.status == 'active' else 'active' }}')">

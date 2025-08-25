@@ -195,7 +195,7 @@
                                                 <a href="{{ url_for('analysis.analysis_page', case_id=case.case_id) }}" class="btn btn-outline-primary btn-sm" title="Analyze">
                                                     <i class="fas fa-search"></i>
                                                 </a>
-                                                <a href="{{ url_for('cases.case_detail', case_id=case.case_id) }}" class="btn btn-outline-info btn-sm" title="Details">
+                                                <a href="{{ url_for('cases.view_case', case_id=case.case_id) }}" class="btn btn-outline-info btn-sm" title="Details">
                                                     <i class="fas fa-info-circle"></i>
                                                 </a>
                                             </div>
@@ -261,7 +261,7 @@
                     <div class="text-center">
                         <small class="text-muted">
                             <i class="fas fa-sync-alt me-1"></i>
-                            Last updated: <span id="last-updated">{{ moment().format('HH:mm:ss') }}</span>
+                            Last updated: <span id="last-updated">Just now</span>
                         </small>
                     </div>
                 </div>

@@ -1,8 +1,8 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, current_app
-from models.case_model import Case
-from models.artifact_model import Artifact
-from services.file_service import FileService
-from app import db
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
+from ..models.case_model import Case
+from ..models.artifact_model import Artifact
+from ..services.file_service import FileService
+from ..database import db
 from datetime import datetime
 import os
 import json
@@ -108,12 +108,15 @@ def view_case(case_id):
         artifact_stats['by_category'][category] = artifact_stats['by_category'].get(category, 0) + 1
         artifact_stats['by_status'][status] = artifact_stats['by_status'].get(status, 0) + 1
     
-    return render_template('cases/view.html', case=case, artifacts=artifacts, stats=artifact_stats)
+    return render_template('cases/detail.html', case=case, artifacts=artifacts, stats=artifact_stats)
 
-@bp.route('/<case_id>/upload', methods=['POST'])
+@bp.route('/<case_id>/upload', methods=['GET', 'POST'])
 def upload_artifacts(case_id):
-    """Upload JSON artifacts to a case"""
+    """Upload artifacts page and handler"""
     case = Case.query.filter_by(case_id=case_id).first_or_404()
+    
+    if request.method == 'GET':
+        return render_template('cases/upload.html', case=case)
     
     if 'files' not in request.files:
         flash('No files selected.', 'error')
