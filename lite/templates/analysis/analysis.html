@@ -603,102 +603,179 @@ function renderOverview(data) {
     `;
 }
 
+function formatReleaseDate(versionString) {
+    if (!versionString) return null;
+    
+    // Extract date from parentheses like (2025-06-25)
+    const dateMatch = versionString.match(/\((\d{4}-\d{2}-\d{2})\)/);
+    if (!dateMatch) return versionString;
+    
+    const dateStr = dateMatch[1];
+    const date = new Date(dateStr);
+    
+    // Format as "January 20, 2025"
+    const options = { year: 'numeric', month: 'long', day: 'numeric' };
+    return date.toLocaleDateString('en-US', options);
+}
+
+function formatTimestamp(timestampString) {
+    if (!timestampString) return null;
+    
+    // Parse timestamp format like 20250814_035525 (YYYYMMDD_HHMMSS)
+    const match = timestampString.match(/^(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})$/);
+    if (!match) return timestampString;
+    
+    const [, year, month, day, hour, minute, second] = match;
+    const date = new Date(year, month - 1, day, hour, minute, second);
+    
+    // Format as "August 14, 2025 at 3:55:25 AM"
+    const dateOptions = { year: 'numeric', month: 'long', day: 'numeric' };
+    const timeOptions = { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true };
+    return date.toLocaleDateString('en-US', dateOptions) + ' at ' + date.toLocaleTimeString('en-US', timeOptions);
+}
+
 function renderArtifacts(data) {
     const contentArea = document.getElementById('content-area');
+    const systemInfo = data.system_info || {};
+    const collectionInfo = systemInfo.collection_info || {};
+    const platformInfo = systemInfo.platform_info || {};
+    const timezoneInfo = systemInfo.timezone_info || {};
+    const localeInfo = systemInfo.locale_info || {};
+    
     let html = `
         <div class="row mb-4">
             <div class="col-12">
                 <h2 class="h4 mb-3">
-                    <i class="fas fa-file-alt me-2"></i>Artifacts Overview
+                    <i class="fas fa-server me-2"></i>System Information Overview
                 </h2>
+                ${data.metadata_file ? `<p class="text-muted">Source: ${data.metadata_file}</p>` : ''}
             </div>
         </div>
-        
-        <div class="card shadow">
-            <div class="card-header py-3">
-                <h6 class="m-0 font-weight-bold text-primary">All Artifacts (${data.artifacts ? data.artifacts.length : 0})</h6>
-            </div>
-            <div class="card-body">
     `;
     
-    if (data.artifacts && data.artifacts.length > 0) {
+    if (data.error) {
         html += `
-            <div class="table-responsive">
-                <table class="table table-hover">
-                    <thead>
-                        <tr>
-                            <th>Filename</th>
-                            <th>Category</th>
-                            <th>Size</th>
-                            <th>Status</th>
-                            <th>Upload Time</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-        `;
-        
-        data.artifacts.forEach(artifact => {
-            html += `
-                <tr>
-                    <td>
-                        <div class="d-flex align-items-center">
-                            <i class="fas fa-file-code text-primary me-2"></i>
-                            <div>
-                                <div class="fw-bold">${artifact.filename}</div>
-                                <small class="text-muted">${artifact.original_filename || artifact.filename}</small>
-                            </div>
-                        </div>
-                    </td>
-                    <td><span class="badge bg-info">${artifact.category || 'Unknown'}</span></td>
-                    <td>${artifact.size_formatted || 'Unknown'}</td>
-                    <td>
-                        ${artifact.status === 'completed' ? 
-                            '<span class="badge bg-success"><i class="fas fa-check me-1"></i>Completed</span>' :
-                            artifact.status === 'processing' ?
-                            '<span class="badge bg-warning"><i class="fas fa-spinner fa-spin me-1"></i>Processing</span>' :
-                            '<span class="badge bg-secondary">' + (artifact.status || 'Unknown') + '</span>'
-                        }
-                    </td>
-                    <td><small>${artifact.upload_timestamp || 'Unknown'}</small></td>
-                    <td>
-                        <div class="btn-group btn-group-sm" role="group">
-                            ${artifact.status === 'completed' ? 
-                                `<a href="/analysis/{{ case.case_id }}/artifact/${artifact.id}" class="btn btn-outline-primary" title="View Content">
-                                    <i class="fas fa-eye"></i>
-                                </a>` : ''
-                            }
-                            <button class="btn btn-outline-info" onclick="downloadArtifact(${artifact.id})" title="Download">
-                                <i class="fas fa-download"></i>
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-            `;
-        });
-        
-        html += `
-                    </tbody>
-                </table>
+            <div class="alert alert-warning" role="alert">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                ${data.error}
             </div>
         `;
     } else {
+        // Collection Information Card
         html += `
-            <div class="text-center py-5">
-                <i class="fas fa-file-upload fa-3x text-muted mb-3"></i>
-                <h5 class="text-muted mb-3">No Artifacts Found</h5>
-                <p class="text-muted mb-4">Upload JSON artifacts to begin analysis</p>
-                <a href="{{ url_for('cases.upload_artifacts', case_id=case.case_id) }}" class="btn btn-primary">
-                    <i class="fas fa-upload me-2"></i>Upload Artifacts
-                </a>
+            <div class="row mb-4">
+                <div class="col-lg-6 mb-4">
+                    <div class="card shadow h-100">
+                        <div class="card-header py-3">
+                            <h6 class="m-0 font-weight-bold text-primary">
+                                <i class="fas fa-info-circle me-2"></i>Collection Information
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-sm-6 mb-3">
+                                     <strong>Collected at:</strong><br>
+                                     <span class="text-muted">${formatTimestamp(collectionInfo.timestamp) || 'Unknown'}</span>
+                                 </div>
+                                <div class="col-sm-6 mb-3">
+                                    <strong>Hostname:</strong><br>
+                                    <span class="text-primary fw-bold">${collectionInfo.hostname || 'Unknown'}</span>
+                                </div>
+                                <div class="col-sm-6 mb-3">
+                                    <strong>SEA Version:</strong><br>
+                                    <span class="text-muted">${collectionInfo.versionSEA || 'Unknown'}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Platform Information Card -->
+                <div class="col-lg-6 mb-4">
+                    <div class="card shadow h-100">
+                        <div class="card-header py-3">
+                            <h6 class="m-0 font-weight-bold text-success">
+                                <i class="fas fa-desktop me-2"></i>Platform Information
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-sm-6 mb-3">
+                                    <strong>System:</strong><br>
+                                    <span class="text-success fw-bold">${platformInfo.system || 'Unknown'}</span>
+                                </div>
+                                <div class="col-sm-6 mb-3">
+                                    <strong>Machine:</strong><br>
+                                    <span class="text-muted">${platformInfo.machine || 'Unknown'}</span>
+                                </div>
+                                <div class="col-sm-6 mb-3">
+                                    <strong>Release:</strong><br>
+                                    <span class="text-muted small">${platformInfo.release || 'Unknown'}</span>
+                                </div>
+                                <div class="col-sm-6 mb-3">
+                                     <strong>Release Date:</strong><br>
+                                     <span class="text-muted small">${formatReleaseDate(platformInfo.version) || 'Unknown'}</span>
+                                 </div>
+                                <div class="col-12">
+                                    <strong>Processor:</strong><br>
+                                    <span class="text-muted small">${platformInfo.processor || 'Unknown'}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row mb-4">
+                <!-- Timezone Information Card -->
+                <div class="col-lg-6 mb-4">
+                    <div class="card shadow h-100">
+                        <div class="card-header py-3">
+                            <h6 class="m-0 font-weight-bold text-warning">
+                                <i class="fas fa-clock me-2"></i>Timezone Information
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-sm-6 mb-3">
+                                    <strong>Timezone:</strong><br>
+                                    <span class="text-warning fw-bold">${timezoneInfo.name || 'Unknown'}</span>
+                                </div>
+                                <div class="col-sm-6 mb-3">
+                                    <strong>Offset:</strong><br>
+                                    <span class="text-muted">${timezoneInfo.offset || 'Unknown'}</span>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Locale Information Card -->
+                <div class="col-lg-6 mb-4">
+                    <div class="card shadow h-100">
+                        <div class="card-header py-3">
+                            <h6 class="m-0 font-weight-bold text-info">
+                                <i class="fas fa-globe me-2"></i>Locale Information
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-sm-6 mb-3">
+                                    <strong>Language:</strong><br>
+                                    <span class="text-info fw-bold">${localeInfo.language || 'Unknown'}</span>
+                                </div>
+                                <div class="col-sm-6 mb-3">
+                                    <strong>Encoding:</strong><br>
+                                    <span class="text-muted">${localeInfo.encoding || 'Unknown'}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         `;
     }
-    
-    html += `
-            </div>
-        </div>
-    `;
     
     contentArea.innerHTML = html;
 }

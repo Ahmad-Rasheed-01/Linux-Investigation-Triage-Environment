@@ -129,15 +129,19 @@ def get_section_data(case_id, section):
             })
         
         elif section == 'overview-artifacts':
-            artifacts_data = []
-            for artifact in case.artifacts:
-                artifact_dict = artifact.to_dict()
-                artifact_dict['file_size_formatted'] = artifact.file_size_formatted
-                artifacts_data.append(artifact_dict)
-            
+            # Get system information from collection metadata
+            system_info = _get_collection_metadata(case)
             return jsonify({
-                'artifacts': artifacts_data,
-                'total_count': len(artifacts_data)
+                'success': True,
+                'data': system_info
+            })
+            
+        elif section == 'artifacts':
+            # Get system information from collection metadata
+            system_info = _get_collection_metadata(case)
+            return jsonify({
+                'success': True,
+                'data': system_info
             })
         
         elif section == 'system-details':
@@ -493,3 +497,51 @@ def _find_suspicious_processes(process_artifacts, json_parser):
     suspicious_processes = []
     # This is a placeholder - implement based on actual data structure
     return suspicious_processes
+
+def _get_collection_metadata(case):
+    """Extract system information from collection metadata JSON file"""
+    import glob
+    
+    # Look for collection metadata file in the case directory
+    case_dir = os.path.join('cases', case.case_id)
+    metadata_pattern = os.path.join(case_dir, 'collection_metadata_*.json')
+    metadata_files = glob.glob(metadata_pattern)
+    
+    if not metadata_files:
+        return {
+            'error': 'Collection metadata file not found',
+            'system_info': {}
+        }
+    
+    try:
+        # Read the first metadata file found
+        metadata_file = metadata_files[0]
+        with open(metadata_file, 'r', encoding='utf-8') as f:
+            metadata = json.load(f)
+        
+        # Extract system information
+        system_info = {
+            'collection_info': {
+                'timestamp': metadata.get('timestamp', 'Unknown'),
+                'hostname': metadata.get('hostname', 'Unknown'),
+                'version': metadata.get('version', 'Unknown'),
+                'versionSEA': metadata.get('versionSEA', 'Unknown'),
+                'collection_directory': metadata.get('collection_directory', 'Unknown'),
+                'output_format': metadata.get('output_format', 'Unknown')
+            },
+            'platform_info': metadata.get('platform', {}),
+            'timezone_info': metadata.get('timezone', {}),
+            'locale_info': metadata.get('locale', {})
+        }
+        
+        return {
+            'success': True,
+            'system_info': system_info,
+            'metadata_file': os.path.basename(metadata_file)
+        }
+        
+    except Exception as e:
+        return {
+            'error': f'Failed to read collection metadata: {str(e)}',
+            'system_info': {}
+        }
