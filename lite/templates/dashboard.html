@@ -1,0 +1,375 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - LITE{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="h3 mb-0 text-gray-800">
+                        <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                    </h1>
+                    <p class="text-muted mb-0">Overview of all investigation cases and system status</p>
+                </div>
+                <div>
+                    <a href="{{ url_for('cases.create_case') }}" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i>New Case
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Total Cases
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="total-cases">
+                                {{ stats.total_cases or 0 }}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-folder fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Active Cases
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="active-cases">
+                                {{ stats.active_cases or 0 }}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-play-circle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Total Artifacts
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="total-artifacts">
+                                {{ stats.total_artifacts or 0 }}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-file-alt fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Processing
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="processing-artifacts">
+                                {{ stats.processing_artifacts or 0 }}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-spinner fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Charts Row -->
+    <div class="row mb-4">
+        <!-- Case Status Chart -->
+        <div class="col-xl-6 col-lg-7">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-chart-pie me-2"></i>Case Status Distribution
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="caseStatusChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Artifacts Timeline -->
+        <div class="col-xl-6 col-lg-5">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-chart-line me-2"></i>Artifacts Upload Timeline
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="artifactsTimelineChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recent Activity -->
+    <div class="row">
+        <!-- Recent Cases -->
+        <div class="col-xl-8 col-lg-7">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-clock me-2"></i>Recent Cases
+                    </h6>
+                    <a href="{{ url_for('cases.list_cases') }}" class="btn btn-sm btn-outline-primary">
+                        View All
+                    </a>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Case ID</th>
+                                    <th>Case Name</th>
+                                    <th>Examiner</th>
+                                    <th>Status</th>
+                                    <th>Created</th>
+                                    <th>Artifacts</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recent-cases-tbody">
+                                {% if recent_cases %}
+                                    {% for case in recent_cases %}
+                                    <tr>
+                                        <td>
+                                            <span class="badge bg-secondary">{{ case.case_id }}</span>
+                                        </td>
+                                        <td>
+                                            <a href="{{ url_for('analysis.analysis_page', case_id=case.case_id) }}" class="text-decoration-none">
+                                                {{ case.case_name }}
+                                            </a>
+                                        </td>
+                                        <td>{{ case.examiner }}</td>
+                                        <td>
+                                            <span class="badge bg-{{ 'success' if case.status == 'active' else 'warning' if case.status == 'inactive' else 'secondary' }}">
+                                                {{ case.status.title() }}
+                                            </span>
+                                        </td>
+                                        <td>{{ case.creation_date.strftime('%Y-%m-%d') }}</td>
+                                        <td>
+                                            <span class="badge bg-info">{{ case.artifact_count }}</span>
+                                        </td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm" role="group">
+                                                <a href="{{ url_for('analysis.analysis_page', case_id=case.case_id) }}" class="btn btn-outline-primary btn-sm" title="Analyze">
+                                                    <i class="fas fa-search"></i>
+                                                </a>
+                                                <a href="{{ url_for('cases.case_detail', case_id=case.case_id) }}" class="btn btn-outline-info btn-sm" title="Details">
+                                                    <i class="fas fa-info-circle"></i>
+                                                </a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="7" class="text-center text-muted py-4">
+                                            <i class="fas fa-folder-open fa-3x mb-3 d-block"></i>
+                                            No cases found. <a href="{{ url_for('cases.create_case') }}">Create your first case</a>
+                                        </td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- System Health -->
+        <div class="col-xl-4 col-lg-5">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-heartbeat me-2"></i>System Health
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-sm font-weight-bold">Database Status</span>
+                            <span class="badge bg-success">Online</span>
+                        </div>
+                        <div class="progress progress-sm">
+                            <div class="progress-bar bg-success" style="width: 100%"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-sm font-weight-bold">Storage Usage</span>
+                            <span class="text-sm text-muted" id="storage-usage">{{ stats.storage_usage or '0 MB' }}</span>
+                        </div>
+                        <div class="progress progress-sm">
+                            <div class="progress-bar bg-info" style="width: 45%" id="storage-progress"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-sm font-weight-bold">Processing Queue</span>
+                            <span class="text-sm text-muted" id="queue-status">{{ stats.processing_artifacts or 0 }} pending</span>
+                        </div>
+                        <div class="progress progress-sm">
+                            <div class="progress-bar bg-warning" style="width: {{ (stats.processing_artifacts or 0) * 10 }}%" id="queue-progress"></div>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="text-center">
+                        <small class="text-muted">
+                            <i class="fas fa-sync-alt me-1"></i>
+                            Last updated: <span id="last-updated">{{ moment().format('HH:mm:ss') }}</span>
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Dashboard JavaScript
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize charts
+    initializeDashboardCharts();
+    
+    // Auto-refresh dashboard data every 30 seconds
+    setInterval(refreshDashboardData, 30000);
+    
+    // Update current time
+    updateCurrentTime();
+    setInterval(updateCurrentTime, 1000);
+});
+
+function initializeDashboardCharts() {
+    // Case Status Chart
+    const caseStatusCtx = document.getElementById('caseStatusChart').getContext('2d');
+    new Chart(caseStatusCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Active', 'Inactive', 'Closed'],
+            datasets: [{
+                data: [{{ stats.active_cases or 0 }}, {{ stats.inactive_cases or 0 }}, {{ stats.closed_cases or 0 }}],
+                backgroundColor: ['#28a745', '#ffc107', '#6c757d'],
+                borderWidth: 2,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+    
+    // Artifacts Timeline Chart (placeholder data)
+    const timelineCtx = document.getElementById('artifactsTimelineChart').getContext('2d');
+    new Chart(timelineCtx, {
+        type: 'line',
+        data: {
+            labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+            datasets: [{
+                label: 'Artifacts Uploaded',
+                data: [12, 19, 3, 5, 2, 3, 7],
+                borderColor: '#007bff',
+                backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                tension: 0.4,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                }
+            }
+        }
+    });
+}
+
+function refreshDashboardData() {
+    fetch('/api/dashboard/stats')
+        .then(response => response.json())
+        .then(data => {
+            // Update statistics cards
+            document.getElementById('total-cases').textContent = data.total_cases || 0;
+            document.getElementById('active-cases').textContent = data.active_cases || 0;
+            document.getElementById('total-artifacts').textContent = data.total_artifacts || 0;
+            document.getElementById('processing-artifacts').textContent = data.processing_artifacts || 0;
+            
+            // Update system health
+            document.getElementById('storage-usage').textContent = data.storage_usage || '0 MB';
+            document.getElementById('queue-status').textContent = (data.processing_artifacts || 0) + ' pending';
+            document.getElementById('last-updated').textContent = new Date().toLocaleTimeString();
+        })
+        .catch(error => {
+            console.error('Error refreshing dashboard data:', error);
+        });
+}
+
+function updateCurrentTime() {
+    const now = new Date();
+    const timeString = now.toLocaleTimeString();
+    const timeElement = document.getElementById('current-time');
+    if (timeElement) {
+        timeElement.textContent = timeString;
+    }
+}
+</script>
+{% endblock %}

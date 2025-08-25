@@ -1,0 +1,409 @@
+{% extends "base.html" %}
+
+{% block title %}Create Case - LITE{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="h3 mb-0 text-gray-800">
+                        <i class="fas fa-plus-circle me-2"></i>Create New Case
+                    </h1>
+                    <p class="text-muted mb-0">Set up a new investigation case with initial details</p>
+                </div>
+                <div>
+                    <a href="{{ url_for('cases.list_cases') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-2"></i>Back to Cases
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Case Creation Form -->
+    <div class="row justify-content-center">
+        <div class="col-xl-8 col-lg-10">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-folder-plus me-2"></i>Case Information
+                    </h5>
+                </div>
+                
+                <form method="POST" enctype="multipart/form-data" id="caseForm">
+                    <div class="card-body">
+                        <div class="row">
+                            <!-- Left Column -->
+                            <div class="col-md-6">
+                                <!-- Case Name -->
+                                <div class="mb-3">
+                                    <label for="case_name" class="form-label required">
+                                        <i class="fas fa-file-signature me-1"></i>Case Name
+                                    </label>
+                                    <input type="text" class="form-control" id="case_name" name="case_name" 
+                                           placeholder="Enter descriptive case name" required maxlength="200">
+                                    <div class="form-text">A descriptive name for this investigation case</div>
+                                </div>
+                                
+                                <!-- Case ID (Auto-generated, Read-only) -->
+                                <div class="mb-3">
+                                    <label for="case_id" class="form-label">
+                                        <i class="fas fa-hashtag me-1"></i>Case ID
+                                    </label>
+                                    <input type="text" class="form-control" id="case_id" name="case_id" 
+                                           placeholder="Auto-generated" readonly>
+                                    <div class="form-text">Unique identifier (automatically generated)</div>
+                                </div>
+                                
+                                <!-- Examiner -->
+                                <div class="mb-3">
+                                    <label for="examiner" class="form-label required">
+                                        <i class="fas fa-user-tie me-1"></i>Examiner
+                                    </label>
+                                    <input type="text" class="form-control" id="examiner" name="examiner" 
+                                           placeholder="Lead examiner name" required maxlength="100">
+                                    <div class="form-text">Name of the lead digital forensic examiner</div>
+                                </div>
+                                
+                                <!-- Creation Date (Auto-generated, Read-only) -->
+                                <div class="mb-3">
+                                    <label for="creation_date" class="form-label">
+                                        <i class="fas fa-calendar-plus me-1"></i>Creation Date
+                                    </label>
+                                    <input type="text" class="form-control" id="creation_date" name="creation_date" 
+                                           value="{{ moment().format('YYYY-MM-DD HH:mm:ss') }}" readonly>
+                                    <div class="form-text">Date and time when case was created</div>
+                                </div>
+                                
+                                <!-- Incident Date -->
+                                <div class="mb-3">
+                                    <label for="incident_date" class="form-label">
+                                        <i class="fas fa-calendar-exclamation me-1"></i>Incident Date
+                                    </label>
+                                    <input type="date" class="form-control" id="incident_date" name="incident_date">
+                                    <div class="form-text">Date when the security incident occurred</div>
+                                </div>
+                            </div>
+                            
+                            <!-- Right Column -->
+                            <div class="col-md-6">
+                                <!-- Operating System -->
+                                <div class="mb-3">
+                                    <label for="operating_system" class="form-label">
+                                        <i class="fab fa-linux me-1"></i>Operating System
+                                    </label>
+                                    <select class="form-select" id="operating_system" name="operating_system">
+                                        <option value="">Select OS</option>
+                                        <option value="Ubuntu">Ubuntu</option>
+                                        <option value="Debian">Debian</option>
+                                        <option value="CentOS">CentOS</option>
+                                        <option value="RHEL">Red Hat Enterprise Linux</option>
+                                        <option value="Fedora">Fedora</option>
+                                        <option value="SUSE">SUSE Linux</option>
+                                        <option value="Arch">Arch Linux</option>
+                                        <option value="Kali">Kali Linux</option>
+                                        <option value="Other">Other Linux Distribution</option>
+                                        <option value="Unknown">Unknown</option>
+                                    </select>
+                                    <div class="form-text">Target system's operating system</div>
+                                </div>
+                                
+                                <!-- Tags -->
+                                <div class="mb-3">
+                                    <label for="tags" class="form-label">
+                                        <i class="fas fa-tags me-1"></i>Tags
+                                    </label>
+                                    <input type="text" class="form-control" id="tags" name="tags" 
+                                           placeholder="malware, breach, insider-threat" maxlength="500">
+                                    <div class="form-text">Comma-separated tags for categorization</div>
+                                </div>
+                                
+                                <!-- Priority -->
+                                <div class="mb-3">
+                                    <label for="priority" class="form-label">
+                                        <i class="fas fa-exclamation-circle me-1"></i>Priority
+                                    </label>
+                                    <select class="form-select" id="priority" name="priority">
+                                        <option value="medium" selected>Medium</option>
+                                        <option value="low">Low</option>
+                                        <option value="high">High</option>
+                                        <option value="critical">Critical</option>
+                                    </select>
+                                    <div class="form-text">Investigation priority level</div>
+                                </div>
+                                
+                                <!-- Status -->
+                                <div class="mb-3">
+                                    <label for="status" class="form-label">
+                                        <i class="fas fa-toggle-on me-1"></i>Initial Status
+                                    </label>
+                                    <select class="form-select" id="status" name="status">
+                                        <option value="active" selected>Active</option>
+                                        <option value="inactive">Inactive</option>
+                                    </select>
+                                    <div class="form-text">Initial case status</div>
+                                </div>
+                                
+                                <!-- Evidence Source -->
+                                <div class="mb-3">
+                                    <label for="evidence_source" class="form-label">
+                                        <i class="fas fa-server me-1"></i>Evidence Source
+                                    </label>
+                                    <input type="text" class="form-control" id="evidence_source" name="evidence_source" 
+                                           placeholder="Server hostname, IP, or identifier" maxlength="200">
+                                    <div class="form-text">Source system or device identifier</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Full Width Fields -->
+                        <div class="row">
+                            <div class="col-12">
+                                <!-- Description -->
+                                <div class="mb-3">
+                                    <label for="description" class="form-label">
+                                        <i class="fas fa-align-left me-1"></i>Case Description
+                                    </label>
+                                    <textarea class="form-control" id="description" name="description" rows="3" 
+                                              placeholder="Brief description of the investigation case" maxlength="1000"></textarea>
+                                    <div class="form-text">Brief overview of the investigation (max 1000 characters)</div>
+                                </div>
+                                
+                                <!-- Notes -->
+                                <div class="mb-3">
+                                    <label for="notes" class="form-label">
+                                        <i class="fas fa-sticky-note me-1"></i>Initial Notes
+                                    </label>
+                                    <textarea class="form-control" id="notes" name="notes" rows="4" 
+                                              placeholder="Initial observations, context, or important notes" maxlength="2000"></textarea>
+                                    <div class="form-text">Initial observations and context (max 2000 characters)</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Artifact Upload Section -->
+                        <div class="row">
+                            <div class="col-12">
+                                <hr class="my-4">
+                                <h5 class="mb-3">
+                                    <i class="fas fa-upload me-2"></i>Initial Artifacts (Optional)
+                                </h5>
+                                <p class="text-muted mb-3">You can upload JSON artifacts now or add them later from the case details page.</p>
+                                
+                                <div class="mb-3">
+                                    <label for="artifacts" class="form-label">
+                                        <i class="fas fa-file-code me-1"></i>JSON Artifacts
+                                    </label>
+                                    <input type="file" class="form-control" id="artifacts" name="artifacts" 
+                                           multiple accept=".json" onchange="updateFileList()">
+                                    <div class="form-text">Select multiple JSON files (max 100MB each)</div>
+                                </div>
+                                
+                                <!-- File List Preview -->
+                                <div id="file-list" class="d-none">
+                                    <h6 class="mb-2">Selected Files:</h6>
+                                    <div id="file-items" class="border rounded p-3 bg-light"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Form Actions -->
+                    <div class="card-footer bg-light">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <button type="button" class="btn btn-outline-secondary" onclick="resetForm()">
+                                    <i class="fas fa-undo me-2"></i>Reset Form
+                                </button>
+                            </div>
+                            <div>
+                                <a href="{{ url_for('cases.list_cases') }}" class="btn btn-secondary me-2">
+                                    <i class="fas fa-times me-2"></i>Cancel
+                                </a>
+                                <button type="submit" class="btn btn-primary" id="submitBtn">
+                                    <i class="fas fa-save me-2"></i>Create Case
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Generate Case ID on page load
+document.addEventListener('DOMContentLoaded', function() {
+    generateCaseId();
+    
+    // Form validation
+    const form = document.getElementById('caseForm');
+    form.addEventListener('submit', function(e) {
+        if (!validateForm()) {
+            e.preventDefault();
+        } else {
+            // Show loading during submission
+            showLoading();
+            document.getElementById('submitBtn').disabled = true;
+        }
+    });
+    
+    // Auto-generate case ID when case name changes
+    document.getElementById('case_name').addEventListener('input', function() {
+        generateCaseId();
+    });
+});
+
+function generateCaseId() {
+    const caseName = document.getElementById('case_name').value;
+    const timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+    
+    let caseId = 'CASE';
+    if (caseName) {
+        // Extract first 3 characters from case name (alphanumeric only)
+        const namePrefix = caseName.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 3);
+        if (namePrefix) {
+            caseId += '_' + namePrefix;
+        }
+    }
+    caseId += '_' + timestamp + '_' + random;
+    
+    document.getElementById('case_id').value = caseId;
+}
+
+function updateFileList() {
+    const fileInput = document.getElementById('artifacts');
+    const fileList = document.getElementById('file-list');
+    const fileItems = document.getElementById('file-items');
+    
+    if (fileInput.files.length > 0) {
+        fileList.classList.remove('d-none');
+        fileItems.innerHTML = '';
+        
+        Array.from(fileInput.files).forEach((file, index) => {
+            const fileItem = document.createElement('div');
+            fileItem.className = 'd-flex justify-content-between align-items-center mb-2 p-2 border rounded bg-white';
+            
+            const fileInfo = document.createElement('div');
+            fileInfo.innerHTML = `
+                <i class="fas fa-file-code text-primary me-2"></i>
+                <strong>${file.name}</strong>
+                <small class="text-muted ms-2">(${formatFileSize(file.size)})</small>
+            `;
+            
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.className = 'btn btn-sm btn-outline-danger';
+            removeBtn.innerHTML = '<i class="fas fa-times"></i>';
+            removeBtn.onclick = () => removeFile(index);
+            
+            fileItem.appendChild(fileInfo);
+            fileItem.appendChild(removeBtn);
+            fileItems.appendChild(fileItem);
+        });
+    } else {
+        fileList.classList.add('d-none');
+    }
+}
+
+function removeFile(index) {
+    const fileInput = document.getElementById('artifacts');
+    const dt = new DataTransfer();
+    
+    Array.from(fileInput.files).forEach((file, i) => {
+        if (i !== index) {
+            dt.items.add(file);
+        }
+    });
+    
+    fileInput.files = dt.files;
+    updateFileList();
+}
+
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+function validateForm() {
+    const requiredFields = ['case_name', 'examiner'];
+    let isValid = true;
+    
+    requiredFields.forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        const value = field.value.trim();
+        
+        if (!value) {
+            field.classList.add('is-invalid');
+            isValid = false;
+        } else {
+            field.classList.remove('is-invalid');
+        }
+    });
+    
+    // Validate file sizes
+    const fileInput = document.getElementById('artifacts');
+    if (fileInput.files.length > 0) {
+        Array.from(fileInput.files).forEach(file => {
+            if (file.size > 100 * 1024 * 1024) { // 100MB limit
+                alert(`File "${file.name}" is too large. Maximum size is 100MB.`);
+                isValid = false;
+            }
+        });
+    }
+    
+    if (!isValid) {
+        alert('Please fill in all required fields and check file sizes.');
+    }
+    
+    return isValid;
+}
+
+function resetForm() {
+    if (confirm('Are you sure you want to reset the form? All entered data will be lost.')) {
+        document.getElementById('caseForm').reset();
+        document.getElementById('file-list').classList.add('d-none');
+        generateCaseId();
+        
+        // Remove validation classes
+        document.querySelectorAll('.is-invalid').forEach(el => {
+            el.classList.remove('is-invalid');
+        });
+    }
+}
+
+// Character counters for text areas
+document.getElementById('description').addEventListener('input', function() {
+    updateCharacterCount(this, 1000);
+});
+
+document.getElementById('notes').addEventListener('input', function() {
+    updateCharacterCount(this, 2000);
+});
+
+function updateCharacterCount(element, maxLength) {
+    const current = element.value.length;
+    const remaining = maxLength - current;
+    
+    let counter = element.parentNode.querySelector('.char-counter');
+    if (!counter) {
+        counter = document.createElement('div');
+        counter.className = 'char-counter form-text text-end';
+        element.parentNode.appendChild(counter);
+    }
+    
+    counter.textContent = `${current}/${maxLength} characters`;
+    counter.className = `char-counter form-text text-end ${remaining < 50 ? 'text-warning' : remaining < 10 ? 'text-danger' : ''}`;
+}
+</script>
+{% endblock %}

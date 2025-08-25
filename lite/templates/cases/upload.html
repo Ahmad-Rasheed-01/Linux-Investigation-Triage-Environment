@@ -1,0 +1,572 @@
+{% extends "base.html" %}
+
+{% block title %}Upload Artifacts - {{ case.case_name }} - LITE{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="h3 mb-0 text-gray-800">
+                        <i class="fas fa-upload me-2"></i>Upload Artifacts
+                    </h1>
+                    <p class="text-muted mb-0">
+                        Case: <strong>{{ case.case_name }}</strong> 
+                        <span class="badge bg-secondary ms-2">{{ case.case_id }}</span>
+                    </p>
+                </div>
+                <div>
+                    <a href="{{ url_for('cases.case_detail', case_id=case.case_id) }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-2"></i>Back to Case
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Upload Form -->
+    <div class="row">
+        <div class="col-xl-8 col-lg-10 mx-auto">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-file-upload me-2"></i>JSON Artifact Upload
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <form id="uploadForm" enctype="multipart/form-data">
+                        <!-- File Selection -->
+                        <div class="mb-4">
+                            <label for="artifacts" class="form-label">
+                                <i class="fas fa-file-code me-2"></i>Select JSON Files
+                            </label>
+                            <div class="upload-area" id="uploadArea">
+                                <div class="upload-content text-center py-5">
+                                    <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-3"></i>
+                                    <h5 class="text-muted mb-3">Drag & Drop JSON Files Here</h5>
+                                    <p class="text-muted mb-3">or</p>
+                                    <input type="file" id="artifacts" name="artifacts" multiple accept=".json" class="d-none">
+                                    <button type="button" class="btn btn-primary" onclick="document.getElementById('artifacts').click()">
+                                        <i class="fas fa-folder-open me-2"></i>Browse Files
+                                    </button>
+                                    <div class="mt-3">
+                                        <small class="text-muted">
+                                            <i class="fas fa-info-circle me-1"></i>
+                                            Supported formats: JSON files up to 500MB each
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- File Preview -->
+                        <div id="filePreview" class="mb-4" style="display: none;">
+                            <h6 class="text-primary mb-3">
+                                <i class="fas fa-list me-2"></i>Selected Files
+                            </h6>
+                            <div id="fileList" class="border rounded p-3 bg-light">
+                                <!-- Files will be listed here -->
+                            </div>
+                        </div>
+                        
+                        <!-- Upload Options -->
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="processImmediately" checked>
+                                    <label class="form-check-label" for="processImmediately">
+                                        <i class="fas fa-cogs me-2"></i>Process files immediately after upload
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="validateJson" checked>
+                                    <label class="form-check-label" for="validateJson">
+                                        <i class="fas fa-check-circle me-2"></i>Validate JSON format before upload
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Upload Progress -->
+                        <div id="uploadProgress" class="mb-4" style="display: none;">
+                            <h6 class="text-primary mb-3">
+                                <i class="fas fa-spinner fa-spin me-2"></i>Upload Progress
+                            </h6>
+                            <div class="progress mb-2" style="height: 25px;">
+                                <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated" 
+                                     role="progressbar" style="width: 0%">
+                                    <span id="progressText">0%</span>
+                                </div>
+                            </div>
+                            <div id="uploadStatus" class="text-muted">
+                                <small>Preparing upload...</small>
+                            </div>
+                        </div>
+                        
+                        <!-- Upload Results -->
+                        <div id="uploadResults" class="mb-4" style="display: none;">
+                            <h6 class="text-success mb-3">
+                                <i class="fas fa-check-circle me-2"></i>Upload Results
+                            </h6>
+                            <div id="resultsList">
+                                <!-- Results will be shown here -->
+                            </div>
+                        </div>
+                        
+                        <!-- Action Buttons -->
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <button type="button" id="clearFiles" class="btn btn-outline-secondary" style="display: none;">
+                                    <i class="fas fa-times me-2"></i>Clear Files
+                                </button>
+                            </div>
+                            <div>
+                                <button type="button" id="cancelUpload" class="btn btn-outline-danger me-2" style="display: none;">
+                                    <i class="fas fa-stop me-2"></i>Cancel Upload
+                                </button>
+                                <button type="submit" id="uploadBtn" class="btn btn-success" disabled>
+                                    <i class="fas fa-upload me-2"></i>Upload Files
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Upload Tips -->
+    <div class="row mt-4">
+        <div class="col-xl-8 col-lg-10 mx-auto">
+            <div class="card border-info">
+                <div class="card-header bg-info text-white">
+                    <h6 class="m-0">
+                        <i class="fas fa-lightbulb me-2"></i>Upload Tips
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-primary">File Requirements</h6>
+                            <ul class="list-unstyled">
+                                <li><i class="fas fa-check text-success me-2"></i>JSON format only</li>
+                                <li><i class="fas fa-check text-success me-2"></i>Maximum 500MB per file</li>
+                                <li><i class="fas fa-check text-success me-2"></i>Multiple files supported</li>
+                                <li><i class="fas fa-check text-success me-2"></i>Original filenames preserved</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-primary">Processing Information</h6>
+                            <ul class="list-unstyled">
+                                <li><i class="fas fa-info text-info me-2"></i>Large files processed in background</li>
+                                <li><i class="fas fa-info text-info me-2"></i>Upload progress tracked in real-time</li>
+                                <li><i class="fas fa-info text-info me-2"></i>Failed uploads can be retried</li>
+                                <li><i class="fas fa-info text-info me-2"></i>Duplicate files automatically detected</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let selectedFiles = [];
+let uploadInProgress = false;
+let uploadAborted = false;
+
+// File input change handler
+document.getElementById('artifacts').addEventListener('change', function(e) {
+    handleFiles(e.target.files);
+});
+
+// Drag and drop handlers
+const uploadArea = document.getElementById('uploadArea');
+
+uploadArea.addEventListener('dragover', function(e) {
+    e.preventDefault();
+    uploadArea.classList.add('drag-over');
+});
+
+uploadArea.addEventListener('dragleave', function(e) {
+    e.preventDefault();
+    uploadArea.classList.remove('drag-over');
+});
+
+uploadArea.addEventListener('drop', function(e) {
+    e.preventDefault();
+    uploadArea.classList.remove('drag-over');
+    handleFiles(e.dataTransfer.files);
+});
+
+function handleFiles(files) {
+    selectedFiles = Array.from(files).filter(file => {
+        if (file.type !== 'application/json' && !file.name.endsWith('.json')) {
+            alert(`"${file.name}" is not a JSON file and will be skipped.`);
+            return false;
+        }
+        if (file.size > 500 * 1024 * 1024) { // 500MB limit
+            alert(`"${file.name}" is too large (max 500MB) and will be skipped.`);
+            return false;
+        }
+        return true;
+    });
+    
+    if (selectedFiles.length > 0) {
+        displayFilePreview();
+        document.getElementById('uploadBtn').disabled = false;
+        document.getElementById('clearFiles').style.display = 'inline-block';
+    } else {
+        hideFilePreview();
+        document.getElementById('uploadBtn').disabled = true;
+        document.getElementById('clearFiles').style.display = 'none';
+    }
+}
+
+function displayFilePreview() {
+    const filePreview = document.getElementById('filePreview');
+    const fileList = document.getElementById('fileList');
+    
+    let html = '';
+    let totalSize = 0;
+    
+    selectedFiles.forEach((file, index) => {
+        totalSize += file.size;
+        html += `
+            <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-file-code text-primary me-3"></i>
+                    <div>
+                        <div class="fw-bold">${file.name}</div>
+                        <small class="text-muted">${formatFileSize(file.size)}</small>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeFile(${index})">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `;
+    });
+    
+    html += `
+        <div class="d-flex justify-content-between align-items-center pt-2 mt-2 border-top">
+            <strong>Total: ${selectedFiles.length} files</strong>
+            <strong>Size: ${formatFileSize(totalSize)}</strong>
+        </div>
+    `;
+    
+    fileList.innerHTML = html;
+    filePreview.style.display = 'block';
+}
+
+function hideFilePreview() {
+    document.getElementById('filePreview').style.display = 'none';
+}
+
+function removeFile(index) {
+    selectedFiles.splice(index, 1);
+    if (selectedFiles.length > 0) {
+        displayFilePreview();
+    } else {
+        hideFilePreview();
+        document.getElementById('uploadBtn').disabled = true;
+        document.getElementById('clearFiles').style.display = 'none';
+    }
+}
+
+function clearFiles() {
+    selectedFiles = [];
+    document.getElementById('artifacts').value = '';
+    hideFilePreview();
+    document.getElementById('uploadBtn').disabled = true;
+    document.getElementById('clearFiles').style.display = 'none';
+}
+
+document.getElementById('clearFiles').addEventListener('click', clearFiles);
+
+// Upload form submission
+document.getElementById('uploadForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    if (selectedFiles.length === 0) {
+        alert('Please select files to upload.');
+        return;
+    }
+    
+    if (uploadInProgress) {
+        return;
+    }
+    
+    uploadFiles();
+});
+
+async function uploadFiles() {
+    uploadInProgress = true;
+    uploadAborted = false;
+    
+    // Show progress section
+    document.getElementById('uploadProgress').style.display = 'block';
+    document.getElementById('uploadResults').style.display = 'none';
+    document.getElementById('uploadBtn').style.display = 'none';
+    document.getElementById('cancelUpload').style.display = 'inline-block';
+    
+    const processImmediately = document.getElementById('processImmediately').checked;
+    const validateJson = document.getElementById('validateJson').checked;
+    
+    const results = [];
+    let completed = 0;
+    
+    for (let i = 0; i < selectedFiles.length && !uploadAborted; i++) {
+        const file = selectedFiles[i];
+        
+        try {
+            updateProgress(completed, selectedFiles.length, `Uploading ${file.name}...`);
+            
+            // Validate JSON if requested
+            if (validateJson) {
+                updateProgress(completed, selectedFiles.length, `Validating ${file.name}...`);
+                const isValid = await validateJsonFile(file);
+                if (!isValid) {
+                    results.push({
+                        filename: file.name,
+                        success: false,
+                        message: 'Invalid JSON format'
+                    });
+                    completed++;
+                    continue;
+                }
+            }
+            
+            // Upload file
+            const result = await uploadFile(file, processImmediately);
+            results.push(result);
+            
+        } catch (error) {
+            console.error('Upload error:', error);
+            results.push({
+                filename: file.name,
+                success: false,
+                message: error.message || 'Upload failed'
+            });
+        }
+        
+        completed++;
+        updateProgress(completed, selectedFiles.length, 
+            completed === selectedFiles.length ? 'Upload complete!' : `Uploaded ${completed}/${selectedFiles.length} files`);
+    }
+    
+    uploadInProgress = false;
+    
+    if (!uploadAborted) {
+        showResults(results);
+    }
+    
+    // Reset UI
+    document.getElementById('cancelUpload').style.display = 'none';
+    document.getElementById('uploadBtn').style.display = 'inline-block';
+    document.getElementById('uploadBtn').disabled = false;
+}
+
+function validateJsonFile(file) {
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                JSON.parse(e.target.result);
+                resolve(true);
+            } catch (error) {
+                resolve(false);
+            }
+        };
+        reader.onerror = () => resolve(false);
+        reader.readAsText(file);
+    });
+}
+
+function uploadFile(file, processImmediately) {
+    return new Promise((resolve, reject) => {
+        const formData = new FormData();
+        formData.append('artifacts', file);
+        formData.append('process_immediately', processImmediately);
+        
+        const xhr = new XMLHttpRequest();
+        
+        xhr.upload.addEventListener('progress', function(e) {
+            if (e.lengthComputable) {
+                const percentComplete = (e.loaded / e.total) * 100;
+                // Update individual file progress if needed
+            }
+        });
+        
+        xhr.addEventListener('load', function() {
+            if (xhr.status === 200) {
+                try {
+                    const response = JSON.parse(xhr.responseText);
+                    if (response.success) {
+                        resolve({
+                            filename: file.name,
+                            success: true,
+                            message: response.message || 'Upload successful',
+                            artifact_id: response.artifact_id
+                        });
+                    } else {
+                        resolve({
+                            filename: file.name,
+                            success: false,
+                            message: response.message || 'Upload failed'
+                        });
+                    }
+                } catch (error) {
+                    resolve({
+                        filename: file.name,
+                        success: false,
+                        message: 'Invalid server response'
+                    });
+                }
+            } else {
+                resolve({
+                    filename: file.name,
+                    success: false,
+                    message: `HTTP ${xhr.status}: ${xhr.statusText}`
+                });
+            }
+        });
+        
+        xhr.addEventListener('error', function() {
+            resolve({
+                filename: file.name,
+                success: false,
+                message: 'Network error'
+            });
+        });
+        
+        xhr.addEventListener('abort', function() {
+            resolve({
+                filename: file.name,
+                success: false,
+                message: 'Upload cancelled'
+            });
+        });
+        
+        xhr.open('POST', `/cases/{{ case.case_id }}/upload`);
+        xhr.send(formData);
+    });
+}
+
+function updateProgress(completed, total, message) {
+    const percentage = Math.round((completed / total) * 100);
+    const progressBar = document.getElementById('progressBar');
+    const progressText = document.getElementById('progressText');
+    const uploadStatus = document.getElementById('uploadStatus');
+    
+    progressBar.style.width = percentage + '%';
+    progressText.textContent = percentage + '%';
+    uploadStatus.innerHTML = `<small>${message}</small>`;
+}
+
+function showResults(results) {
+    const uploadResults = document.getElementById('uploadResults');
+    const resultsList = document.getElementById('resultsList');
+    
+    let html = '';
+    let successCount = 0;
+    let failureCount = 0;
+    
+    results.forEach(result => {
+        if (result.success) {
+            successCount++;
+            html += `
+                <div class="alert alert-success d-flex align-items-center" role="alert">
+                    <i class="fas fa-check-circle me-3"></i>
+                    <div>
+                        <strong>${result.filename}</strong> - ${result.message}
+                    </div>
+                </div>
+            `;
+        } else {
+            failureCount++;
+            html += `
+                <div class="alert alert-danger d-flex align-items-center" role="alert">
+                    <i class="fas fa-exclamation-triangle me-3"></i>
+                    <div>
+                        <strong>${result.filename}</strong> - ${result.message}
+                    </div>
+                </div>
+            `;
+        }
+    });
+    
+    // Add summary
+    html = `
+        <div class="alert alert-info d-flex align-items-center mb-3" role="alert">
+            <i class="fas fa-info-circle me-3"></i>
+            <div>
+                <strong>Upload Summary:</strong> ${successCount} successful, ${failureCount} failed out of ${results.length} files
+            </div>
+        </div>
+    ` + html;
+    
+    // Add action buttons
+    html += `
+        <div class="d-flex justify-content-between mt-3">
+            <button type="button" class="btn btn-outline-primary" onclick="clearFiles()">
+                <i class="fas fa-plus me-2"></i>Upload More Files
+            </button>
+            <a href="{{ url_for('cases.case_detail', case_id=case.case_id) }}" class="btn btn-success">
+                <i class="fas fa-eye me-2"></i>View Case Details
+            </a>
+        </div>
+    `;
+    
+    resultsList.innerHTML = html;
+    uploadResults.style.display = 'block';
+}
+
+// Cancel upload
+document.getElementById('cancelUpload').addEventListener('click', function() {
+    if (confirm('Are you sure you want to cancel the upload?')) {
+        uploadAborted = true;
+        // Note: Individual XMLHttpRequest objects would need to be tracked to abort them
+        alert('Upload cancellation requested. Some files may still complete.');
+    }
+});
+
+// Utility functions
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+// Add CSS for drag and drop styling
+const style = document.createElement('style');
+style.textContent = `
+    .upload-area {
+        border: 2px dashed #dee2e6;
+        border-radius: 0.375rem;
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+    
+    .upload-area:hover,
+    .upload-area.drag-over {
+        border-color: #0d6efd;
+        background-color: #f8f9ff;
+    }
+    
+    .upload-content {
+        pointer-events: none;
+    }
+`;
+document.head.appendChild(style);
+</script>
+{% endblock %}

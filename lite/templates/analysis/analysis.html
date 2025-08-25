@@ -1,0 +1,817 @@
+{% extends "base.html" %}
+
+{% block title %}Analysis - {{ case.case_name }} - LITE{% endblock %}
+
+{% block content %}
+<div class="d-flex" id="wrapper">
+    <!-- Sidebar -->
+    <div class="bg-light border-end" id="sidebar-wrapper" style="min-height: 100vh; width: 280px;">
+        <div class="sidebar-heading border-bottom bg-primary text-white p-3">
+            <h6 class="mb-0">
+                <i class="fas fa-search me-2"></i>Analysis Navigation
+            </h6>
+        </div>
+        <div class="list-group list-group-flush">
+            <!-- Overview Section -->
+            <div class="list-group-item list-group-item-action bg-light p-0">
+                <div class="nav-section-header p-3" data-bs-toggle="collapse" data-bs-target="#overviewSection" aria-expanded="true">
+                    <i class="fas fa-chart-pie me-2"></i>
+                    <strong>Overview</strong>
+                    <i class="fas fa-chevron-down float-end mt-1"></i>
+                </div>
+                <div class="collapse show" id="overviewSection">
+                    <a href="#" class="list-group-item list-group-item-action ps-4 nav-link active" data-section="overview">
+                        <i class="fas fa-info-circle me-2"></i>Case Summary
+                    </a>
+                    <a href="#" class="list-group-item list-group-item-action ps-4 nav-link" data-section="artifacts">
+                        <i class="fas fa-file-alt me-2"></i>Artifacts Overview
+                    </a>
+                    <a href="#" class="list-group-item list-group-item-action ps-4 nav-link" data-section="timeline">
+                        <i class="fas fa-clock me-2"></i>Timeline
+                    </a>
+                </div>
+            </div>
+            
+            <!-- System Information Section -->
+            <div class="list-group-item list-group-item-action bg-light p-0">
+                <div class="nav-section-header p-3" data-bs-toggle="collapse" data-bs-target="#systemSection" aria-expanded="false">
+                    <i class="fas fa-server me-2"></i>
+                    <strong>System Information</strong>
+                    <i class="fas fa-chevron-down float-end mt-1"></i>
+                </div>
+                <div class="collapse" id="systemSection">
+                    <a href="#" class="list-group-item list-group-item-action ps-4 nav-link" data-section="system-info">
+                        <i class="fas fa-desktop me-2"></i>System Details
+                    </a>
+                    <a href="#" class="list-group-item list-group-item-action ps-4 nav-link" data-section="hardware">
+                        <i class="fas fa-microchip me-2"></i>Hardware Info
+                    </a>
+                    <a href="#" class="list-group-item list-group-item-action ps-4 nav-link" data-section="environment">
+                        <i class="fas fa-cog me-2"></i>Environment Variables
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Users Section -->
+            <div class="list-group-item list-group-item-action bg-light p-0">
+                <div class="nav-section-header p-3" data-bs-toggle="collapse" data-bs-target="#usersSection" aria-expanded="false">
+                    <i class="fas fa-users me-2"></i>
+                    <strong>Users</strong>
+                    <i class="fas fa-chevron-down float-end mt-1"></i>
+                </div>
+                <div class="collapse" id="usersSection">
+                    <a href="#" class="list-group-item list-group-item-action ps-4 nav-link" data-section="user-accounts">
+                        <i class="fas fa-user me-2"></i>User Accounts
+                    </a>
+                    <a href="#" class="list-group-item list-group-item-action ps-4 nav-link" data-section="login-history">
+                        <i class="fas fa-sign-in-alt me-2"></i>Login History
+                    </a>
+                    <a href="#" class="list-group-item list-group-item-action ps-4 nav-link" data-section="user-activity">
+                        <i class="fas fa-user-clock me-2"></i>User Activity
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Processes Section -->
+            <div class="list-group-item list-group-item-action bg-light p-0">
+                <div class="nav-section-header p-3" data-bs-toggle="collapse" data-bs-target="#processesSection" aria-expanded="false">
+                    <i class="fas fa-tasks me-2"></i>
+                    <strong>Processes</strong>
+                    <i class="fas fa-chevron-down float-end mt-1"></i>
+                </div>
+                <div class="collapse" id="processesSection">
+                    <a href="#" class="list-group-item list-group-item-action ps-4 nav-link" data-section="running-processes">
+                        <i class="fas fa-play me-2"></i>Running Processes
+                    </a>
+                    <a href="#" class="list-group-item list-group-item-action ps-4 nav-link" data-section="process-tree">
+                        <i class="fas fa-sitemap me-2"></i>Process Tree
+                    </a>
+                    <a href="#" class="list-group-item list-group-item-action ps-4 nav-link" data-section="services">
+                        <i class="fas fa-cogs me-2"></i>Services
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Network Section -->
+            <div class="list-group-item list-group-item-action bg-light p-0">
+                <div class="nav-section-header p-3" data-bs-toggle="collapse" data-bs-target="#networkSection" aria-expanded="false">
+                    <i class="fas fa-network-wired me-2"></i>
+                    <strong>Network</strong>
+                    <i class="fas fa-chevron-down float-end mt-1"></i>
+                </div>
+                <div class="collapse" id="networkSection">
+                    <a href="#" class="list-group-item list-group-item-action ps-4 nav-link" data-section="network-connections">
+                        <i class="fas fa-plug me-2"></i>Connections
+                    </a>
+                    <a href="#" class="list-group-item list-group-item-action ps-4 nav-link" data-section="network-interfaces">
+                        <i class="fas fa-ethernet me-2"></i>Interfaces
+                    </a>
+                    <a href="#" class="list-group-item list-group-item-action ps-4 nav-link" data-section="network-config">
+                        <i class="fas fa-network-wired me-2"></i>Configuration
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Logs Section -->
+            <div class="list-group-item list-group-item-action bg-light p-0">
+                <div class="nav-section-header p-3" data-bs-toggle="collapse" data-bs-target="#logsSection" aria-expanded="false">
+                    <i class="fas fa-file-alt me-2"></i>
+                    <strong>Logs</strong>
+                    <i class="fas fa-chevron-down float-end mt-1"></i>
+                </div>
+                <div class="collapse" id="logsSection">
+                    <a href="#" class="list-group-item list-group-item-action ps-4 nav-link" data-section="system-logs">
+                        <i class="fas fa-clipboard-list me-2"></i>System Logs
+                    </a>
+                    <a href="#" class="list-group-item list-group-item-action ps-4 nav-link" data-section="auth-logs">
+                        <i class="fas fa-shield-alt me-2"></i>Authentication
+                    </a>
+                    <a href="#" class="list-group-item list-group-item-action ps-4 nav-link" data-section="application-logs">
+                        <i class="fas fa-code me-2"></i>Applications
+                    </a>
+                </div>
+            </div>
+            
+            <!-- File System Section -->
+            <div class="list-group-item list-group-item-action bg-light p-0">
+                <div class="nav-section-header p-3" data-bs-toggle="collapse" data-bs-target="#filesystemSection" aria-expanded="false">
+                    <i class="fas fa-folder me-2"></i>
+                    <strong>File System</strong>
+                    <i class="fas fa-chevron-down float-end mt-1"></i>
+                </div>
+                <div class="collapse" id="filesystemSection">
+                    <a href="#" class="list-group-item list-group-item-action ps-4 nav-link" data-section="file-listing">
+                        <i class="fas fa-list me-2"></i>File Listing
+                    </a>
+                    <a href="#" class="list-group-item list-group-item-action ps-4 nav-link" data-section="file-permissions">
+                        <i class="fas fa-lock me-2"></i>Permissions
+                    </a>
+                    <a href="#" class="list-group-item list-group-item-action ps-4 nav-link" data-section="mount-points">
+                        <i class="fas fa-hdd me-2"></i>Mount Points
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Page Content -->
+    <div id="page-content-wrapper" class="flex-grow-1">
+        <!-- Top Bar -->
+        <div class="bg-white border-bottom p-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center">
+                    <button class="btn btn-outline-secondary btn-sm me-3" id="menu-toggle">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <h4 class="mb-0">
+                        <i class="fas fa-search me-2"></i>{{ case.case_name }} Analysis
+                    </h4>
+                    <span class="badge bg-secondary ms-2">{{ case.case_id }}</span>
+                </div>
+                <div>
+                    <!-- Search Bar -->
+                    <div class="input-group" style="width: 300px;">
+                        <input type="text" class="form-control" id="searchInput" placeholder="Search artifacts...">
+                        <button class="btn btn-outline-secondary" type="button" id="searchBtn">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </div>
+                <div>
+                    <a href="{{ url_for('cases.case_detail', case_id=case.case_id) }}" class="btn btn-outline-primary btn-sm me-2">
+                        <i class="fas fa-folder me-1"></i>Case Details
+                    </a>
+                    <a href="{{ url_for('cases.list_cases') }}" class="btn btn-outline-secondary btn-sm">
+                        <i class="fas fa-arrow-left me-1"></i>Back to Cases
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main Content Area -->
+        <div class="container-fluid p-4">
+            <div id="content-area">
+                <!-- Content will be loaded here dynamically -->
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-3 text-muted">Loading analysis data...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Search Results Modal -->
+<div class="modal fade" id="searchModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-search me-2"></i>Search Results
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="searchResults">
+                    <!-- Search results will be displayed here -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let currentSection = 'overview';
+let sidebarCollapsed = false;
+
+// Initialize page
+document.addEventListener('DOMContentLoaded', function() {
+    loadSection('overview');
+    
+    // Setup navigation click handlers
+    document.querySelectorAll('.nav-link').forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            const section = this.getAttribute('data-section');
+            if (section) {
+                loadSection(section);
+                setActiveNavLink(this);
+            }
+        });
+    });
+    
+    // Setup sidebar toggle
+    document.getElementById('menu-toggle').addEventListener('click', function() {
+        toggleSidebar();
+    });
+    
+    // Setup search
+    document.getElementById('searchBtn').addEventListener('click', function() {
+        performSearch();
+    });
+    
+    document.getElementById('searchInput').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            performSearch();
+        }
+    });
+    
+    // Setup section header click handlers for collapse
+    document.querySelectorAll('.nav-section-header').forEach(header => {
+        header.addEventListener('click', function() {
+            const icon = this.querySelector('.fa-chevron-down');
+            setTimeout(() => {
+                const isExpanded = this.getAttribute('aria-expanded') === 'true';
+                icon.style.transform = isExpanded ? 'rotate(0deg)' : 'rotate(-90deg)';
+            }, 10);
+        });
+    });
+});
+
+function loadSection(section) {
+    currentSection = section;
+    const contentArea = document.getElementById('content-area');
+    
+    // Show loading spinner
+    contentArea.innerHTML = `
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-3 text-muted">Loading ${section.replace('-', ' ')} data...</p>
+        </div>
+    `;
+    
+    // Fetch section data
+    fetch(`/analysis/{{ case.case_id }}/data/${section}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                renderSectionContent(section, data.data);
+            } else {
+                showError(data.message || 'Failed to load section data');
+            }
+        })
+        .catch(error => {
+            console.error('Error loading section:', error);
+            showError('Network error while loading data');
+        });
+}
+
+function renderSectionContent(section, data) {
+    const contentArea = document.getElementById('content-area');
+    
+    switch (section) {
+        case 'overview':
+            renderOverview(data);
+            break;
+        case 'artifacts':
+            renderArtifacts(data);
+            break;
+        case 'timeline':
+            renderTimeline(data);
+            break;
+        case 'system-info':
+            renderSystemInfo(data);
+            break;
+        case 'user-accounts':
+            renderUserAccounts(data);
+            break;
+        case 'running-processes':
+            renderProcesses(data);
+            break;
+        case 'network-connections':
+            renderNetworkConnections(data);
+            break;
+        case 'system-logs':
+            renderLogs(data);
+            break;
+        default:
+            renderGenericData(section, data);
+    }
+}
+
+function renderOverview(data) {
+    const contentArea = document.getElementById('content-area');
+    contentArea.innerHTML = `
+        <div class="row mb-4">
+            <div class="col-12">
+                <h2 class="h4 mb-3">
+                    <i class="fas fa-chart-pie me-2"></i>Case Overview
+                </h2>
+            </div>
+        </div>
+        
+        <!-- Statistics Cards -->
+        <div class="row mb-4">
+            <div class="col-xl-3 col-md-6 mb-4">
+                <div class="card border-left-primary shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total Artifacts</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">${data.total_artifacts || 0}</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-file-alt fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-xl-3 col-md-6 mb-4">
+                <div class="card border-left-success shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Total Size</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">${data.total_size || '0 MB'}</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-database fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-xl-3 col-md-6 mb-4">
+                <div class="card border-left-info shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Processed</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">${data.processed_artifacts || 0}</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-xl-3 col-md-6 mb-4">
+                <div class="card border-left-warning shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Processing</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">${data.processing_artifacts || 0}</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-spinner fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Case Information -->
+        <div class="row">
+            <div class="col-lg-8">
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-primary">Case Information</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>Case ID:</strong> {{ case.case_id }}</p>
+                                <p><strong>Examiner:</strong> {{ case.examiner }}</p>
+                                <p><strong>Status:</strong> 
+                                    <span class="badge bg-{{ 'success' if case.status == 'active' else 'warning' }}">{{ case.status.title() }}</span>
+                                </p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>Created:</strong> {{ case.creation_date.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+                                <p><strong>Incident Date:</strong> {{ case.incident_date.strftime('%Y-%m-%d') if case.incident_date else 'Not specified' }}</p>
+                                <p><strong>OS:</strong> {{ case.operating_system or 'Not specified' }}</p>
+                            </div>
+                        </div>
+                        {% if case.description %}
+                        <div class="mt-3">
+                            <strong>Description:</strong>
+                            <p class="mt-2">{{ case.description }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-4">
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-primary">Artifact Types</h6>
+                    </div>
+                    <div class="card-body">
+                        <div id="artifactTypesChart" style="height: 200px;">
+                            <!-- Chart will be rendered here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Render artifact types chart if data available
+    if (data.artifact_types && data.artifact_types.length > 0) {
+        renderArtifactTypesChart(data.artifact_types);
+    }
+}
+
+function renderArtifacts(data) {
+    const contentArea = document.getElementById('content-area');
+    let html = `
+        <div class="row mb-4">
+            <div class="col-12">
+                <h2 class="h4 mb-3">
+                    <i class="fas fa-file-alt me-2"></i>Artifacts Overview
+                </h2>
+            </div>
+        </div>
+        
+        <div class="card shadow">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">All Artifacts (${data.artifacts ? data.artifacts.length : 0})</h6>
+            </div>
+            <div class="card-body">
+    `;
+    
+    if (data.artifacts && data.artifacts.length > 0) {
+        html += `
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Filename</th>
+                            <th>Category</th>
+                            <th>Size</th>
+                            <th>Status</th>
+                            <th>Upload Time</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+        
+        data.artifacts.forEach(artifact => {
+            html += `
+                <tr>
+                    <td>
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-file-code text-primary me-2"></i>
+                            <div>
+                                <div class="fw-bold">${artifact.filename}</div>
+                                <small class="text-muted">${artifact.original_filename || artifact.filename}</small>
+                            </div>
+                        </div>
+                    </td>
+                    <td><span class="badge bg-info">${artifact.category || 'Unknown'}</span></td>
+                    <td>${artifact.size_formatted || 'Unknown'}</td>
+                    <td>
+                        ${artifact.status === 'completed' ? 
+                            '<span class="badge bg-success"><i class="fas fa-check me-1"></i>Completed</span>' :
+                            artifact.status === 'processing' ?
+                            '<span class="badge bg-warning"><i class="fas fa-spinner fa-spin me-1"></i>Processing</span>' :
+                            '<span class="badge bg-secondary">' + (artifact.status || 'Unknown') + '</span>'
+                        }
+                    </td>
+                    <td><small>${artifact.upload_timestamp || 'Unknown'}</small></td>
+                    <td>
+                        <div class="btn-group btn-group-sm" role="group">
+                            ${artifact.status === 'completed' ? 
+                                `<a href="/analysis/{{ case.case_id }}/artifact/${artifact.id}" class="btn btn-outline-primary" title="View Content">
+                                    <i class="fas fa-eye"></i>
+                                </a>` : ''
+                            }
+                            <button class="btn btn-outline-info" onclick="downloadArtifact(${artifact.id})" title="Download">
+                                <i class="fas fa-download"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        });
+        
+        html += `
+                    </tbody>
+                </table>
+            </div>
+        `;
+    } else {
+        html += `
+            <div class="text-center py-5">
+                <i class="fas fa-file-upload fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted mb-3">No Artifacts Found</h5>
+                <p class="text-muted mb-4">Upload JSON artifacts to begin analysis</p>
+                <a href="{{ url_for('cases.upload_artifacts', case_id=case.case_id) }}" class="btn btn-primary">
+                    <i class="fas fa-upload me-2"></i>Upload Artifacts
+                </a>
+            </div>
+        `;
+    }
+    
+    html += `
+            </div>
+        </div>
+    `;
+    
+    contentArea.innerHTML = html;
+}
+
+function renderGenericData(section, data) {
+    const contentArea = document.getElementById('content-area');
+    const sectionTitle = section.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase());
+    
+    let html = `
+        <div class="row mb-4">
+            <div class="col-12">
+                <h2 class="h4 mb-3">
+                    <i class="fas fa-info-circle me-2"></i>${sectionTitle}
+                </h2>
+            </div>
+        </div>
+    `;
+    
+    if (data && Object.keys(data).length > 0) {
+        html += `
+            <div class="card shadow">
+                <div class="card-body">
+                    <pre class="bg-light p-3 rounded"><code>${JSON.stringify(data, null, 2)}</code></pre>
+                </div>
+            </div>
+        `;
+    } else {
+        html += `
+            <div class="card shadow">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-info-circle fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted mb-3">No Data Available</h5>
+                    <p class="text-muted">No ${sectionTitle.toLowerCase()} data found in the uploaded artifacts.</p>
+                </div>
+            </div>
+        `;
+    }
+    
+    contentArea.innerHTML = html;
+}
+
+function setActiveNavLink(activeLink) {
+    // Remove active class from all nav links
+    document.querySelectorAll('.nav-link').forEach(link => {
+        link.classList.remove('active');
+    });
+    
+    // Add active class to clicked link
+    activeLink.classList.add('active');
+}
+
+function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar-wrapper');
+    const content = document.getElementById('page-content-wrapper');
+    
+    if (sidebarCollapsed) {
+        sidebar.style.marginLeft = '0';
+        sidebar.style.width = '280px';
+        content.style.marginLeft = '0';
+        sidebarCollapsed = false;
+    } else {
+        sidebar.style.marginLeft = '-280px';
+        sidebar.style.width = '280px';
+        content.style.marginLeft = '0';
+        sidebarCollapsed = true;
+    }
+}
+
+function performSearch() {
+    const query = document.getElementById('searchInput').value.trim();
+    if (!query) {
+        alert('Please enter a search term');
+        return;
+    }
+    
+    // Show search modal
+    const modal = new bootstrap.Modal(document.getElementById('searchModal'));
+    modal.show();
+    
+    // Show loading in search results
+    document.getElementById('searchResults').innerHTML = `
+        <div class="text-center py-4">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Searching...</span>
+            </div>
+            <p class="mt-3 text-muted">Searching artifacts for "${query}"...</p>
+        </div>
+    `;
+    
+    // Perform search
+    fetch(`/analysis/{{ case.case_id }}/search?q=${encodeURIComponent(query)}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                displaySearchResults(data.results, query);
+            } else {
+                document.getElementById('searchResults').innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Search failed: ${data.message || 'Unknown error'}
+                    </div>
+                `;
+            }
+        })
+        .catch(error => {
+            console.error('Search error:', error);
+            document.getElementById('searchResults').innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Network error during search
+                </div>
+            `;
+        });
+}
+
+function displaySearchResults(results, query) {
+    const searchResults = document.getElementById('searchResults');
+    
+    if (results.length === 0) {
+        searchResults.innerHTML = `
+            <div class="text-center py-4">
+                <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted mb-3">No Results Found</h5>
+                <p class="text-muted">No matches found for "${query}"</p>
+            </div>
+        `;
+        return;
+    }
+    
+    let html = `
+        <div class="mb-3">
+            <h6 class="text-primary">Found ${results.length} result(s) for "${query}"</h6>
+        </div>
+    `;
+    
+    results.forEach(result => {
+        html += `
+            <div class="card mb-3">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h6 class="card-title">
+                                <i class="fas fa-file-code me-2"></i>${result.filename}
+                            </h6>
+                            <p class="card-text">
+                                <small class="text-muted">Match in: ${result.match_location || 'Content'}</small>
+                            </p>
+                            ${result.snippet ? `<p class="card-text"><small>${result.snippet}</small></p>` : ''}
+                        </div>
+                        <div>
+                            <a href="/analysis/{{ case.case_id }}/artifact/${result.artifact_id}" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-eye me-1"></i>View
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    searchResults.innerHTML = html;
+}
+
+function showError(message) {
+    const contentArea = document.getElementById('content-area');
+    contentArea.innerHTML = `
+        <div class="alert alert-danger" role="alert">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            <strong>Error:</strong> ${message}
+        </div>
+    `;
+}
+
+function downloadArtifact(artifactId) {
+    window.open(`/cases/{{ case.case_id }}/artifacts/${artifactId}/download`, '_blank');
+}
+
+function renderArtifactTypesChart(types) {
+    // Simple chart rendering - you can enhance this with Chart.js
+    const chartContainer = document.getElementById('artifactTypesChart');
+    let html = '';
+    
+    types.forEach(type => {
+        const percentage = (type.count / types.reduce((sum, t) => sum + t.count, 0)) * 100;
+        html += `
+            <div class="mb-2">
+                <div class="d-flex justify-content-between">
+                    <span class="text-sm">${type.category}</span>
+                    <span class="text-sm">${type.count}</span>
+                </div>
+                <div class="progress progress-sm">
+                    <div class="progress-bar bg-primary" style="width: ${percentage}%"></div>
+                </div>
+            </div>
+        `;
+    });
+    
+    chartContainer.innerHTML = html;
+}
+
+// Add custom CSS
+const style = document.createElement('style');
+style.textContent = `
+    .nav-section-header {
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+    
+    .nav-section-header:hover {
+        background-color: rgba(0,0,0,0.05);
+    }
+    
+    .nav-section-header .fa-chevron-down {
+        transition: transform 0.2s;
+    }
+    
+    .border-left-primary {
+        border-left: 0.25rem solid #4e73df !important;
+    }
+    
+    .border-left-success {
+        border-left: 0.25rem solid #1cc88a !important;
+    }
+    
+    .border-left-info {
+        border-left: 0.25rem solid #36b9cc !important;
+    }
+    
+    .border-left-warning {
+        border-left: 0.25rem solid #f6c23e !important;
+    }
+    
+    .progress-sm {
+        height: 0.5rem;
+    }
+    
+    #sidebar-wrapper {
+        transition: margin-left 0.3s ease;
+    }
+    
+    @media (max-width: 768px) {
+        #sidebar-wrapper {
+            margin-left: -280px;
+        }
+        
+        #sidebar-wrapper.show {
+            margin-left: 0;
+        }
+    }
+`;
+document.head.appendChild(style);
+</script>
+{% endblock %}
