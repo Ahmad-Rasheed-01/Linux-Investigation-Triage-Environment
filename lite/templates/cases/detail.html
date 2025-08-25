@@ -158,7 +158,7 @@
                     <div class="row text-center">
                         <div class="col-6 mb-3">
                             <div class="border-end">
-                                <div class="h4 mb-0 text-primary">{{ case.artifact_count }}</div>
+                                <div class="h4 mb-0 text-primary">{{ case.total_artifacts }}</div>
                                 <small class="text-muted">Total Artifacts</small>
                             </div>
                         </div>
@@ -176,10 +176,10 @@
                             <span class="badge bg-info">{{ processing_count }} processing</span>
                         </div>
                         <div class="progress progress-sm">
-                            <div class="progress-bar bg-success" style="width: {{ ((case.artifact_count - processing_count) / case.artifact_count * 100) if case.artifact_count > 0 else 100 }}%"></div>
-                            <div class="progress-bar bg-warning" style="width: {{ (processing_count / case.artifact_count * 100) if case.artifact_count > 0 else 0 }}%"></div>
+                            <div class="progress-bar bg-success" style="width: {{ ((case.total_artifacts - processing_count) / case.total_artifacts * 100) if case.total_artifacts > 0 else 100 }}%"></div>
+                            <div class="progress-bar bg-warning" style="width: {{ (processing_count / case.total_artifacts * 100) if case.total_artifacts > 0 else 0 }}%"></div>
                         </div>
-                        <small class="text-muted">{{ case.artifact_count - processing_count }} completed, {{ processing_count }} processing</small>
+                        <small class="text-muted">{{ case.total_artifacts - processing_count }} completed, {{ processing_count }} processing</small>
                     </div>
                     
                     <div class="mb-3">
@@ -208,7 +208,7 @@
             <div class="card shadow">
                 <div class="card-header py-3 d-flex justify-content-between align-items-center">
                     <h6 class="m-0 font-weight-bold text-primary">
-                        <i class="fas fa-file-alt me-2"></i>Artifacts ({{ case.artifact_count }})
+                        <i class="fas fa-file-alt me-2"></i>Artifacts ({{ case.total_artifacts }})
                     </h6>
                     <div>
                         <button class="btn btn-sm btn-outline-primary me-2" onclick="refreshArtifacts()">
@@ -250,20 +250,20 @@
                                         </td>
                                         <td>{{ artifact.size_formatted }}</td>
                                         <td>
-                                            {% if artifact.status == 'completed' %}
+                                            {% if artifact.processing_status == 'completed' %}
                                                 <span class="badge bg-success">
                                                     <i class="fas fa-check me-1"></i>Completed
                                                 </span>
-                                            {% elif artifact.status == 'processing' %}
+                                            {% elif artifact.processing_status == 'processing' %}
                                                 <span class="badge bg-warning">
                                                     <i class="fas fa-spinner fa-spin me-1"></i>Processing
                                                 </span>
-                                            {% elif artifact.status == 'failed' %}
+                                            {% elif artifact.processing_status == 'failed' %}
                                                 <span class="badge bg-danger">
                                                     <i class="fas fa-exclamation-triangle me-1"></i>Failed
                                                 </span>
                                             {% else %}
-                                                <span class="badge bg-secondary">{{ artifact.status.title() }}</span>
+                                                <span class="badge bg-secondary">{{ artifact.processing_status.title() }}</span>
                                             {% endif %}
                                         </td>
                                         <td>
@@ -271,7 +271,7 @@
                                         </td>
                                         <td>
                                             <div class="btn-group btn-group-sm" role="group">
-                                                {% if artifact.status == 'completed' %}
+                                                {% if artifact.processing_status == 'completed' %}
                                                     <a href="{{ url_for('analysis.view_artifact', case_id=case.case_id, artifact_id=artifact.id) }}" 
                                                        class="btn btn-outline-primary" title="View Content">
                                                         <i class="fas fa-eye"></i>

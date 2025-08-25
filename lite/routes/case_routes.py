@@ -108,7 +108,10 @@ def view_case(case_id):
         artifact_stats['by_category'][category] = artifact_stats['by_category'].get(category, 0) + 1
         artifact_stats['by_status'][status] = artifact_stats['by_status'].get(status, 0) + 1
     
-    return render_template('cases/detail.html', case=case, artifacts=artifacts, stats=artifact_stats)
+    # Calculate processing count for template
+    processing_count = artifact_stats['by_status'].get('processing', 0)
+    
+    return render_template('cases/detail.html', case=case, artifacts=artifacts, stats=artifact_stats, processing_count=processing_count)
 
 @bp.route('/<case_id>/upload', methods=['GET', 'POST'])
 def upload_artifacts(case_id):
@@ -118,34 +121,48 @@ def upload_artifacts(case_id):
     if request.method == 'GET':
         return render_template('cases/upload.html', case=case)
     
-    if 'files' not in request.files:
-        flash('No files selected.', 'error')
-        return redirect(url_for('cases.view_case', case_id=case_id))
+    # Handle AJAX upload requests
+    if 'artifacts' not in request.files:
+        return jsonify({
+            'success': False,
+            'message': 'No file provided'
+        }), 400
     
-    files = request.files.getlist('files')
-    uploaded_count = 0
+    file = request.files['artifacts']
+    
+    if not file or not file.filename:
+        return jsonify({
+            'success': False,
+            'message': 'No file selected'
+        }), 400
+    
+    if not file.filename.lower().endswith('.json'):
+        return jsonify({
+            'success': False,
+            'message': 'Only JSON files are allowed'
+        }), 400
     
     try:
         file_service = FileService()
+        artifact = file_service.save_artifact(file, case)
         
-        for file in files:
-            if file and file.filename:
-                if file.filename.lower().endswith('.json'):
-                    success = file_service.save_artifact(file, case)
-                    if success:
-                        uploaded_count += 1
-                else:
-                    flash(f'Skipped {file.filename}: Only JSON files are allowed.', 'warning')
-        
-        if uploaded_count > 0:
-            flash(f'Successfully uploaded {uploaded_count} artifact(s).', 'success')
+        if artifact:
+            return jsonify({
+                'success': True,
+                'message': 'File uploaded successfully',
+                'artifact_id': artifact.artifact_id
+            })
         else:
-            flash('No files were uploaded.', 'warning')
+            return jsonify({
+                'success': False,
+                'message': 'Failed to save artifact'
+            }), 500
             
     except Exception as e:
-        flash(f'Error uploading files: {str(e)}', 'error')
-    
-    return redirect(url_for('cases.view_case', case_id=case_id))
+        return jsonify({
+            'success': False,
+            'message': f'Error uploading file: {str(e)}'
+        }), 500
 
 @bp.route('/<case_id>/status', methods=['POST'])
 def update_case_status(case_id):

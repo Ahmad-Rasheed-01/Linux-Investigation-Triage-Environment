@@ -3,6 +3,7 @@ import json
 import threading
 from datetime import datetime
 from werkzeug.utils import secure_filename
+from flask import current_app
 from ..models.artifact_model import Artifact
 from ..database import db
 
@@ -63,42 +64,43 @@ class FileService:
             # Process file asynchronously
             threading.Thread(
                 target=self._process_artifact_async,
-                args=(artifact.id,),
+                args=(artifact.id, current_app._get_current_object()),
                 daemon=True
             ).start()
             
-            return True
+            return artifact
             
         except Exception as e:
             print(f"Error saving artifact: {str(e)}")
-            return False
+            return None
     
-    def _process_artifact_async(self, artifact_id):
+    def _process_artifact_async(self, artifact_id, app):
         """Process artifact asynchronously"""
-        try:
-            # Get artifact from database
-            artifact = Artifact.query.get(artifact_id)
-            if not artifact:
-                return
-            
-            # Update status to processing
-            artifact.processing_status = 'processing'
-            db.session.commit()
-            
-            # Process JSON file
-            self._analyze_json_file(artifact)
-            
-            # Update status to completed
-            artifact.processing_status = 'completed'
-            db.session.commit()
-            
-        except Exception as e:
-            # Update status to error
-            artifact = Artifact.query.get(artifact_id)
-            if artifact:
-                artifact.processing_status = 'error'
-                artifact.processing_error = str(e)
+        with app.app_context():
+            try:
+                # Get artifact from database
+                artifact = Artifact.query.get(artifact_id)
+                if not artifact:
+                    return
+                
+                # Update status to processing
+                artifact.processing_status = 'processing'
                 db.session.commit()
+                
+                # Process JSON file
+                self._analyze_json_file(artifact)
+                
+                # Update status to completed
+                artifact.processing_status = 'completed'
+                db.session.commit()
+                
+            except Exception as e:
+                # Update status to error
+                artifact = Artifact.query.get(artifact_id)
+                if artifact:
+                    artifact.processing_status = 'error'
+                    artifact.processing_error = str(e)
+                    db.session.commit()
     
     def _analyze_json_file(self, artifact):
         """Analyze JSON file and extract metadata"""
