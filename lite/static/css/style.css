@@ -19,6 +19,7 @@ body {
     font-family: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
     background-color: var(--light-color);
     color: var(--dark-color);
+    padding-top: 76px; /* Account for fixed navbar height */
 }
 
 /* Smooth Animations */

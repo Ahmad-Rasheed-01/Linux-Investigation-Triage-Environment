@@ -483,6 +483,15 @@ function updateDashboardCharts(chartData) {
 
 // Setup dashboard charts
 function setupDashboardCharts() {
+    // Destroy existing charts first
+    if (window.dashboardCharts) {
+        Object.values(window.dashboardCharts).forEach(chart => {
+            if (chart && typeof chart.destroy === 'function') {
+                chart.destroy();
+            }
+        });
+    }
+    
     window.dashboardCharts = {};
     
     // Case status chart

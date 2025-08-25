@@ -287,9 +287,21 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function initializeDashboardCharts() {
+    // Destroy existing charts first
+    if (window.dashboardCharts) {
+        Object.values(window.dashboardCharts).forEach(chart => {
+            if (chart && typeof chart.destroy === 'function') {
+                chart.destroy();
+            }
+        });
+    }
+    
+    // Initialize charts storage
+    window.dashboardCharts = {};
+    
     // Case Status Chart
     const caseStatusCtx = document.getElementById('caseStatusChart').getContext('2d');
-    new Chart(caseStatusCtx, {
+    window.dashboardCharts.caseStatus = new Chart(caseStatusCtx, {
         type: 'doughnut',
         data: {
             labels: ['Active', 'Inactive', 'Closed'],
@@ -313,7 +325,7 @@ function initializeDashboardCharts() {
     
     // Artifacts Timeline Chart (placeholder data)
     const timelineCtx = document.getElementById('artifactsTimelineChart').getContext('2d');
-    new Chart(timelineCtx, {
+    window.dashboardCharts.timeline = new Chart(timelineCtx, {
         type: 'line',
         data: {
             labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
