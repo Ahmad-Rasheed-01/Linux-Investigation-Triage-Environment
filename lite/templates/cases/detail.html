@@ -246,9 +246,9 @@
                                             </div>
                                         </td>
                                         <td>
-                                            <span class="badge bg-info">{{ artifact.category }}</span>
+                                            <span class="badge bg-info">{{ artifact.artifact_category }}</span>
                                         </td>
-                                        <td>{{ artifact.size_formatted }}</td>
+                                        <td>{{ artifact.file_size_formatted }}</td>
                                         <td>
                                             {% if artifact.processing_status == 'completed' %}
                                                 <span class="badge bg-success">

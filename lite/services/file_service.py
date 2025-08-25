@@ -11,7 +11,7 @@ class FileService:
     """Service for handling file uploads and processing"""
     
     def __init__(self):
-        self.allowed_extensions = {'json'}
+        self.allowed_extensions = {'json', 'log'}
     
     def allowed_file(self, filename):
         """Check if file extension is allowed"""
@@ -87,8 +87,11 @@ class FileService:
                 artifact.processing_status = 'processing'
                 db.session.commit()
                 
-                # Process JSON file
-                self._analyze_json_file(artifact)
+                # Process file based on type
+                if artifact.file_path.lower().endswith('.json'):
+                    self._analyze_json_file(artifact)
+                elif artifact.file_path.lower().endswith('.log'):
+                    self._analyze_log_file(artifact)
                 
                 # Update status to completed
                 artifact.processing_status = 'completed'
@@ -123,6 +126,29 @@ class FileService:
             raise Exception(f"Invalid JSON format: {str(e)}")
         except Exception as e:
             raise Exception(f"Error analyzing file: {str(e)}")
+    
+    def _analyze_log_file(self, artifact):
+        """Analyze log file and extract metadata"""
+        try:
+            with open(artifact.file_path, 'r', encoding='utf-8') as f:
+                lines = f.readlines()
+            
+            # Count log entries (lines)
+            artifact.record_count = len(lines)
+            
+            # Additional log analysis could be added here
+            # For example: extracting timestamps, log levels, error counts, etc.
+            
+        except UnicodeDecodeError:
+            # Try with different encoding if UTF-8 fails
+            try:
+                with open(artifact.file_path, 'r', encoding='latin-1') as f:
+                    lines = f.readlines()
+                artifact.record_count = len(lines)
+            except Exception as e:
+                raise Exception(f"Error reading log file: {str(e)}")
+        except Exception as e:
+            raise Exception(f"Error analyzing log file: {str(e)}")
     
     def delete_artifact(self, artifact):
         """Delete artifact file and database record"""

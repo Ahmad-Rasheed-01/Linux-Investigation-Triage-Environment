@@ -136,10 +136,13 @@ def upload_artifacts(case_id):
             'message': 'No file selected'
         }), 400
     
-    if not file.filename.lower().endswith('.json'):
+    # Check if file has allowed extension
+    allowed_extensions = {'.json', '.log'}
+    file_ext = os.path.splitext(file.filename.lower())[1]
+    if file_ext not in allowed_extensions:
         return jsonify({
             'success': False,
-            'message': 'Only JSON files are allowed'
+            'message': 'Only JSON and LOG files are allowed'
         }), 400
     
     try:

@@ -275,7 +275,7 @@ function createFileItem(file, index) {
 function validateFile(file, fileItem) {
     const statusBadge = fileItem.querySelector('.file-status .badge');
     const maxSize = 500 * 1024 * 1024; // 500MB
-    const allowedTypes = ['.json'];
+    const allowedTypes = ['.json', '.log'];
     
     // Check file size
     if (file.size > maxSize) {
