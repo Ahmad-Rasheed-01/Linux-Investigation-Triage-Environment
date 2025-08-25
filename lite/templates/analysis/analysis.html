@@ -20,8 +20,8 @@
                     <i class="fas fa-chevron-down float-end mt-1"></i>
                 </div>
                 <div class="collapse show" id="overviewSection">
-                    <a href="#" class="list-group-item list-group-item-action ps-4 nav-link active" data-section="overview">
-                        <i class="fas fa-info-circle me-2"></i>Case Summary
+                    <a href="#" class="list-group-item list-group-item-action ps-4 nav-link active" data-section="overview-summary">
+                        <i class="fas fa-chart-pie me-2"></i>Case Summary
                     </a>
                     <a href="#" class="list-group-item list-group-item-action ps-4 nav-link" data-section="artifacts">
                         <i class="fas fa-file-alt me-2"></i>Artifacts Overview
@@ -230,10 +230,10 @@ let sidebarCollapsed = false;
 
 // Initialize page
 document.addEventListener('DOMContentLoaded', function() {
-    loadSection('overview');
+    loadSection('overview-summary');
     
     // Setup navigation click handlers
-    document.querySelectorAll('.nav-link').forEach(link => {
+    document.querySelectorAll('.nav-link[data-section]').forEach(link => {
         link.addEventListener('click', function(e) {
             e.preventDefault();
             const section = this.getAttribute('data-section');
@@ -306,7 +306,7 @@ function renderSectionContent(section, data) {
     const contentArea = document.getElementById('content-area');
     
     switch (section) {
-        case 'overview':
+        case 'overview-summary':
             renderOverview(data);
             break;
         case 'artifacts':
@@ -337,11 +337,17 @@ function renderSectionContent(section, data) {
 
 function renderOverview(data) {
     const contentArea = document.getElementById('content-area');
+    const stats = data.statistics || {};
+    const insights = data.key_insights || {};
+    const security = data.security_findings || {};
+    const system = data.system_overview || {};
+    const timeline = data.timeline || [];
+    
     contentArea.innerHTML = `
         <div class="row mb-4">
             <div class="col-12">
                 <h2 class="h4 mb-3">
-                    <i class="fas fa-chart-pie me-2"></i>Case Overview
+                    <i class="fas fa-chart-pie me-2"></i>Case Summary
                 </h2>
             </div>
         </div>
@@ -354,7 +360,7 @@ function renderOverview(data) {
                         <div class="row no-gutters align-items-center">
                             <div class="col mr-2">
                                 <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total Artifacts</div>
-                                <div class="h5 mb-0 font-weight-bold text-gray-800">${data.total_artifacts || 0}</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">${stats.total_artifacts || 0}</div>
                             </div>
                             <div class="col-auto">
                                 <i class="fas fa-file-alt fa-2x text-gray-300"></i>
@@ -370,7 +376,7 @@ function renderOverview(data) {
                         <div class="row no-gutters align-items-center">
                             <div class="col mr-2">
                                 <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Total Size</div>
-                                <div class="h5 mb-0 font-weight-bold text-gray-800">${data.total_size || '0 MB'}</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">${stats.total_size_gb || 0} GB</div>
                             </div>
                             <div class="col-auto">
                                 <i class="fas fa-database fa-2x text-gray-300"></i>
@@ -386,7 +392,7 @@ function renderOverview(data) {
                         <div class="row no-gutters align-items-center">
                             <div class="col mr-2">
                                 <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Processed</div>
-                                <div class="h5 mb-0 font-weight-bold text-gray-800">${data.processed_artifacts || 0}</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">${stats.processed_count || 0}</div>
                             </div>
                             <div class="col-auto">
                                 <i class="fas fa-check-circle fa-2x text-gray-300"></i>
@@ -402,7 +408,7 @@ function renderOverview(data) {
                         <div class="row no-gutters align-items-center">
                             <div class="col mr-2">
                                 <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Processing</div>
-                                <div class="h5 mb-0 font-weight-bold text-gray-800">${data.processing_artifacts || 0}</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">${stats.processing_count || 0}</div>
                             </div>
                             <div class="col-auto">
                                 <i class="fas fa-spinner fa-2x text-gray-300"></i>
@@ -413,9 +419,11 @@ function renderOverview(data) {
             </div>
         </div>
         
-        <!-- Case Information -->
+        <!-- Main Content Row -->
         <div class="row">
+            <!-- Left Column -->
             <div class="col-lg-8">
+                <!-- Case Information -->
                 <div class="card shadow mb-4">
                     <div class="card-header py-3">
                         <h6 class="m-0 font-weight-bold text-primary">Case Information</h6>
@@ -443,27 +451,156 @@ function renderOverview(data) {
                         {% endif %}
                     </div>
                 </div>
-            </div>
-            
-            <div class="col-lg-4">
+                
+                <!-- System Overview -->
                 <div class="card shadow mb-4">
                     <div class="card-header py-3">
-                        <h6 class="m-0 font-weight-bold text-primary">Artifact Types</h6>
+                        <h6 class="m-0 font-weight-bold text-primary">System Overview</h6>
                     </div>
                     <div class="card-body">
-                        <div id="artifactTypesChart" style="height: 200px;">
-                            <!-- Chart will be rendered here -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>Hostname:</strong> ${system.hostname || 'Unknown'}</p>
+                                <p><strong>OS Version:</strong> ${system.os_version || 'Unknown'}</p>
+                                <p><strong>Kernel:</strong> ${system.kernel_version || 'Unknown'}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>Architecture:</strong> ${system.architecture || 'Unknown'}</p>
+                                <p><strong>Uptime:</strong> ${system.uptime || 'Unknown'}</p>
+                                <p><strong>Last Boot:</strong> ${system.last_boot || 'Unknown'}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Key Insights -->
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-primary">Key Investigation Insights</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="text-center">
+                                    <i class="fas fa-users fa-2x text-info mb-2"></i>
+                                    <h6>User Activity</h6>
+                                    <p class="text-muted">Total Users: ${insights.user_activity?.total_users || 0}</p>
+                                    <p class="text-muted">Privileged: ${insights.user_activity?.privileged_users || 0}</p>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="text-center">
+                                    <i class="fas fa-network-wired fa-2x text-success mb-2"></i>
+                                    <h6>Network Activity</h6>
+                                    <p class="text-muted">Connections: ${insights.network_activity?.active_connections || 0}</p>
+                                    <p class="text-muted">Suspicious Ports: ${insights.network_activity?.suspicious_ports?.length || 0}</p>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="text-center">
+                                    <i class="fas fa-tasks fa-2x text-warning mb-2"></i>
+                                    <h6>Process Analysis</h6>
+                                    <p class="text-muted">Running: ${insights.process_analysis?.running_processes || 0}</p>
+                                    <p class="text-muted">Suspicious: ${insights.process_analysis?.suspicious_processes?.length || 0}</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
+            
+            <!-- Right Column -->
+            <div class="col-lg-4">
+                <!-- Security Findings -->
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-primary">Security Assessment</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="text-center mb-3">
+                            <span class="badge bg-${security.threat_level === 'high' ? 'danger' : security.threat_level === 'medium' ? 'warning' : 'success'} fs-6">
+                                ${(security.threat_level || 'low').toUpperCase()} THREAT LEVEL
+                            </span>
+                        </div>
+                        
+                        ${security.indicators && security.indicators.length > 0 ? `
+                            <h6 class="text-muted mb-2">Security Indicators:</h6>
+                            <ul class="list-unstyled">
+                                ${security.indicators.map(indicator => `
+                                    <li class="mb-2">
+                                        <i class="fas fa-${indicator.severity === 'high' ? 'exclamation-triangle text-danger' : 
+                                                            indicator.severity === 'medium' ? 'exclamation-circle text-warning' : 
+                                                            'info-circle text-info'} me-2"></i>
+                                        <small>${indicator.description}</small>
+                                    </li>
+                                `).join('')}
+                            </ul>
+                        ` : '<p class="text-muted">No specific security indicators detected.</p>'}
+                    </div>
+                </div>
+                
+                <!-- Artifact Categories -->
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-primary">Artifact Categories</h6>
+                    </div>
+                    <div class="card-body">
+                        ${stats.categories && Object.keys(stats.categories).length > 0 ? 
+                            Object.entries(stats.categories).map(([category, count]) => `
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="badge bg-secondary">${category}</span>
+                                    <span class="fw-bold">${count}</span>
+                                </div>
+                            `).join('') : 
+                            '<p class="text-muted">No categorized artifacts found.</p>'
+                        }
+                    </div>
+                </div>
+                
+                <!-- Investigation Timeline -->
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-primary">Recent Timeline</h6>
+                    </div>
+                    <div class="card-body" style="max-height: 300px; overflow-y: auto;">
+                        ${timeline && timeline.length > 0 ? 
+                            timeline.slice(-5).map(event => `
+                                <div class="d-flex mb-3">
+                                    <div class="flex-shrink-0">
+                                        <i class="fas fa-${event.type === 'case_event' ? 'folder' : 'file'} text-primary"></i>
+                                    </div>
+                                    <div class="flex-grow-1 ms-3">
+                                        <h6 class="mb-1">${event.event}</h6>
+                                        <p class="text-muted mb-1">${event.description}</p>
+                                        <small class="text-muted">${new Date(event.timestamp).toLocaleString()}</small>
+                                    </div>
+                                </div>
+                            `).join('') : 
+                            '<p class="text-muted">No timeline events available.</p>'
+                        }
+                    </div>
+                </div>
+            </div>
         </div>
+        
+        <!-- Recommendations -->
+        ${security.recommendations && security.recommendations.length > 0 ? `
+            <div class="row">
+                <div class="col-12">
+                    <div class="card shadow">
+                        <div class="card-header py-3">
+                            <h6 class="m-0 font-weight-bold text-primary">Investigation Recommendations</h6>
+                        </div>
+                        <div class="card-body">
+                            <ul class="mb-0">
+                                ${security.recommendations.map(rec => `<li>${rec}</li>`).join('')}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        ` : ''}
     `;
-    
-    // Render artifact types chart if data available
-    if (data.artifact_types && data.artifact_types.length > 0) {
-        renderArtifactTypesChart(data.artifact_types);
-    }
 }
 
 function renderArtifacts(data) {

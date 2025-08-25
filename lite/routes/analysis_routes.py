@@ -121,12 +121,11 @@ def get_section_data(case_id, section):
         json_parser = JsonParser()
         
         if section == 'overview-summary':
+            # Get comprehensive case summary data
+            summary_data = _generate_case_summary(case, json_parser)
             return jsonify({
-                'case_info': case.to_dict(),
-                'total_artifacts': len(case.artifacts),
-                'total_size_gb': round(case.total_size_mb / 1024, 2) if case.total_size_mb else 0,
-                'categories': _get_category_stats(case.artifacts),
-                'status_distribution': _get_status_stats(case.artifacts)
+                'success': True,
+                'data': summary_data
             })
         
         elif section == 'overview-artifacts':
@@ -297,3 +296,200 @@ def _get_artifacts_by_keywords(artifacts, keywords):
         if any(keyword in filename_lower for keyword in keywords):
             filtered.append(artifact)
     return filtered
+
+def _generate_case_summary(case, json_parser):
+    """Generate comprehensive case summary with key insights"""
+    artifacts = case.artifacts
+    
+    # Basic statistics
+    total_artifacts = len(artifacts)
+    total_size_gb = round(case.total_size_mb / 1024, 2) if case.total_size_mb else 0
+    categories = _get_category_stats(artifacts)
+    status_distribution = _get_status_stats(artifacts)
+    
+    # Key insights and findings
+    insights = _analyze_case_insights(artifacts, json_parser)
+    
+    # Security indicators
+    security_findings = _analyze_security_indicators(artifacts, json_parser)
+    
+    # System overview
+    system_overview = _get_system_overview(artifacts, json_parser)
+    
+    # Investigation timeline
+    timeline_data = _generate_investigation_timeline(case, artifacts)
+    
+    return {
+        'case_info': case.to_dict(),
+        'statistics': {
+            'total_artifacts': total_artifacts,
+            'total_size_gb': total_size_gb,
+            'categories': categories,
+            'status_distribution': status_distribution,
+            'processed_count': status_distribution.get('completed', 0),
+            'processing_count': status_distribution.get('processing', 0),
+            'pending_count': status_distribution.get('pending', 0)
+        },
+        'key_insights': insights,
+        'security_findings': security_findings,
+        'system_overview': system_overview,
+        'timeline': timeline_data
+    }
+
+def _analyze_case_insights(artifacts, json_parser):
+    """Analyze artifacts to extract key investigation insights"""
+    insights = {
+        'critical_findings': [],
+        'user_activity': {},
+        'network_activity': {},
+        'process_analysis': {},
+        'file_system_changes': []
+    }
+    
+    # Analyze user artifacts
+    user_artifacts = _get_artifacts_by_keywords(artifacts, ['user', 'account', 'passwd', 'shadow'])
+    if user_artifacts:
+        insights['user_activity']['total_users'] = len(user_artifacts)
+        insights['user_activity']['privileged_users'] = _count_privileged_users(user_artifacts, json_parser)
+    
+    # Analyze network artifacts
+    network_artifacts = _get_artifacts_by_keywords(artifacts, ['network', 'netstat', 'ss', 'connection'])
+    if network_artifacts:
+        insights['network_activity']['active_connections'] = len(network_artifacts)
+        insights['network_activity']['suspicious_ports'] = _find_suspicious_ports(network_artifacts, json_parser)
+    
+    # Analyze process artifacts
+    process_artifacts = _get_artifacts_by_keywords(artifacts, ['process', 'ps', 'systemd', 'service'])
+    if process_artifacts:
+        insights['process_analysis']['running_processes'] = len(process_artifacts)
+        insights['process_analysis']['suspicious_processes'] = _find_suspicious_processes(process_artifacts, json_parser)
+    
+    return insights
+
+def _analyze_security_indicators(artifacts, json_parser):
+    """Analyze artifacts for security indicators and threats"""
+    findings = {
+        'threat_level': 'low',
+        'indicators': [],
+        'recommendations': []
+    }
+    
+    # Check for authentication logs
+    auth_artifacts = _get_artifacts_by_keywords(artifacts, ['auth', 'secure', 'wtmp', 'btmp'])
+    if auth_artifacts:
+        findings['indicators'].append({
+            'type': 'authentication',
+            'description': f'Found {len(auth_artifacts)} authentication-related artifacts',
+            'severity': 'info'
+        })
+    
+    # Check for system logs
+    log_artifacts = _get_artifacts_by_keywords(artifacts, ['syslog', 'messages', 'kern', 'dmesg'])
+    if log_artifacts:
+        findings['indicators'].append({
+            'type': 'system_logs',
+            'description': f'Found {len(log_artifacts)} system log artifacts',
+            'severity': 'info'
+        })
+    
+    # Check for network configuration
+    network_config = _get_artifacts_by_keywords(artifacts, ['interfaces', 'resolv', 'hosts', 'iptables'])
+    if network_config:
+        findings['indicators'].append({
+            'type': 'network_config',
+            'description': f'Found {len(network_config)} network configuration artifacts',
+            'severity': 'info'
+        })
+    
+    # Add general recommendations
+    findings['recommendations'] = [
+        'Review authentication logs for suspicious login attempts',
+        'Analyze network connections for unauthorized access',
+        'Check running processes for malicious activity',
+        'Examine file system changes for unauthorized modifications'
+    ]
+    
+    return findings
+
+def _get_system_overview(artifacts, json_parser):
+    """Extract system overview information"""
+    overview = {
+        'hostname': 'Unknown',
+        'os_version': 'Unknown',
+        'kernel_version': 'Unknown',
+        'architecture': 'Unknown',
+        'uptime': 'Unknown',
+        'last_boot': 'Unknown'
+    }
+    
+    # Try to extract system information from artifacts
+    system_artifacts = _get_artifacts_by_keywords(artifacts, ['hostname', 'uname', 'version', 'uptime'])
+    
+    for artifact in system_artifacts:
+        try:
+            data = json_parser.load_json_file(artifact.file_path)
+            if data and isinstance(data, dict):
+                # Extract hostname
+                if 'hostname' in artifact.filename.lower() and 'output' in data:
+                    overview['hostname'] = data['output'].strip()
+                
+                # Extract OS version
+                elif 'version' in artifact.filename.lower() and 'output' in data:
+                    overview['os_version'] = data['output'].strip()
+                
+                # Extract kernel version
+                elif 'uname' in artifact.filename.lower() and 'output' in data:
+                    overview['kernel_version'] = data['output'].strip()
+                
+                # Extract uptime
+                elif 'uptime' in artifact.filename.lower() and 'output' in data:
+                    overview['uptime'] = data['output'].strip()
+        except Exception:
+            continue
+    
+    return overview
+
+def _generate_investigation_timeline(case, artifacts):
+    """Generate investigation timeline based on case and artifact data"""
+    timeline = []
+    
+    # Add case creation event
+    timeline.append({
+        'timestamp': case.creation_date.isoformat(),
+        'event': 'Case Created',
+        'description': f'Investigation case "{case.case_name}" was created',
+        'type': 'case_event'
+    })
+    
+    # Add artifact upload events
+    for artifact in artifacts:
+        if artifact.upload_timestamp:
+            timeline.append({
+                'timestamp': artifact.upload_timestamp.isoformat(),
+                'event': 'Artifact Uploaded',
+                'description': f'Artifact "{artifact.filename}" was uploaded',
+                'type': 'artifact_event'
+            })
+    
+    # Sort timeline by timestamp
+    timeline.sort(key=lambda x: x['timestamp'])
+    
+    return timeline
+
+def _count_privileged_users(user_artifacts, json_parser):
+    """Count privileged users from user artifacts"""
+    privileged_count = 0
+    # This is a placeholder - implement based on actual data structure
+    return privileged_count
+
+def _find_suspicious_ports(network_artifacts, json_parser):
+    """Find suspicious network ports"""
+    suspicious_ports = []
+    # This is a placeholder - implement based on actual data structure
+    return suspicious_ports
+
+def _find_suspicious_processes(process_artifacts, json_parser):
+    """Find suspicious processes"""
+    suspicious_processes = []
+    # This is a placeholder - implement based on actual data structure
+    return suspicious_processes

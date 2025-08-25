@@ -3,5 +3,4 @@
 *__pycache__*
 cases/*
 lite/instance/lite.db
-
 *.log
