@@ -444,40 +444,77 @@ function initializeDashboard() {
 // Load dashboard data
 function loadDashboardData() {
     fetch('/api/dashboard/stats')
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                updateDashboardStats(data.stats);
-                updateDashboardCharts(data.charts);
-            } else {
-                showNotification('Error', 'Failed to load dashboard data', 'error');
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
+            return response.json();
+        })
+        .then(data => {
+            updateDashboardStats(data);
+            updateDashboardCharts(data);
         })
         .catch(error => {
             console.error('Dashboard data error:', error);
-            showNotification('Error', 'Network error loading dashboard', 'error');
+            showNotification('Error', 'Failed to load dashboard data', 'error');
         });
 }
 
 // Update dashboard stats
-function updateDashboardStats(stats) {
-    Object.keys(stats).forEach(key => {
-        const element = document.getElementById(`stat-${key}`);
-        if (element) {
-            animateNumber(element, stats[key]);
-        }
-    });
+function updateDashboardStats(data) {
+    // Update case stats
+    if (data.cases) {
+        Object.keys(data.cases).forEach(key => {
+            const element = document.getElementById(`stat-${key}`);
+            if (element) {
+                animateNumber(element, data.cases[key]);
+            }
+        });
+    }
+    
+    // Update artifact stats
+    if (data.artifacts) {
+        Object.keys(data.artifacts).forEach(key => {
+            const element = document.getElementById(`stat-${key}`);
+            if (element) {
+                animateNumber(element, data.artifacts[key]);
+            }
+        });
+    }
 }
 
 // Update dashboard charts
-function updateDashboardCharts(chartData) {
-    if (window.dashboardCharts) {
-        Object.keys(chartData).forEach(chartId => {
-            const chart = window.dashboardCharts[chartId];
-            if (chart && chart.updateData) {
-                chart.updateData(chartData[chartId]);
-            }
-        });
+function updateDashboardCharts(data) {
+    if (window.dashboardCharts && data.artifacts) {
+        // Update case status chart with case data
+        if (window.dashboardCharts.caseStatus && data.cases) {
+            const caseData = {
+                labels: ['Active', 'Inactive', 'Closed'],
+                datasets: [{
+                    data: [data.cases.active || 0, data.cases.inactive || 0, data.cases.closed || 0],
+                    backgroundColor: ['#28a745', '#ffc107', '#dc3545']
+                }]
+            };
+            window.dashboardCharts.caseStatus.data = caseData;
+            window.dashboardCharts.caseStatus.update();
+        }
+        
+        // Update artifact timeline chart with processing status data
+        if (window.dashboardCharts.timeline && data.artifacts.processing_status) {
+            const statusData = data.artifacts.processing_status;
+            const timelineData = {
+                labels: Object.keys(statusData),
+                datasets: [{
+                    label: 'Artifacts',
+                    data: Object.values(statusData),
+                    borderColor: '#007bff',
+                    backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                    fill: true
+                }]
+            };
+            window.dashboardCharts.timeline.data = timelineData;
+            window.dashboardCharts.timeline.update();
+        }
     }
 }
 
