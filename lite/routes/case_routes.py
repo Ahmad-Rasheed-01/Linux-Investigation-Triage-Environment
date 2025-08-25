@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, current_app
 from ..models.case_model import Case
 from ..models.artifact_model import Artifact
 from ..services.file_service import FileService
