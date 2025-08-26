@@ -207,6 +207,21 @@ def get_section_data(case_id, section):
             
             return jsonify(log_data)
         
+        elif section == 'collection-logs':
+            # Parse collection log file
+            collection_log_data = _parse_collection_logs(case)
+            if not collection_log_data.get('success', True):
+                return jsonify({
+                    'success': False,
+                    'message': collection_log_data.get('message', 'Failed to load collection log data'),
+                    'data': None
+                })
+            else:
+                return jsonify({
+                    'success': True,
+                    'data': collection_log_data
+                })
+        
         else:
             return jsonify({'error': 'Section not found'}), 404
             
@@ -544,4 +559,113 @@ def _get_collection_metadata(case):
         return {
             'error': f'Failed to read collection metadata: {str(e)}',
             'system_info': {}
+        }
+
+def _parse_collection_logs(case):
+    """Parse collection log file and return structured data"""
+    import glob
+    import re
+    from datetime import datetime
+    
+    # Look for collection log file in the case directory
+    case_dir = os.path.join('cases', case.case_id)
+    log_pattern = os.path.join(case_dir, '*_*.log')
+    log_files = glob.glob(log_pattern)
+    
+    if not log_files:
+        return {
+            'error': 'Collection log file not found',
+            'logs': [],
+            'statistics': {}
+        }
+    
+    try:
+        # Read the first log file found
+        log_file = log_files[0]
+        logs = []
+        statistics = {
+            'total_entries': 0,
+            'info_count': 0,
+            'debug_count': 0,
+            'warning_count': 0,
+            'error_count': 0,
+            'other_count': 0,
+            'components': set()
+        }
+        
+        # Regular expression to parse log entries
+        # Format: YYYY-MM-DD HH:MM:SS,mmm - component - level - message
+        log_pattern = re.compile(r'^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3}) - (\w+) - (\w+) - (.*)$')
+        
+        with open(log_file, 'r', encoding='utf-8') as f:
+            for line_num, line in enumerate(f, 1):
+                line = line.strip()
+                if not line:
+                    continue
+                    
+                match = log_pattern.match(line)
+                if match:
+                    timestamp_str, component, level, message = match.groups()
+                    
+                    # Parse timestamp
+                    try:
+                        timestamp = datetime.strptime(timestamp_str, '%Y-%m-%d %H:%M:%S,%f')
+                        formatted_timestamp = timestamp.strftime('%Y-%m-%d %H:%M:%S')
+                    except ValueError:
+                        formatted_timestamp = timestamp_str
+                    
+                    log_entry = {
+                        'id': line_num,
+                        'timestamp': formatted_timestamp,
+                        'level': level,
+                        'component': component,
+                        'message': message,
+                        'raw_line': line
+                    }
+                    
+                    logs.append(log_entry)
+                    
+                    # Update statistics
+                    statistics['total_entries'] += 1
+                    
+                    # Safely update level counts
+                    level_key = f'{level.lower()}_count'
+                    if level_key in statistics:
+                        statistics[level_key] += 1
+                    else:
+                        # Handle unknown log levels
+                        if 'other_count' not in statistics:
+                            statistics['other_count'] = 0
+                        statistics['other_count'] += 1
+                    
+                    statistics['components'].add(component)
+                else:
+                    # Handle lines that don't match the pattern
+                    log_entry = {
+                        'id': line_num,
+                        'timestamp': 'Unknown',
+                        'level': 'UNKNOWN',
+                        'component': 'Unknown',
+                        'message': line,
+                        'raw_line': line
+                    }
+                    logs.append(log_entry)
+                    statistics['total_entries'] += 1
+        
+        # Convert set to list for JSON serialization
+        statistics['components'] = list(statistics['components'])
+        
+        return {
+            'success': True,
+            'logs': logs,
+            'statistics': statistics,
+            'log_file': os.path.basename(log_file)
+        }
+        
+    except Exception as e:
+        return {
+            'success': False,
+            'message': f'Failed to parse collection logs: {str(e)}',
+            'logs': [],
+            'statistics': {}
         }

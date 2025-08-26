@@ -26,8 +26,8 @@
                     <a href="#" class="list-group-item list-group-item-action ps-4 nav-link" data-section="artifacts">
                         <i class="fas fa-file-alt me-2"></i>Artifacts Overview
                     </a>
-                    <a href="#" class="list-group-item list-group-item-action ps-4 nav-link" data-section="timeline">
-                        <i class="fas fa-clock me-2"></i>Timeline
+                    <a href="#" class="list-group-item list-group-item-action ps-4 nav-link" data-section="collection-logs">
+                        <i class="fas fa-file-alt me-2"></i>Collection Logs
                     </a>
                 </div>
             </div>
@@ -312,8 +312,8 @@ function renderSectionContent(section, data) {
         case 'artifacts':
             renderArtifacts(data);
             break;
-        case 'timeline':
-            renderTimeline(data);
+        case 'collection-logs':
+            renderCollectionLogs(data);
             break;
         case 'system-info':
             renderSystemInfo(data);
@@ -705,7 +705,7 @@ function renderArtifacts(data) {
                                     <span class="text-success fw-bold">${platformInfo.system || 'Unknown'}</span>
                                 </div>
                                 <div class="col-sm-6 mb-3">
-                                    <strong>Machine:</strong><br>
+                                    <strong>Architecture:</strong><br>
                                     <span class="text-muted">${platformInfo.machine || 'Unknown'}</span>
                                 </div>
                                 <div class="col-sm-6 mb-3">
@@ -815,6 +815,232 @@ function renderGenericData(section, data) {
     }
     
     contentArea.innerHTML = html;
+}
+
+function renderCollectionLogs(data) {
+    const contentArea = document.getElementById('content-area');
+    
+    let html = `
+        <div class="row mb-4">
+            <div class="col-12">
+                <h2 class="h4 mb-3">
+                    <i class="fas fa-file-alt me-2"></i>Collection Logs
+                </h2>
+            </div>
+        </div>
+    `;
+    
+    if (data && data.success && data.data) {
+        const logData = data.data;
+        
+        // Statistics Cards
+        if (logData.statistics) {
+            const stats = logData.statistics;
+            html += `
+                <div class="row mb-4">
+                    <div class="col-md-2">
+                        <div class="card bg-primary text-white">
+                            <div class="card-body text-center">
+                                <h5 class="card-title">${stats.total_entries || 0}</h5>
+                                <p class="card-text">Total Entries</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="card bg-info text-white">
+                            <div class="card-body text-center">
+                                <h5 class="card-title">${stats.info_count || 0}</h5>
+                                <p class="card-text">Info</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="card bg-secondary text-white">
+                            <div class="card-body text-center">
+                                <h5 class="card-title">${stats.debug_count || 0}</h5>
+                                <p class="card-text">Debug</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="card bg-warning text-white">
+                            <div class="card-body text-center">
+                                <h5 class="card-title">${stats.warning_count || 0}</h5>
+                                <p class="card-text">Warnings</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="card bg-danger text-white">
+                            <div class="card-body text-center">
+                                <h5 class="card-title">${stats.error_count || 0}</h5>
+                                <p class="card-text">Errors</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="card bg-success text-white">
+                            <div class="card-body text-center">
+                                <h5 class="card-title">${stats.components ? stats.components.length : 0}</h5>
+                                <p class="card-text">Components</p>
+                            </div>
+                        </div>
+                    </div>
+                    ${stats.other_count ? `
+                    <div class="col-md-2">
+                        <div class="card bg-dark text-white">
+                            <div class="card-body text-center">
+                                <h5 class="card-title">${stats.other_count}</h5>
+                                <p class="card-text">Other</p>
+                            </div>
+                        </div>
+                    </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+        
+        // Filters
+        html += `
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <label for="logLevelFilter" class="form-label">Log Level</label>
+                            <select id="logLevelFilter" class="form-select" onchange="filterCollectionLogs()">
+                                <option value="">All Levels</option>
+                                <option value="INFO">INFO</option>
+                                <option value="DEBUG">DEBUG</option>
+                                <option value="WARNING">WARNING</option>
+                                <option value="ERROR">ERROR</option>
+                                <option value="UNKNOWN">UNKNOWN</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="componentFilter" class="form-label">Component</label>
+                            <select id="componentFilter" class="form-select" onchange="filterCollectionLogs()">
+                                <option value="">All Components</option>
+                                ${logData.statistics && logData.statistics.components ? 
+                                    logData.statistics.components.map(comp => `<option value="${comp}">${comp}</option>`).join('') : ''}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="messageFilter" class="form-label">Search Message</label>
+                            <input type="text" id="messageFilter" class="form-control" placeholder="Search in messages..." onkeyup="filterCollectionLogs()">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">&nbsp;</label>
+                            <button class="btn btn-secondary d-block" onclick="clearCollectionLogFilters()">Clear Filters</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Log Entries Table
+        if (logData.logs && logData.logs.length > 0) {
+            html += `
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Log Entries (${logData.log_file || 'Collection Log'})</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
+                            <table class="table table-striped table-hover mb-0" id="collectionLogsTable">
+                                <thead class="table-dark sticky-top">
+                                    <tr>
+                                        <th style="width: 180px;">Timestamp</th>
+                                        <th style="width: 80px;">Level</th>
+                                        <th style="width: 150px;">Component</th>
+                                        <th>Message</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${logData.logs.map(log => `
+                                        <tr class="log-entry" data-level="${log.level}" data-component="${log.component}" data-message="${log.message.toLowerCase()}">
+                                            <td class="text-nowrap">${log.timestamp}</td>
+                                            <td><span class="badge bg-${getLevelBadgeClass(log.level)}">${log.level}</span></td>
+                                            <td class="text-truncate" style="max-width: 150px;" title="${log.component}">${log.component}</td>
+                                            <td class="text-break">${log.message}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            `;
+        } else {
+            html += `
+                <div class="card">
+                    <div class="card-body text-center py-5">
+                        <i class="fas fa-file-alt fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted mb-3">No Log Entries</h5>
+                        <p class="text-muted">No collection log entries found.</p>
+                    </div>
+                </div>
+            `;
+        }
+    } else {
+        html += `
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                    <h5 class="text-muted mb-3">Error Loading Collection Logs</h5>
+                    <p class="text-muted">${data && data.error ? data.error : 'Failed to load collection log data.'}</p>
+                </div>
+            </div>
+        `;
+    }
+    
+    contentArea.innerHTML = html;
+}
+
+function getLevelBadgeClass(level) {
+    switch(level) {
+        case 'INFO': return 'info';
+        case 'DEBUG': return 'secondary';
+        case 'WARNING': return 'warning';
+        case 'ERROR': return 'danger';
+        default: return 'light';
+    }
+}
+
+function filterCollectionLogs() {
+    const levelFilter = document.getElementById('logLevelFilter').value;
+    const componentFilter = document.getElementById('componentFilter').value;
+    const messageFilter = document.getElementById('messageFilter').value.toLowerCase();
+    
+    const rows = document.querySelectorAll('#collectionLogsTable .log-entry');
+    
+    rows.forEach(row => {
+        const level = row.getAttribute('data-level');
+        const component = row.getAttribute('data-component');
+        const message = row.getAttribute('data-message');
+        
+        let show = true;
+        
+        if (levelFilter && level !== levelFilter) {
+            show = false;
+        }
+        
+        if (componentFilter && component !== componentFilter) {
+            show = false;
+        }
+        
+        if (messageFilter && !message.includes(messageFilter)) {
+            show = false;
+        }
+        
+        row.style.display = show ? '' : 'none';
+    });
+}
+
+function clearCollectionLogFilters() {
+    document.getElementById('logLevelFilter').value = '';
+    document.getElementById('componentFilter').value = '';
+    document.getElementById('messageFilter').value = '';
+    filterCollectionLogs();
 }
 
 function setActiveNavLink(activeLink) {
