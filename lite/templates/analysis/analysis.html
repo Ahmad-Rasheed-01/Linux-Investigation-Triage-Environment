@@ -1843,8 +1843,8 @@ function renderLoginHistory(data) {
         let remoteLogins = 0;
         
         // Process auth logs for statistics
-        if (data.auth_logs && Array.isArray(data.auth_logs)) {
-            data.auth_logs.forEach(entry => {
+        if (data.auth_logs && data.auth_logs.entries && Array.isArray(data.auth_logs.entries)) {
+            data.auth_logs.entries.forEach(entry => {
                 if (entry.event_type === 'login') {
                     totalLogins++;
                     if (entry.username) uniqueUsers.add(entry.username);
@@ -1941,14 +1941,14 @@ function renderLoginHistory(data) {
         `;
         
         // Authentication Events (Auth Logs)
-        if (data.auth_logs && Array.isArray(data.auth_logs) && data.auth_logs.length > 0) {
+        if (data.auth_logs && data.auth_logs.entries && Array.isArray(data.auth_logs.entries) && data.auth_logs.entries.length > 0) {
             html += `
                 <div class="row mb-4">
                     <div class="col-12">
                         <div class="card shadow">
                             <div class="card-header py-3">
                                 <h6 class="m-0 font-weight-bold text-primary">
-                                    <i class="fas fa-shield-alt me-2"></i>Authentication Events (${data.auth_logs.length})
+                                    <i class="fas fa-shield-alt me-2"></i>Authentication Events (${data.auth_logs.entries.length})
                                 </h6>
                             </div>
                             <div class="card-body" style="padding: 0;">
@@ -1966,7 +1966,7 @@ function renderLoginHistory(data) {
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            ${data.auth_logs.slice(0, 500).map(entry => {
+                                            ${data.auth_logs.entries.slice(0, 500).map(entry => {
                                                 const timestamp = entry.timestamp ? new Date(entry.timestamp).toLocaleString() : '-';
                                                 const eventType = entry.event_type || '-';
                                                 const username = entry.username || '-';
