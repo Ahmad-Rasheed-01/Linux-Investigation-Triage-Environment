@@ -1484,13 +1484,17 @@ function renderUserAccounts(data) {
                                     <table class="table table-hover">
                                         <thead class="table-light">
                                             <tr>
-                                                <th style="width: 12%;">Username</th>
-                                                <th style="width: 8%;">UID</th>
-                                                <th style="width: 8%;">GID</th>
-                                                <th style="width: 20%;">Home Directory</th>
-                                                <th style="width: 15%;">Shell</th>
-                                                <th style="width: 15%;">GECOS</th>
-                                                <th style="width: 22%;">Group Memberships</th>
+                                                <th style="width: 10%;">Username</th>
+                                                <th style="width: 6%;">UID</th>
+                                                <th style="width: 6%;">GID</th>
+                                                <th style="width: 15%;">Home Directory</th>
+                                                <th style="width: 10%;">Shell</th>
+                                                <th style="width: 10%;">GECOS</th>
+                                                <th style="width: 8%;">Status</th>
+                                                <th style="width: 10%;">Last Pwd Change</th>
+                                                <th style="width: 8%;">Min Age</th>
+                                                <th style="width: 8%;">Max Age</th>
+                                                <th style="width: 9%;">Group Memberships</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -1499,6 +1503,9 @@ function renderUserAccounts(data) {
                                                 const groupBadges = userGroups.map(group => 
                                                     `<span class="badge bg-${group.type === 'system' ? 'secondary' : 'primary'} me-1 mb-1" title="GID: ${group.gid}">${group.name}</span>`
                                                 ).join('');
+                                                const passwordStatus = user.passwordStatus || {};
+                                                const statusCode = passwordStatus.rawStatusCode || '-';
+                                                const statusBadge = statusCode === 'P' ? 'bg-success' : statusCode === 'L' ? 'bg-warning' : 'bg-secondary';
                                                 return `
                                                 <tr>
                                                     <td>
@@ -1509,6 +1516,10 @@ function renderUserAccounts(data) {
                                                     <td><code>${user.homeDirectory}</code></td>
                                                     <td><code>${user.shell}</code></td>
                                                     <td>${user.gecos || '-'}</td>
+                                                    <td><span class="badge ${statusBadge}" title="Status Code: ${statusCode}">${statusCode}</span></td>
+                                                    <td>${passwordStatus.lastPasswordChange || '-'}</td>
+                                                    <td>${passwordStatus.minimumPasswordAge || '-'}</td>
+                                                    <td>${passwordStatus.maximumPasswordAge || '-'}</td>
                                                     <td><div class="d-flex flex-wrap">${groupBadges || '<span class="text-muted">No groups</span>'}</div></td>
                                                 </tr>`;
                                             }).join('')}
@@ -1538,13 +1549,17 @@ function renderUserAccounts(data) {
                                     <table class="table table-hover">
                                         <thead class="table-light">
                                             <tr>
-                                                <th style="width: 12%;">Username</th>
-                                                <th style="width: 8%;">UID</th>
-                                                <th style="width: 8%;">GID</th>
-                                                <th style="width: 20%;">Home Directory</th>
-                                                <th style="width: 15%;">Shell</th>
-                                                <th style="width: 15%;">GECOS</th>
-                                                <th style="width: 22%;">Group Memberships</th>
+                                                <th style="width: 10%;">Username</th>
+                                                <th style="width: 6%;">UID</th>
+                                                <th style="width: 6%;">GID</th>
+                                                <th style="width: 15%;">Home Directory</th>
+                                                <th style="width: 10%;">Shell</th>
+                                                <th style="width: 10%;">GECOS</th>
+                                                <th style="width: 8%;">Status</th>
+                                                <th style="width: 10%;">Last Pwd Change</th>
+                                                <th style="width: 8%;">Min Age</th>
+                                                <th style="width: 8%;">Max Age</th>
+                                                <th style="width: 9%;">Group Memberships</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -1553,6 +1568,9 @@ function renderUserAccounts(data) {
                                                 const groupBadges = userGroups.map(group => 
                                                     `<span class="badge bg-${group.type === 'system' ? 'secondary' : 'primary'} me-1 mb-1" title="GID: ${group.gid}">${group.name}</span>`
                                                 ).join('');
+                                                const passwordStatus = user.passwordStatus || {};
+                                                const statusCode = passwordStatus.rawStatusCode || '-';
+                                                const statusBadge = statusCode === 'P' ? 'bg-success' : statusCode === 'L' ? 'bg-warning' : 'bg-secondary';
                                                 return `
                                                 <tr>
                                                     <td>
@@ -1563,6 +1581,10 @@ function renderUserAccounts(data) {
                                                     <td><code>${user.homeDirectory}</code></td>
                                                     <td><code>${user.shell}</code></td>
                                                     <td>${user.gecos || '-'}</td>
+                                                    <td><span class="badge ${statusBadge}" title="Status Code: ${statusCode}">${statusCode}</span></td>
+                                                    <td>${passwordStatus.lastPasswordChange || '-'}</td>
+                                                    <td>${passwordStatus.minimumPasswordAge || '-'}</td>
+                                                    <td>${passwordStatus.maximumPasswordAge || '-'}</td>
                                                     <td><div class="d-flex flex-wrap">${groupBadges || '<span class="text-muted">No groups</span>'}</div></td>
                                                 </tr>`;
                                             }).join('')}
@@ -1598,13 +1620,17 @@ function renderUserAccounts(data) {
                                         <table class="table table-hover">
                                             <thead class="table-light">
                                                 <tr>
-                                                    <th style="width: 12%;">Username</th>
-                                                    <th style="width: 8%;">UID</th>
-                                                    <th style="width: 8%;">GID</th>
-                                                    <th style="width: 20%;">Home Directory</th>
-                                                    <th style="width: 15%;">Shell</th>
-                                                    <th style="width: 15%;">GECOS</th>
-                                                    <th style="width: 22%;">Group Memberships</th>
+                                                    <th style="width: 10%;">Username</th>
+                                                    <th style="width: 6%;">UID</th>
+                                                    <th style="width: 6%;">GID</th>
+                                                    <th style="width: 15%;">Home Directory</th>
+                                                    <th style="width: 10%;">Shell</th>
+                                                    <th style="width: 10%;">GECOS</th>
+                                                    <th style="width: 8%;">Status</th>
+                                                    <th style="width: 10%;">Last Pwd Change</th>
+                                                    <th style="width: 8%;">Min Age</th>
+                                                    <th style="width: 8%;">Max Age</th>
+                                                    <th style="width: 9%;">Group Memberships</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -1613,6 +1639,9 @@ function renderUserAccounts(data) {
                                                     const groupBadges = userGroups.map(group => 
                                                         `<span class="badge bg-${group.type === 'system' ? 'secondary' : 'primary'} me-1 mb-1" title="GID: ${group.gid}">${group.name}</span>`
                                                     ).join('');
+                                                    const passwordStatus = user.passwordStatus || {};
+                                                    const statusCode = passwordStatus.rawStatusCode || '-';
+                                                    const statusBadge = statusCode === 'P' ? 'bg-success' : statusCode === 'L' ? 'bg-warning' : 'bg-secondary';
                                                     return `
                                                     <tr>
                                                         <td>
@@ -1623,6 +1652,10 @@ function renderUserAccounts(data) {
                                                         <td><code>${user.homeDirectory}</code></td>
                                                         <td><code>${user.shell}</code></td>
                                                         <td>${user.gecos || '-'}</td>
+                                                        <td><span class="badge ${statusBadge}" title="Status Code: ${statusCode}">${statusCode}</span></td>
+                                                        <td>${passwordStatus.lastPasswordChange || '-'}</td>
+                                                        <td>${passwordStatus.minimumPasswordAge || '-'}</td>
+                                                        <td>${passwordStatus.maximumPasswordAge || '-'}</td>
                                                         <td><div class="d-flex flex-wrap">${groupBadges || '<span class="text-muted">No groups</span>'}</div></td>
                                                     </tr>`;
                                                 }).join('')}

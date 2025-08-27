@@ -187,10 +187,54 @@ def get_section_data(case_id, section):
                 ['user', 'account', 'group', 'password'])
             user_data = {}
             
+            # Load all user-related artifacts
             for artifact in user_artifacts:
                 data = json_parser.load_json_file(artifact.file_path)
                 if data:
                     user_data[artifact.filename] = data
+            
+            # Enhance user data with password status information
+            password_status_data = None
+            for filename, data in user_data.items():
+                if 'passwordstatus' in filename.lower():
+                    password_status_data = data
+                    
+                    # Extract data from 'data' key if it exists
+                    if isinstance(password_status_data, dict) and 'data' in password_status_data:
+                        password_status_data = password_status_data['data']
+                    
+                    # Create password status map
+                    password_status_map = {}
+                    for entry in password_status_data:
+                        if isinstance(entry, dict) and 'username' in entry:
+                            password_status_map[entry['username']] = {
+                                'rawStatusCode': entry.get('rawStatusCode', '-'),
+                                'lastPasswordChange': entry.get('lastPasswordChange', '-'),
+                                'minimumPasswordAge': entry.get('minimumPasswordAge', '-'),
+                                'maximumPasswordAge': entry.get('maximumPasswordAge', '-'),
+                                'passwordWarningPeriod': entry.get('passwordWarningPeriod', '-'),
+                                'passwordInactivityPeriod': entry.get('passwordInactivityPeriod', '-'),
+                                'accountExpirationDate': entry.get('accountExpirationDate', None)
+                            }
+                    
+                    break
+            
+            # If we have password status data, merge it with user accounts
+            if password_status_data:
+                
+                # Enhance user accounts data with password status
+                for filename, data in user_data.items():
+                    # Handle nested structure - extract data array if it exists
+                    user_entries = data
+                    if isinstance(data, dict) and 'data' in data:
+                        user_entries = data['data']
+                    
+                    if isinstance(user_entries, list) and any('username' in item for item in user_entries if isinstance(item, dict)):
+                        for user_entry in user_entries:
+                            if isinstance(user_entry, dict) and 'username' in user_entry:
+                                username = user_entry['username']
+                                if username in password_status_map:
+                                    user_entry['passwordStatus'] = password_status_map[username]
             
             return jsonify({
                 'success': True,
