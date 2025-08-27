@@ -166,6 +166,22 @@ def get_section_data(case_id, section):
                 'data': system_data
             })
         
+        elif section == 'environment':
+            # Get environment variables artifacts
+            env_artifacts = _get_artifacts_by_keywords(case.artifacts, 
+                ['environment', 'environmentvariables', 'env'])
+            env_data = {}
+            
+            for artifact in env_artifacts:
+                data = json_parser.load_json_file(artifact.file_path)
+                if data:
+                    env_data[artifact.filename] = data
+            
+            return jsonify({
+                'success': True,
+                'data': env_data
+            })
+        
         elif section == 'user-accounts':
             user_artifacts = _get_artifacts_by_keywords(case.artifacts, 
                 ['user', 'account', 'group', 'password'])

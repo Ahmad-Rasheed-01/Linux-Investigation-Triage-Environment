@@ -315,6 +315,9 @@ function renderSectionContent(section, data) {
         case 'hardware':
             renderHardware(data);
             break;
+        case 'environment':
+            renderEnvironment(data);
+            break;
         case 'user-accounts':
             renderUserAccounts(data);
             break;
@@ -1111,6 +1114,210 @@ function renderHardware(data) {
     contentArea.innerHTML = html;
 }
 
+function renderEnvironment(data) {
+    const contentArea = document.getElementById('content-area');
+    
+    let html = `
+        <div class="row mb-4">
+            <div class="col-12">
+                <h2 class="h4 mb-3">
+                    <i class="fas fa-cog me-2"></i>Environment Variables
+                </h2>
+            </div>
+        </div>
+    `;
+    
+    // Find environment variables data
+    let environmentData = null;
+    
+    for (const [filename, fileData] of Object.entries(data || {})) {
+        if (filename.includes('environmentVariables') || filename.includes('environment')) {
+            environmentData = fileData;
+            break;
+        }
+    }
+    
+    if (environmentData && environmentData.variables) {
+        const variables = environmentData.variables;
+        const variableCount = Object.keys(variables).length;
+        const timestamp = environmentData.timestamp;
+        const command = environmentData.command_used || 'env';
+        
+        // Convert Unix timestamp to readable format if it's a number
+        let formattedTimestamp = null;
+        if (timestamp) {
+            if (typeof timestamp === 'number') {
+                const date = new Date(timestamp * 1000); // Convert to milliseconds
+                const dateOptions = { year: 'numeric', month: 'long', day: 'numeric' };
+                const timeOptions = { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true };
+                formattedTimestamp = date.toLocaleDateString('en-US', dateOptions) + ' at ' + date.toLocaleTimeString('en-US', timeOptions);
+            } else {
+                formattedTimestamp = formatTimestamp(timestamp);
+            }
+        }
+        
+        // Automated Analysis
+        const analysis = analyzeEnvironmentVariables(variables);
+        
+        // Statistics Cards
+        html += `
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card bg-primary text-white">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">${variableCount}</h5>
+                            <p class="card-text">Total Variables</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-warning text-white">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">${analysis.securityFindings.length}</h5>
+                            <p class="card-text">Security Findings</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-info text-white">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">${analysis.systemInfo.length}</h5>
+                            <p class="card-text">System Insights</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-success text-white">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">${analysis.pathAnalysis.customPaths.length}</h5>
+                            <p class="card-text">Custom Paths</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Analysis Results
+        if (analysis.securityFindings.length > 0 || analysis.systemInfo.length > 0) {
+            html += `
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card shadow">
+                            <div class="card-header">
+                                <h6 class="m-0 font-weight-bold text-primary">
+                                    <i class="fas fa-search me-2"></i>Automated Analysis Results
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+            `;
+            
+            // Security Findings
+            if (analysis.securityFindings.length > 0) {
+                html += `
+                    <div class="col-md-6">
+                        <h6 class="text-warning"><i class="fas fa-shield-alt me-2"></i>Security Findings</h6>
+                        <ul class="list-group list-group-flush">
+                `;
+                analysis.securityFindings.forEach(finding => {
+                    html += `<li class="list-group-item px-0"><small>${finding}</small></li>`;
+                });
+                html += `
+                        </ul>
+                    </div>
+                `;
+            }
+            
+            // System Information
+            if (analysis.systemInfo.length > 0) {
+                html += `
+                    <div class="col-md-6">
+                        <h6 class="text-info"><i class="fas fa-info-circle me-2"></i>System Information</h6>
+                        <ul class="list-group list-group-flush">
+                `;
+                analysis.systemInfo.forEach(info => {
+                    html += `<li class="list-group-item px-0"><small>${info}</small></li>`;
+                });
+                html += `
+                        </ul>
+                    </div>
+                `;
+            }
+            
+            html += `
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Environment Variables Table
+        html += `
+            <div class="card shadow">
+                <div class="card-header">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-list me-2"></i>Environment Variables
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover" id="environmentTable">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th style="width: 25%;">Variable Name</th>
+                                    <th style="width: 75%;">Value</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+        `;
+        
+        // Sort variables alphabetically
+        const sortedVariables = Object.entries(variables).sort(([a], [b]) => a.localeCompare(b));
+        
+        sortedVariables.forEach(([name, value]) => {
+            // Truncate very long values for display
+            const displayValue = value && value.length > 100 ? value.substring(0, 100) + '...' : value;
+            const fullValue = value || '';
+            
+            html += `
+                <tr>
+                    <td><strong>${name}</strong></td>
+                    <td>
+                        <span class="variable-value" title="${fullValue.replace(/"/g, '&quot;')}">
+                            ${displayValue || '<em class="text-muted">empty</em>'}
+                        </span>
+                        ${value && value.length > 100 ? `
+                            <button class="btn btn-sm btn-outline-secondary ms-2" onclick="showFullValue('${name}', '${fullValue.replace(/'/g, "\\'").replace(/"/g, '\\"')}')">Show Full</button>
+                        ` : ''}
+                    </td>
+                </tr>
+            `;
+        });
+        
+        html += `
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        `;
+    } else {
+        html += `
+            <div class="card shadow">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-cog fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted mb-3">No Environment Variables Available</h5>
+                    <p class="text-muted">No environment variable data found in the uploaded artifacts.</p>
+                </div>
+            </div>
+        `;
+    }
+    
+    contentArea.innerHTML = html;
+}
+
 function renderUserAccounts(data) {
     const contentArea = document.getElementById('content-area');
     
@@ -1236,176 +1443,7 @@ function renderUserAccounts(data) {
                 </div>
             </div>
         `;
-        
-        // Root Users Section
-        if (rootUsers.length > 0) {
-            html += `
-                <div class="row mb-4">
-                    <div class="col-12">
-                        <div class="card shadow">
-                            <div class="card-header py-3">
-                                <h6 class="m-0 font-weight-bold text-danger">
-                                    <i class="fas fa-crown me-2"></i>Root Users (${rootUsers.length})
-                                </h6>
-                            </div>
-                            <div class="card-body">
-                                <div class="table-responsive">
-                                    <table class="table table-hover">
-                                        <thead class="table-light">
-                                            <tr>
-                                                <th>Username</th>
-                                                <th>UID</th>
-                                                <th>GID</th>
-                                                <th>Home Directory</th>
-                                                <th>Shell</th>
-                                                <th>GECOS</th>
-                                                <th>Group Memberships</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            ${rootUsers.map(user => {
-                                                const userGroups = userGroupsMap[user.username] || [];
-                                                const groupBadges = userGroups.map(group => 
-                                                    `<span class="badge bg-${group.type === 'system' ? 'secondary' : 'primary'} me-1" title="GID: ${group.gid}">${group.name}</span>`
-                                                ).join('');
-                                                return `
-                                                <tr>
-                                                    <td>
-                                                        <span class="badge bg-danger">${user.username}</span>
-                                                    </td>
-                                                    <td>${user.uid}</td>
-                                                    <td>${user.gid}</td>
-                                                    <td><code>${user.homeDirectory}</code></td>
-                                                    <td><code>${user.shell}</code></td>
-                                                    <td>${user.gecos || '-'}</td>
-                                                    <td>${groupBadges || '<span class="text-muted">No groups</span>'}</td>
-                                                </tr>`;
-                                            }).join('')}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-        
-        // Regular Users Section
-        if (regularUsers.length > 0) {
-            html += `
-                <div class="row mb-4">
-                    <div class="col-12">
-                        <div class="card shadow">
-                            <div class="card-header py-3">
-                                <h6 class="m-0 font-weight-bold text-success">
-                                    <i class="fas fa-user me-2"></i>Regular Users (${regularUsers.length})
-                                </h6>
-                            </div>
-                            <div class="card-body">
-                                <div class="table-responsive">
-                                    <table class="table table-hover">
-                                        <thead class="table-light">
-                                            <tr>
-                                                <th>Username</th>
-                                                <th>UID</th>
-                                                <th>GID</th>
-                                                <th>Home Directory</th>
-                                                <th>Shell</th>
-                                                <th>GECOS</th>
-                                                <th>Group Memberships</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            ${regularUsers.map(user => {
-                                                const userGroups = userGroupsMap[user.username] || [];
-                                                const groupBadges = userGroups.map(group => 
-                                                    `<span class="badge bg-${group.type === 'system' ? 'secondary' : 'primary'} me-1" title="GID: ${group.gid}">${group.name}</span>`
-                                                ).join('');
-                                                return `
-                                                <tr>
-                                                    <td>
-                                                        <span class="badge bg-success">${user.username}</span>
-                                                    </td>
-                                                    <td>${user.uid}</td>
-                                                    <td>${user.gid}</td>
-                                                    <td><code>${user.homeDirectory}</code></td>
-                                                    <td><code>${user.shell}</code></td>
-                                                    <td>${user.gecos || '-'}</td>
-                                                    <td>${groupBadges || '<span class="text-muted">No groups</span>'}</td>
-                                                </tr>`;
-                                            }).join('')}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-        
-        // System Users Section (Collapsible)
-        if (systemUsers.length > 0) {
-            html += `
-                <div class="row mb-4">
-                    <div class="col-12">
-                        <div class="card shadow">
-                            <div class="card-header py-3">
-                                <h6 class="m-0 font-weight-bold text-warning">
-                                    <i class="fas fa-cogs me-2"></i>System Users (${systemUsers.length})
-                                    <button class="btn btn-sm btn-outline-warning float-end" type="button" 
-                                            data-bs-toggle="collapse" data-bs-target="#systemUsersCollapse" 
-                                            aria-expanded="false" aria-controls="systemUsersCollapse">
-                                        <i class="fas fa-chevron-down"></i> Show/Hide
-                                    </button>
-                                </h6>
-                            </div>
-                            <div class="collapse" id="systemUsersCollapse">
-                                <div class="card-body">
-                                    <div class="table-responsive">
-                                        <table class="table table-sm table-hover">
-                                            <thead class="table-light">
-                                                <tr>
-                                                    <th>Username</th>
-                                                    <th>UID</th>
-                                                    <th>GID</th>
-                                                    <th>Home Directory</th>
-                                                    <th>Shell</th>
-                                                    <th>GECOS</th>
-                                                    <th>Group Memberships</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                ${systemUsers.map(user => {
-                                                    const userGroups = userGroupsMap[user.username] || [];
-                                                    const groupBadges = userGroups.map(group => 
-                                                        `<span class="badge bg-${group.type === 'system' ? 'secondary' : 'primary'} me-1 small" title="GID: ${group.gid}">${group.name}</span>`
-                                                    ).join('');
-                                                    return `
-                                                    <tr>
-                                                        <td>
-                                                            <span class="badge bg-warning text-dark">${user.username}</span>
-                                                        </td>
-                                                        <td>${user.uid}</td>
-                                                        <td>${user.gid}</td>
-                                                        <td><code class="small">${user.homeDirectory}</code></td>
-                                                        <td><code class="small">${user.shell}</code></td>
-                                                        <td class="small">${user.gecos || '-'}</td>
-                                                        <td>${groupBadges || '<span class="text-muted small">No groups</span>'}</td>
-                                                    </tr>`;
-                                                }).join('')}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-        
+
         // Security Analysis
         const privilegedUsers = users.filter(user => user.uid === 0 || user.gid === 0);
         const shellUsers = users.filter(user => user.shell && !user.shell.includes('nologin') && !user.shell.includes('false'));
@@ -1441,6 +1479,176 @@ function renderUserAccounts(data) {
                 </div>
             </div>
         `;
+        
+        // Root Users Section
+        if (rootUsers.length > 0) {
+            html += `
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card shadow">
+                            <div class="card-header py-3">
+                                <h6 class="m-0 font-weight-bold text-danger">
+                                    <i class="fas fa-crown me-2"></i>Root Users (${rootUsers.length})
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th style="width: 12%;">Username</th>
+                                                <th style="width: 8%;">UID</th>
+                                                <th style="width: 8%;">GID</th>
+                                                <th style="width: 20%;">Home Directory</th>
+                                                <th style="width: 15%;">Shell</th>
+                                                <th style="width: 15%;">GECOS</th>
+                                                <th style="width: 22%;">Group Memberships</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${rootUsers.map(user => {
+                                                const userGroups = userGroupsMap[user.username] || [];
+                                                const groupBadges = userGroups.map(group => 
+                                                    `<span class="badge bg-${group.type === 'system' ? 'secondary' : 'primary'} me-1 mb-1" title="GID: ${group.gid}">${group.name}</span>`
+                                                ).join('');
+                                                return `
+                                                <tr>
+                                                    <td>
+                                                        <span class="badge bg-danger" style="text-transform: none;">${user.username}</span>
+                                                    </td>
+                                                    <td>${user.uid}</td>
+                                                    <td>${user.gid}</td>
+                                                    <td><code>${user.homeDirectory}</code></td>
+                                                    <td><code>${user.shell}</code></td>
+                                                    <td>${user.gecos || '-'}</td>
+                                                    <td><div class="d-flex flex-wrap">${groupBadges || '<span class="text-muted">No groups</span>'}</div></td>
+                                                </tr>`;
+                                            }).join('')}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Regular Users Section
+        if (regularUsers.length > 0) {
+            html += `
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card shadow">
+                            <div class="card-header py-3">
+                                <h6 class="m-0 font-weight-bold text-success">
+                                    <i class="fas fa-user me-2"></i>Regular Users (${regularUsers.length})
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th style="width: 12%;">Username</th>
+                                                <th style="width: 8%;">UID</th>
+                                                <th style="width: 8%;">GID</th>
+                                                <th style="width: 20%;">Home Directory</th>
+                                                <th style="width: 15%;">Shell</th>
+                                                <th style="width: 15%;">GECOS</th>
+                                                <th style="width: 22%;">Group Memberships</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${regularUsers.map(user => {
+                                                const userGroups = userGroupsMap[user.username] || [];
+                                                const groupBadges = userGroups.map(group => 
+                                                    `<span class="badge bg-${group.type === 'system' ? 'secondary' : 'primary'} me-1 mb-1" title="GID: ${group.gid}">${group.name}</span>`
+                                                ).join('');
+                                                return `
+                                                <tr>
+                                                    <td>
+                                                        <span class="badge bg-success" style="text-transform: none;">${user.username}</span>
+                                                    </td>
+                                                    <td>${user.uid}</td>
+                                                    <td>${user.gid}</td>
+                                                    <td><code>${user.homeDirectory}</code></td>
+                                                    <td><code>${user.shell}</code></td>
+                                                    <td>${user.gecos || '-'}</td>
+                                                    <td><div class="d-flex flex-wrap">${groupBadges || '<span class="text-muted">No groups</span>'}</div></td>
+                                                </tr>`;
+                                            }).join('')}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // System Users Section (Collapsible)
+        if (systemUsers.length > 0) {
+            html += `
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card shadow">
+                            <div class="card-header py-3">
+                                <h6 class="m-0 font-weight-bold text-warning">
+                                    <i class="fas fa-cogs me-2"></i>System Users (${systemUsers.length})
+                                    <button class="btn btn-sm btn-outline-warning float-end" type="button" 
+                                            data-bs-toggle="collapse" data-bs-target="#systemUsersCollapse" 
+                                            aria-expanded="false" aria-controls="systemUsersCollapse">
+                                        <i class="fas fa-chevron-down"></i> Show/Hide
+                                    </button>
+                                </h6>
+                            </div>
+                            <div class="collapse" id="systemUsersCollapse">
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-hover">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th style="width: 12%;">Username</th>
+                                                    <th style="width: 8%;">UID</th>
+                                                    <th style="width: 8%;">GID</th>
+                                                    <th style="width: 20%;">Home Directory</th>
+                                                    <th style="width: 15%;">Shell</th>
+                                                    <th style="width: 15%;">GECOS</th>
+                                                    <th style="width: 22%;">Group Memberships</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                ${systemUsers.map(user => {
+                                                    const userGroups = userGroupsMap[user.username] || [];
+                                                    const groupBadges = userGroups.map(group => 
+                                                        `<span class="badge bg-${group.type === 'system' ? 'secondary' : 'primary'} me-1 mb-1" title="GID: ${group.gid}">${group.name}</span>`
+                                                    ).join('');
+                                                    return `
+                                                    <tr>
+                                                        <td>
+                                                            <span class="badge bg-warning text-dark" style="text-transform: none;">${user.username}</span>
+                                                        </td>
+                                                        <td>${user.uid}</td>
+                                                        <td>${user.gid}</td>
+                                                        <td><code>${user.homeDirectory}</code></td>
+                                                        <td><code>${user.shell}</code></td>
+                                                        <td>${user.gecos || '-'}</td>
+                                                        <td><div class="d-flex flex-wrap">${groupBadges || '<span class="text-muted">No groups</span>'}</div></td>
+                                                    </tr>`;
+                                                }).join('')}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
         
     } else {
         html += `
@@ -1794,6 +2002,118 @@ function performSearch() {
         });
 }
 
+function analyzeEnvironmentVariables(variables) {
+    const analysis = {
+        securityFindings: [],
+        systemInfo: [],
+        pathAnalysis: {
+            customPaths: [],
+            suspiciousPaths: []
+        }
+    };
+    
+    // Security Analysis
+    for (const [name, value] of Object.entries(variables)) {
+        // Check for privilege escalation indicators
+        if (name === 'SUDO_USER' && value) {
+            analysis.securityFindings.push(`Privilege escalation detected: User '${value}' used sudo`);
+        }
+        
+        if (name === 'SUDO_COMMAND' && value) {
+            analysis.securityFindings.push(`Sudo command executed: ${value}`);
+        }
+        
+        // Check for potential security risks in PATH
+        if (name === 'PATH' && value) {
+            const paths = value.split(':');
+            const suspiciousPaths = paths.filter(path => 
+                path.includes('/tmp') || 
+                path.includes('/var/tmp') || 
+                path.startsWith('.') ||
+                path.includes('..') ||
+                path === ''
+            );
+            
+            if (suspiciousPaths.length > 0) {
+                analysis.securityFindings.push(`Suspicious paths in PATH: ${suspiciousPaths.join(', ')}`);
+            }
+            
+            // Identify custom paths (not standard system paths)
+            const standardPaths = ['/usr/local/sbin', '/usr/local/bin', '/usr/sbin', '/usr/bin', '/sbin', '/bin'];
+            const customPaths = paths.filter(path => !standardPaths.includes(path) && path.trim() !== '');
+            analysis.pathAnalysis.customPaths = customPaths;
+        }
+        
+        // Check for shell configuration that might indicate persistence
+        if ((name === 'SHELL' || name === 'BASH' || name === 'ZSH') && value) {
+            analysis.systemInfo.push(`Shell: ${value}`);
+        }
+        
+        // Check for display/X11 configuration (potential for GUI access)
+        if (name === 'DISPLAY' && value) {
+            analysis.systemInfo.push(`X11 Display configured: ${value}`);
+        }
+        
+        if (name === 'XAUTHORITY' && value) {
+            analysis.systemInfo.push(`X11 Authority file: ${value}`);
+        }
+        
+        // Check for desktop environment
+        if (name === 'XDG_CURRENT_DESKTOP' && value) {
+            analysis.systemInfo.push(`Desktop Environment: ${value}`);
+        }
+        
+        // Check for language/locale settings
+        if (name === 'LANG' && value) {
+            analysis.systemInfo.push(`System Language: ${value}`);
+        }
+        
+        // Check for terminal configuration
+        if (name === 'TERM' && value) {
+            analysis.systemInfo.push(`Terminal Type: ${value}`);
+        }
+        
+        if (name === 'COLORTERM' && value) {
+            analysis.systemInfo.push(`Color Terminal: ${value}`);
+        }
+        
+        // Check for home directory
+        if (name === 'HOME' && value) {
+            analysis.systemInfo.push(`Home Directory: ${value}`);
+        }
+        
+        // Check for current user
+        if (name === 'USER' && value) {
+            analysis.systemInfo.push(`Current User: ${value}`);
+        }
+        
+        if (name === 'LOGNAME' && value) {
+            analysis.systemInfo.push(`Login Name: ${value}`);
+        }
+        
+        // Check for mail configuration
+        if (name === 'MAIL' && value) {
+            analysis.systemInfo.push(`Mail Spool: ${value}`);
+        }
+        
+        // Check for potentially dangerous variables
+        if (name.includes('PASSWORD') || name.includes('SECRET') || name.includes('KEY')) {
+            analysis.securityFindings.push(`Potential credential in environment: ${name}`);
+        }
+        
+        // Check for LD_PRELOAD or LD_LIBRARY_PATH (potential for library injection)
+        if (name === 'LD_PRELOAD' && value) {
+            analysis.securityFindings.push(`Library preload detected: ${value}`);
+        }
+        
+        if (name === 'LD_LIBRARY_PATH' && value) {
+            analysis.securityFindings.push(`Custom library path: ${value}`);
+        }
+    }
+    
+    return analysis;
+}
+
 function displaySearchResults(results, query) {
     const searchResults = document.getElementById('searchResults');
     
@@ -1965,6 +2285,80 @@ style.textContent = `
         }
     }
 `;
+
+function showFullValue(variableName, fullValue) {
+    // Create a modal to show the full value
+    const modalHtml = `
+        <div class="modal fade" id="fullValueModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="fas fa-cog me-2"></i>Environment Variable: ${variableName}
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="bg-light p-3 rounded">
+                            <pre class="mb-0" style="white-space: pre-wrap; word-wrap: break-word;">${fullValue}</pre>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-primary" onclick="copyToClipboard('${fullValue.replace(/'/g, "\\'").replace(/"/g, '\\"')}')">Copy Value</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Remove existing modal if any
+    const existingModal = document.getElementById('fullValueModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    // Add modal to body
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('fullValueModal'));
+    modal.show();
+    
+    // Clean up modal after it's hidden
+    document.getElementById('fullValueModal').addEventListener('hidden.bs.modal', function() {
+        this.remove();
+    });
+}
+
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(function() {
+        // Show success message
+        const toast = document.createElement('div');
+        toast.className = 'toast align-items-center text-white bg-success border-0 position-fixed';
+        toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999;';
+        toast.innerHTML = `
+            <div class="d-flex">
+                <div class="toast-body">
+                    <i class="fas fa-check me-2"></i>Copied to clipboard!
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+        `;
+        document.body.appendChild(toast);
+        
+        const bsToast = new bootstrap.Toast(toast);
+        bsToast.show();
+        
+        // Remove toast after it's hidden
+        toast.addEventListener('hidden.bs.toast', function() {
+            this.remove();
+        });
+    }).catch(function(err) {
+        console.error('Failed to copy text: ', err);
+    });
+}
+
 document.head.appendChild(style);
 </script>
 {% endblock %}
