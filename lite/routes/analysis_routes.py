@@ -47,7 +47,7 @@ def analysis_page(case_id):
             'icon': 'fas fa-users',
             'expanded': False,
             'items': {
-                'User Accounts': 'users-accounts',
+                'User Accounts': 'user-accounts',
                 'Group Information': 'users-groups',
                 'Authentication': 'users-auth',
                 'Sudo Configuration': 'users-sudo'
@@ -166,7 +166,7 @@ def get_section_data(case_id, section):
                 'data': system_data
             })
         
-        elif section == 'users-accounts':
+        elif section == 'user-accounts':
             user_artifacts = _get_artifacts_by_keywords(case.artifacts, 
                 ['user', 'account', 'group', 'password'])
             user_data = {}
@@ -176,7 +176,10 @@ def get_section_data(case_id, section):
                 if data:
                     user_data[artifact.filename] = data
             
-            return jsonify(user_data)
+            return jsonify({
+                'success': True,
+                'data': user_data
+            })
         
         elif section == 'network-connections':
             network_artifacts = _get_artifacts_by_keywords(case.artifacts, 
