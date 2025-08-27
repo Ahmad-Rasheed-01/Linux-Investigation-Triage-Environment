@@ -144,7 +144,7 @@ def get_section_data(case_id, section):
                 'data': system_info
             })
         
-        elif section == 'system-details':
+        elif section == 'hardware':
             system_artifacts = _get_artifacts_by_keywords(case.artifacts, 
                 ['system', 'cpu', 'memory', 'uptime', 'kernel_version', 'locale'])
             system_data = {}

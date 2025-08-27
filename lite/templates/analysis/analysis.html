@@ -40,9 +40,6 @@
                     <i class="fas fa-chevron-down float-end mt-1"></i>
                 </div>
                 <div class="collapse" id="systemSection">
-                    <a href="#" class="list-group-item list-group-item-action ps-4 nav-link" data-section="system-details">
-                        <i class="fas fa-desktop me-2"></i>System Details
-                    </a>
                     <a href="#" class="list-group-item list-group-item-action ps-4 nav-link" data-section="hardware">
                         <i class="fas fa-microchip me-2"></i>Hardware Info
                     </a>
@@ -315,8 +312,8 @@ function renderSectionContent(section, data) {
         case 'collection-logs':
             renderCollectionLogs(data);
             break;
-        case 'system-details':
-            renderSystemDetails(data);
+        case 'hardware':
+            renderHardware(data);
             break;
         case 'user-accounts':
             renderUserAccounts(data);
@@ -867,7 +864,7 @@ function renderArtifacts(data) {
     contentArea.innerHTML = html;
 }
 
-function renderSystemDetails(data) {
+function renderHardware(data) {
     const contentArea = document.getElementById('content-area');
     
     let html = `
@@ -885,6 +882,15 @@ function renderSystemDetails(data) {
     for (const [filename, fileData] of Object.entries(data || {})) {
         if (filename.includes('cpuInformation')) {
             cpuData = fileData;
+            break;
+        }
+    }
+    
+    // Find memory information data
+    let memoryData = null;
+    for (const [filename, fileData] of Object.entries(data || {})) {
+        if (filename.includes('memory_info')) {
+            memoryData = fileData;
             break;
         }
     }
@@ -993,13 +999,110 @@ function renderSystemDetails(data) {
         `;
     }
     
-    if (!cpuData) {
+    // Memory Information Widget
+    if (memoryData && memoryData.entries) {
+        const memInfo = memoryData.entries;
+        const memTotal = memInfo.MemTotal ? memInfo.MemTotal.value : 0;
+        const memFree = memInfo.MemFree ? memInfo.MemFree.value : 0;
+        const memAvailable = memInfo.MemAvailable ? memInfo.MemAvailable.value : 0;
+        const swapTotal = memInfo.SwapTotal ? memInfo.SwapTotal.value : 0;
+        const swapFree = memInfo.SwapFree ? memInfo.SwapFree.value : 0;
+        const cached = memInfo.Cached ? memInfo.Cached.value : 0;
+        const buffers = memInfo.Buffers ? memInfo.Buffers.value : 0;
+        
+        const memUsed = memTotal - memFree;
+        const memUsedPercent = memTotal > 0 ? ((memUsed / memTotal) * 100).toFixed(1) : 0;
+        const swapUsed = swapTotal - swapFree;
+        const swapUsedPercent = swapTotal > 0 ? ((swapUsed / swapTotal) * 100).toFixed(1) : 0;
+        
+        html += `
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card shadow">
+                        <div class="card-header py-3">
+                            <h6 class="m-0 font-weight-bold text-primary">
+                                <i class="fas fa-memory me-2"></i>Memory Information
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-lg-6">
+                                    <div class="mb-3">
+                                        <strong>Total Memory:</strong><br>
+                                        <span class="text-primary fw-bold">${(memTotal / 1024).toFixed(2)} MB</span>
+                                    </div>
+                                    <div class="mb-3">
+                                        <strong>Used Memory:</strong><br>
+                                        <span class="text-warning fw-bold">${(memUsed / 1024).toFixed(2)} MB (${memUsedPercent}%)</span>
+                                    </div>
+                                    <div class="mb-3">
+                                        <strong>Free Memory:</strong><br>
+                                        <span class="text-success fw-bold">${(memFree / 1024).toFixed(2)} MB</span>
+                                    </div>
+                                    <div class="mb-3">
+                                        <strong>Available Memory:</strong><br>
+                                        <span class="text-info fw-bold">${(memAvailable / 1024).toFixed(2)} MB</span>
+                                    </div>
+                                </div>
+                                <div class="col-lg-6">
+                                    <div class="mb-3">
+                                        <strong>Cached Memory:</strong><br>
+                                        <span class="text-muted">${(cached / 1024).toFixed(2)} MB</span>
+                                    </div>
+                                    <div class="mb-3">
+                                        <strong>Buffers:</strong><br>
+                                        <span class="text-muted">${(buffers / 1024).toFixed(2)} MB</span>
+                                    </div>
+                                    <div class="mb-3">
+                                        <strong>Swap Total:</strong><br>
+                                        <span class="text-muted">${(swapTotal / 1024).toFixed(2)} MB</span>
+                                    </div>
+                                    <div class="mb-3">
+                                        <strong>Swap Used:</strong><br>
+                                        <span class="text-${swapUsedPercent > 50 ? 'danger' : 'muted'}">${(swapUsed / 1024).toFixed(2)} MB (${swapUsedPercent}%)</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Memory Usage Progress Bars -->
+                            <hr>
+                            <h6 class="text-muted mb-3">Memory Usage</h6>
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between mb-1">
+                                    <span class="small">RAM Usage</span>
+                                    <span class="small">${memUsedPercent}%</span>
+                                </div>
+                                <div class="progress" style="height: 8px;">
+                                    <div class="progress-bar ${memUsedPercent > 80 ? 'bg-danger' : memUsedPercent > 60 ? 'bg-warning' : 'bg-success'}" 
+                                         style="width: ${memUsedPercent}%"></div>
+                                </div>
+                            </div>
+                            ${swapTotal > 0 ? `
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between mb-1">
+                                        <span class="small">Swap Usage</span>
+                                        <span class="small">${swapUsedPercent}%</span>
+                                    </div>
+                                    <div class="progress" style="height: 8px;">
+                                        <div class="progress-bar ${swapUsedPercent > 50 ? 'bg-danger' : swapUsedPercent > 25 ? 'bg-warning' : 'bg-info'}" 
+                                             style="width: ${swapUsedPercent}%"></div>
+                                    </div>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    if (!cpuData && !memoryData) {
         html += `
             <div class="card shadow">
                 <div class="card-body text-center py-5">
                     <i class="fas fa-server fa-3x text-muted mb-3"></i>
-                    <h5 class="text-muted mb-3">No System Details Available</h5>
-                    <p class="text-muted">No system details data found in the uploaded artifacts.</p>
+                    <h5 class="text-muted mb-3">No Hardware Information Available</h5>
+                    <p class="text-muted">No hardware data found in the uploaded artifacts.</p>
                 </div>
             </div>
         `;
