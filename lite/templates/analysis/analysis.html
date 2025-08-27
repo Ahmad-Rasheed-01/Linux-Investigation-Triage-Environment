@@ -1126,11 +1126,33 @@ function renderUserAccounts(data) {
     
     // Find user accounts data
     let userAccountsData = null;
+    let groupAccountsData = null;
+    
     for (const [filename, fileData] of Object.entries(data || {})) {
         if (filename.includes('userAccounts')) {
             userAccountsData = fileData;
-            break;
+        } else if (filename.includes('groupAccounts')) {
+            groupAccountsData = fileData;
         }
+    }
+    
+    // Create a mapping of users to their groups
+    let userGroupsMap = {};
+    if (groupAccountsData && groupAccountsData.data) {
+        groupAccountsData.data.forEach(group => {
+            if (group.members && group.members.length > 0) {
+                group.members.forEach(username => {
+                    if (!userGroupsMap[username]) {
+                        userGroupsMap[username] = [];
+                    }
+                    userGroupsMap[username].push({
+                        name: group.groupName,
+                        gid: group.gid,
+                        type: group.groupType
+                    });
+                });
+            }
+        });
     }
     
     if (userAccountsData && userAccountsData.data) {
@@ -1236,10 +1258,17 @@ function renderUserAccounts(data) {
                                                 <th>GID</th>
                                                 <th>Home Directory</th>
                                                 <th>Shell</th>
+                                                <th>GECOS</th>
+                                                <th>Group Memberships</th>
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            ${rootUsers.map(user => `
+                                            ${rootUsers.map(user => {
+                                                const userGroups = userGroupsMap[user.username] || [];
+                                                const groupBadges = userGroups.map(group => 
+                                                    `<span class="badge bg-${group.type === 'system' ? 'secondary' : 'primary'} me-1" title="GID: ${group.gid}">${group.name}</span>`
+                                                ).join('');
+                                                return `
                                                 <tr>
                                                     <td>
                                                         <span class="badge bg-danger">${user.username}</span>
@@ -1248,8 +1277,10 @@ function renderUserAccounts(data) {
                                                     <td>${user.gid}</td>
                                                     <td><code>${user.homeDirectory}</code></td>
                                                     <td><code>${user.shell}</code></td>
-                                                </tr>
-                                            `).join('')}
+                                                    <td>${user.gecos || '-'}</td>
+                                                    <td>${groupBadges || '<span class="text-muted">No groups</span>'}</td>
+                                                </tr>`;
+                                            }).join('')}
                                         </tbody>
                                     </table>
                                 </div>
@@ -1282,10 +1313,16 @@ function renderUserAccounts(data) {
                                                 <th>Home Directory</th>
                                                 <th>Shell</th>
                                                 <th>GECOS</th>
+                                                <th>Group Memberships</th>
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            ${regularUsers.map(user => `
+                                            ${regularUsers.map(user => {
+                                                const userGroups = userGroupsMap[user.username] || [];
+                                                const groupBadges = userGroups.map(group => 
+                                                    `<span class="badge bg-${group.type === 'system' ? 'secondary' : 'primary'} me-1" title="GID: ${group.gid}">${group.name}</span>`
+                                                ).join('');
+                                                return `
                                                 <tr>
                                                     <td>
                                                         <span class="badge bg-success">${user.username}</span>
@@ -1295,8 +1332,9 @@ function renderUserAccounts(data) {
                                                     <td><code>${user.homeDirectory}</code></td>
                                                     <td><code>${user.shell}</code></td>
                                                     <td>${user.gecos || '-'}</td>
-                                                </tr>
-                                            `).join('')}
+                                                    <td>${groupBadges || '<span class="text-muted">No groups</span>'}</td>
+                                                </tr>`;
+                                            }).join('')}
                                         </tbody>
                                     </table>
                                 </div>
@@ -1334,10 +1372,17 @@ function renderUserAccounts(data) {
                                                     <th>GID</th>
                                                     <th>Home Directory</th>
                                                     <th>Shell</th>
+                                                    <th>GECOS</th>
+                                                    <th>Group Memberships</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                ${systemUsers.map(user => `
+                                                ${systemUsers.map(user => {
+                                                    const userGroups = userGroupsMap[user.username] || [];
+                                                    const groupBadges = userGroups.map(group => 
+                                                        `<span class="badge bg-${group.type === 'system' ? 'secondary' : 'primary'} me-1 small" title="GID: ${group.gid}">${group.name}</span>`
+                                                    ).join('');
+                                                    return `
                                                     <tr>
                                                         <td>
                                                             <span class="badge bg-warning text-dark">${user.username}</span>
@@ -1346,8 +1391,10 @@ function renderUserAccounts(data) {
                                                         <td>${user.gid}</td>
                                                         <td><code class="small">${user.homeDirectory}</code></td>
                                                         <td><code class="small">${user.shell}</code></td>
-                                                    </tr>
-                                                `).join('')}
+                                                        <td class="small">${user.gecos || '-'}</td>
+                                                        <td>${groupBadges || '<span class="text-muted small">No groups</span>'}</td>
+                                                    </tr>`;
+                                                }).join('')}
                                             </tbody>
                                         </table>
                                     </div>
