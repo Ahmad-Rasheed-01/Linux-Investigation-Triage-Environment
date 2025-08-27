@@ -1591,6 +1591,8 @@ function renderUserAccounts(data) {
                                                 <th style="min-width: 180px;">Last Pwd Change</th>
                                                 <th style="min-width: 120px;">Min Age</th>
                                                 <th style="min-width: 120px;">Max Age</th>
+                                                <th style="min-width: 300px;">Password Hash</th>
+                                                <th style="min-width: 150px;">Hash Type</th>
                                                 <th style="min-width: 250px;">Group Memberships</th>
                                             </tr>
                                         </thead>
@@ -1603,6 +1605,9 @@ function renderUserAccounts(data) {
                                                 const passwordStatus = user.passwordStatus || {};
                                                 const statusCode = passwordStatus.rawStatusCode || '-';
                                                 const statusBadge = statusCode === 'P' ? 'bg-success' : statusCode === 'L' ? 'bg-warning' : 'bg-secondary';
+                                                const passwordHash = user.passwordHash || '-';
+                                                const hashType = user.hashType || '-';
+                                                const truncatedHash = passwordHash.length > 20 ? passwordHash.substring(0, 20) + '...' : passwordHash;
                                                 return `
                                                 <tr>
                                                     <td>
@@ -1617,6 +1622,13 @@ function renderUserAccounts(data) {
                                                     <td>${passwordStatus.lastPasswordChange || '-'}</td>
                                                     <td>${passwordStatus.minimumPasswordAge || '-'}</td>
                                                     <td>${passwordStatus.maximumPasswordAge || '-'}</td>
+                                                    <td>
+                                                            <code class="text-break" title="${passwordHash}">${truncatedHash}</code>
+                                                            ${passwordHash && passwordHash !== '-' && passwordHash.length > 20 ? `
+                                                                <button class="btn btn-sm btn-outline-secondary ms-2" onclick="showFullPasswordHash('${user.username}', '${passwordHash.replace(/'/g, "\\'")}')">Show Full</button>
+                                                            ` : ''}
+                                                        </td>
+                                                    <td><span class="badge ${hashType === 'No Password/Locked' ? 'bg-warning' : hashType === 'Unknown/Other' ? 'bg-secondary' : 'bg-info'}">${hashType}</span></td>
                                                     <td><div class="d-flex flex-wrap">${groupBadges || '<span class="text-muted">No groups</span>'}</div></td>
                                                 </tr>`;
                                             }).join('')}
@@ -1656,6 +1668,8 @@ function renderUserAccounts(data) {
                                                 <th style="min-width: 180px;">Last Pwd Change</th>
                                                 <th style="min-width: 120px;">Min Age</th>
                                                 <th style="min-width: 120px;">Max Age</th>
+                                                <th style="min-width: 300px;">Password Hash</th>
+                                                <th style="min-width: 150px;">Hash Type</th>
                                                 <th style="min-width: 250px;">Group Memberships</th>
                                             </tr>
                                         </thead>
@@ -1668,6 +1682,9 @@ function renderUserAccounts(data) {
                                                 const passwordStatus = user.passwordStatus || {};
                                                 const statusCode = passwordStatus.rawStatusCode || '-';
                                                 const statusBadge = statusCode === 'P' ? 'bg-success' : statusCode === 'L' ? 'bg-warning' : 'bg-secondary';
+                                                const passwordHash = user.passwordHash || '-';
+                                                const hashType = user.hashType || '-';
+                                                const truncatedHash = passwordHash.length > 20 ? passwordHash.substring(0, 20) + '...' : passwordHash;
                                                 return `
                                                 <tr>
                                                     <td>
@@ -1682,6 +1699,13 @@ function renderUserAccounts(data) {
                                                     <td>${passwordStatus.lastPasswordChange || '-'}</td>
                                                     <td>${passwordStatus.minimumPasswordAge || '-'}</td>
                                                     <td>${passwordStatus.maximumPasswordAge || '-'}</td>
+                                                    <td>
+                                                            <code class="text-break" title="${passwordHash}">${truncatedHash}</code>
+                                                            ${passwordHash && passwordHash !== '-' && passwordHash.length > 20 ? `
+                                                                <button class="btn btn-sm btn-outline-secondary ms-2" onclick="showFullPasswordHash('${user.username}', '${passwordHash.replace(/'/g, "\\'")}')">Show Full</button>
+                                                            ` : ''}
+                                                        </td>
+                                                    <td><span class="badge ${hashType === 'No Password/Locked' ? 'bg-warning' : hashType === 'Unknown/Other' ? 'bg-secondary' : 'bg-info'}">${hashType}</span></td>
                                                     <td><div class="d-flex flex-wrap">${groupBadges || '<span class="text-muted">No groups</span>'}</div></td>
                                                 </tr>`;
                                             }).join('')}
@@ -1727,6 +1751,8 @@ function renderUserAccounts(data) {
                                                 <th style="min-width: 180px;">Last Pwd Change</th>
                                                 <th style="min-width: 120px;">Min Age</th>
                                                 <th style="min-width: 120px;">Max Age</th>
+                                                <th style="min-width: 300px;">Password Hash</th>
+                                                <th style="min-width: 150px;">Hash Type</th>
                                                 <th style="min-width: 250px;">Group Memberships</th>
                                             </tr>
                                             </thead>
@@ -1739,6 +1765,9 @@ function renderUserAccounts(data) {
                                                     const passwordStatus = user.passwordStatus || {};
                                                     const statusCode = passwordStatus.rawStatusCode || '-';
                                                     const statusBadge = statusCode === 'P' ? 'bg-success' : statusCode === 'L' ? 'bg-warning' : 'bg-secondary';
+                                                    const passwordHash = user.passwordHash || '-';
+                                                    const hashType = user.hashType || '-';
+                                                    const truncatedHash = passwordHash.length > 20 ? passwordHash.substring(0, 20) + '...' : passwordHash;
                                                     return `
                                                     <tr>
                                                         <td>
@@ -1753,6 +1782,13 @@ function renderUserAccounts(data) {
                                                         <td>${passwordStatus.lastPasswordChange || '-'}</td>
                                                         <td>${passwordStatus.minimumPasswordAge || '-'}</td>
                                                         <td>${passwordStatus.maximumPasswordAge || '-'}</td>
+                                                        <td>
+                                                            <code class="text-break" title="${passwordHash}">${truncatedHash}</code>
+                                                            ${passwordHash && passwordHash !== '-' && passwordHash.length > 20 ? `
+                                                                <button class="btn btn-sm btn-outline-secondary ms-2" onclick="showFullPasswordHash('${user.username}', '${passwordHash.replace(/'/g, "\\'")}')">Show Full</button>
+                                                            ` : ''}
+                                                        </td>
+                                                        <td><span class="badge ${hashType === 'No Password/Locked' ? 'bg-warning' : hashType === 'Unknown/Other' ? 'bg-secondary' : 'bg-info'}">${hashType}</span></td>
                                                         <td><div class="d-flex flex-wrap">${groupBadges || '<span class="text-muted">No groups</span>'}</div></td>
                                                     </tr>`;
                                                 }).join('')}
@@ -2473,6 +2509,51 @@ function showFullValue(variableName, fullValue) {
     });
 }
 
+function showFullPasswordHash(username, fullHash) {
+    // Create a modal to show the full password hash
+    const modalHtml = `
+        <div class="modal fade" id="fullPasswordHashModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="fas fa-key me-2"></i>Password Hash: ${username}
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="bg-light p-3 rounded">
+                            <pre class="mb-0" style="white-space: pre-wrap; word-wrap: break-word; font-family: 'Courier New', monospace;">${fullHash}</pre>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-primary" onclick="copyToClipboard(\`${fullHash}\`)">Copy Hash</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Remove existing modal if any
+    const existingModal = document.getElementById('fullPasswordHashModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    // Add modal to body
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('fullPasswordHashModal'));
+    modal.show();
+    
+    // Clean up modal after it's hidden
+    document.getElementById('fullPasswordHashModal').addEventListener('hidden.bs.modal', function() {
+        this.remove();
+    });
+}
+
 function copyToClipboard(text) {
     navigator.clipboard.writeText(text).then(function() {
         // Show success message
@@ -2501,6 +2582,5 @@ function copyToClipboard(text) {
     });
 }
 
-document.head.appendChild(style);
 </script>
 {% endblock %}

@@ -219,6 +219,29 @@ def get_section_data(case_id, section):
                     
                     break
             
+            # Enhance user data with password hash information
+            password_hash_data = None
+            for filename, data in user_data.items():
+                if 'passwordinfo' in filename.lower():
+                    password_hash_data = data
+                    
+                    # Extract data from 'data' key if it exists
+                    if isinstance(password_hash_data, dict) and 'data' in password_hash_data:
+                        password_hash_data = password_hash_data['data']
+                    
+                    # Create password hash map
+                    password_hash_map = {}
+                    for entry in password_hash_data:
+                        if isinstance(entry, dict) and 'username' in entry:
+                            password_hash = entry.get('passwordHash', 'N/A')
+                            hash_type = _detect_hash_type(password_hash)
+                            password_hash_map[entry['username']] = {
+                                'passwordHash': password_hash,
+                                'hashType': hash_type
+                            }
+                    
+                    break
+            
             # If we have password status data, merge it with user accounts
             if password_status_data:
                 
@@ -235,6 +258,24 @@ def get_section_data(case_id, section):
                                 username = user_entry['username']
                                 if username in password_status_map:
                                     user_entry['passwordStatus'] = password_status_map[username]
+            
+            # If we have password hash data, merge it with user accounts
+            if password_hash_data:
+                
+                # Enhance user accounts data with password hash
+                for filename, data in user_data.items():
+                    # Handle nested structure - extract data array if it exists
+                    user_entries = data
+                    if isinstance(data, dict) and 'data' in data:
+                        user_entries = data['data']
+                    
+                    if isinstance(user_entries, list) and any('username' in item for item in user_entries if isinstance(item, dict)):
+                        for user_entry in user_entries:
+                            if isinstance(user_entry, dict) and 'username' in user_entry:
+                                username = user_entry['username']
+                                if username in password_hash_map:
+                                    user_entry['passwordHash'] = password_hash_map[username]['passwordHash']
+                                    user_entry['hashType'] = password_hash_map[username]['hashType']
             
             return jsonify({
                 'success': True,
@@ -762,3 +803,34 @@ def _parse_collection_logs(case):
             'logs': [],
             'statistics': {}
         }
+
+def _detect_hash_type(password_hash):
+    """Detect the type of password hash based on its format"""
+    if not password_hash or password_hash == 'N/A' or password_hash == '*' or password_hash == '!':
+        return 'No Password/Locked'
+    
+    # Common hash type patterns
+    if password_hash.startswith('$1$'):
+        return 'MD5'
+    elif password_hash.startswith('$2a$') or password_hash.startswith('$2b$') or password_hash.startswith('$2x$') or password_hash.startswith('$2y$'):
+        return 'Blowfish/bcrypt'
+    elif password_hash.startswith('$5$'):
+        return 'SHA-256'
+    elif password_hash.startswith('$6$'):
+        return 'SHA-512'
+    elif password_hash.startswith('$y$'):
+        return 'yescrypt'
+    elif password_hash.startswith('$7$'):
+        return 'scrypt'
+    elif password_hash.startswith('$argon2'):
+        return 'Argon2'
+    elif password_hash.startswith('$pbkdf2'):
+        return 'PBKDF2'
+    elif len(password_hash) == 13 and not password_hash.startswith('$'):
+        return 'DES (Traditional)'
+    elif len(password_hash) == 34 and password_hash.startswith('$'):
+        return 'Extended DES'
+    elif password_hash.startswith('{'):
+        return 'LDAP Format'
+    else:
+        return 'Unknown/Other'
