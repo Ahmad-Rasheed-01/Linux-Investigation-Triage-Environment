@@ -6,3 +6,4 @@ lite/instance/lite.db
 *.log
 SEA_Collection_Analysis_Report.md
 temp_js_validation.js
+lite/instance/lite.db
