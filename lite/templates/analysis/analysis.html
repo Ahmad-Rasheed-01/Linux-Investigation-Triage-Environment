@@ -40,7 +40,7 @@
                     <i class="fas fa-chevron-down float-end mt-1"></i>
                 </div>
                 <div class="collapse" id="systemSection">
-                    <a href="#" class="list-group-item list-group-item-action ps-4 nav-link" data-section="system-info">
+                    <a href="#" class="list-group-item list-group-item-action ps-4 nav-link" data-section="system-details">
                         <i class="fas fa-desktop me-2"></i>System Details
                     </a>
                     <a href="#" class="list-group-item list-group-item-action ps-4 nav-link" data-section="hardware">
@@ -315,8 +315,8 @@ function renderSectionContent(section, data) {
         case 'collection-logs':
             renderCollectionLogs(data);
             break;
-        case 'system-info':
-            renderSystemInfo(data);
+        case 'system-details':
+            renderSystemDetails(data);
             break;
         case 'user-accounts':
             renderUserAccounts(data);
@@ -637,6 +637,7 @@ function formatTimestamp(timestampString) {
 function renderArtifacts(data) {
     const contentArea = document.getElementById('content-area');
     const systemInfo = data.system_info || {};
+    const artifactInfo = data.artifact_info || {};
     const collectionInfo = systemInfo.collection_info || {};
     const platformInfo = systemInfo.platform_info || {};
     const timezoneInfo = systemInfo.timezone_info || {};
@@ -772,6 +773,233 @@ function renderArtifacts(data) {
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
+            
+            <!-- Uploaded Artifact Files -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card shadow">
+                        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                            <h6 class="m-0 font-weight-bold text-primary">
+                                <i class="fas fa-file-upload me-2"></i>Uploaded Artifact Files (${artifactInfo.total_count || 0})
+                            </h6>
+                            <div class="text-muted small">
+                                Total Size: ${(artifactInfo.total_size_mb || 0).toFixed(2)} MB
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            ${artifactInfo.files && artifactInfo.files.length > 0 ? `
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Filename</th>
+                                                <th>Category</th>
+                                                <th>Size</th>
+                                                <th>Records</th>
+                                                <th>Status</th>
+                                                <th>Upload Date</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${artifactInfo.files.map(file => `
+                                                <tr>
+                                                    <td>
+                                                        <div class="d-flex align-items-center">
+                                                            <i class="fas fa-file-alt text-muted me-2"></i>
+                                                            <div>
+                                                                <div class="fw-bold">${file.original_filename}</div>
+                                                                <small class="text-muted">${file.filename}</small>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <span class="badge bg-secondary">${file.artifact_category || 'Other'}</span>
+                                                    </td>
+                                                    <td>
+                                                        <span class="text-muted">${formatFileSize(file.file_size_bytes)}</span>
+                                                    </td>
+                                                    <td>
+                                                        <span class="text-info">${file.record_count || 0}</span>
+                                                    </td>
+                                                    <td>
+                                                        <span class="badge ${
+                                                            file.processing_status === 'completed' ? 'bg-success' :
+                                                            file.processing_status === 'processing' ? 'bg-warning' :
+                                                            file.processing_status === 'error' ? 'bg-danger' : 'bg-secondary'
+                                                        }">${file.processing_status}</span>
+                                                        ${file.processing_error ? `<br><small class="text-danger">${file.processing_error}</small>` : ''}
+                                                    </td>
+                                                    <td>
+                                                        <small class="text-muted">${file.upload_timestamp ? formatTimestamp(file.upload_timestamp) : 'Unknown'}</small>
+                                                    </td>
+                                                    <td>
+                                                        <div class="btn-group btn-group-sm" role="group">
+                                                            <button type="button" class="btn btn-outline-primary" onclick="viewArtifact('${file.id}')" title="View Content">
+                                                                <i class="fas fa-eye"></i>
+                                                            </button>
+                                                            <button type="button" class="btn btn-outline-secondary" onclick="downloadArtifact('${file.id}')" title="Download">
+                                                                <i class="fas fa-download"></i>
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            `).join('')}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            ` : `
+                                <div class="text-center py-4">
+                                    <i class="fas fa-file-upload fa-3x text-muted mb-3"></i>
+                                    <h5 class="text-muted">No Artifact Files Uploaded</h5>
+                                    <p class="text-muted">Upload artifact files to begin analysis</p>
+                                </div>
+                            `}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    contentArea.innerHTML = html;
+}
+
+function renderSystemDetails(data) {
+    const contentArea = document.getElementById('content-area');
+    
+    let html = `
+        <div class="row mb-4">
+            <div class="col-12">
+                <h2 class="h4 mb-3">
+                    <i class="fas fa-server me-2"></i>System Details
+                </h2>
+            </div>
+        </div>
+    `;
+    
+    // Find CPU information data
+    let cpuData = null;
+    for (const [filename, fileData] of Object.entries(data || {})) {
+        if (filename.includes('cpuInformation')) {
+            cpuData = fileData;
+            break;
+        }
+    }
+    
+    if (cpuData && cpuData.cpu_info) {
+        const cpuInfo = cpuData.cpu_info;
+        const summary = cpuInfo.summary || {};
+        const processors = cpuInfo.processors || [];
+        
+        // CPU Information Widget
+        html += `
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card shadow">
+                        <div class="card-header py-3">
+                            <h6 class="m-0 font-weight-bold text-primary">
+                                <i class="fas fa-microchip me-2"></i>CPU Information
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-lg-6">
+                                    <div class="mb-3">
+                                        <strong>Processor Model:</strong><br>
+                                        <span class="text-primary fw-bold">${summary.model_name || 'Unknown'}</span>
+                                    </div>
+                                    <div class="mb-3">
+                                        <strong>Vendor:</strong><br>
+                                        <span class="text-muted">${summary.vendor_id || 'Unknown'}</span>
+                                    </div>
+                                    <div class="mb-3">
+                                        <strong>CPU Family:</strong><br>
+                                        <span class="text-muted">${summary.cpu_family || 'Unknown'}</span>
+                                    </div>
+                                </div>
+                                <div class="col-lg-6">
+                                    <div class="mb-3">
+                                        <strong>Processor Count:</strong><br>
+                                        <span class="text-success fw-bold">${summary.processor_count || 0} cores</span>
+                                    </div>
+                                    <div class="mb-3">
+                                        <strong>Cache Size:</strong><br>
+                                        <span class="text-muted">${summary.cache_size || 'Unknown'}</span>
+                                    </div>
+                                    <div class="mb-3">
+                                        <strong>Model/Stepping:</strong><br>
+                                        <span class="text-muted">${summary.model || 'Unknown'}/${summary.stepping || 'Unknown'}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- CPU Cores Details -->
+                            ${processors.length > 0 ? `
+                                <hr>
+                                <h6 class="text-muted mb-3">CPU Cores Details</h6>
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-hover">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Core</th>
+                                                <th>Physical ID</th>
+                                                <th>Core ID</th>
+                                                <th>Frequency (MHz)</th>
+                                                <th>Cache Size</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${processors.slice(0, 8).map(proc => `
+                                                <tr>
+                                                    <td><span class="badge bg-secondary">${proc.processor}</span></td>
+                                                    <td>${proc.physical_id}</td>
+                                                    <td>${proc.core_id}</td>
+                                                    <td>${parseFloat(proc.cpu_MHz).toFixed(2)}</td>
+                                                    <td>${proc.cache_size}</td>
+                                                </tr>
+                                            `).join('')}
+                                            ${processors.length > 8 ? `
+                                                <tr>
+                                                    <td colspan="5" class="text-center text-muted">
+                                                        <small>... and ${processors.length - 8} more cores</small>
+                                                    </td>
+                                                </tr>
+                                            ` : ''}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            ` : ''}
+                            
+                            <!-- Security Vulnerabilities -->
+                            ${processors.length > 0 && processors[0].bugs ? `
+                                <hr>
+                                <h6 class="text-warning mb-3">
+                                    <i class="fas fa-shield-alt me-2"></i>Security Vulnerabilities
+                                </h6>
+                                <div class="alert alert-warning">
+                                    <small>
+                                        <strong>Known CPU Bugs:</strong><br>
+                                        ${processors[0].bugs.split(' ').map(bug => `<span class="badge bg-warning text-dark me-1 mb-1">${bug}</span>`).join('')}
+                                    </small>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    if (!cpuData) {
+        html += `
+            <div class="card shadow">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-server fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted mb-3">No System Details Available</h5>
+                    <p class="text-muted">No system details data found in the uploaded artifacts.</p>
                 </div>
             </div>
         `;
@@ -1176,7 +1404,43 @@ function showError(message) {
 }
 
 function downloadArtifact(artifactId) {
-    window.open(`/cases/{{ case.case_id }}/artifacts/${artifactId}/download`, '_blank');
+    const caseId = getCurrentCaseId();
+    if (caseId) {
+        window.open(`/cases/${caseId}/artifacts/${artifactId}/download`, '_blank');
+    }
+}
+
+function viewArtifact(artifactId) {
+    const caseId = getCurrentCaseId();
+    if (caseId) {
+        window.open(`/analysis/${caseId}/artifact/${artifactId}`, '_blank');
+    }
+}
+
+function getCurrentCaseId() {
+    // Extract case ID from the current URL path
+    const pathParts = window.location.pathname.split('/');
+    const analysisIndex = pathParts.indexOf('analysis');
+    if (analysisIndex !== -1 && pathParts[analysisIndex + 1]) {
+        return pathParts[analysisIndex + 1];
+    }
+    return null;
+}
+
+function formatFileSize(bytes) {
+    if (!bytes || bytes === 0) return '0 bytes';
+    
+    const k = 1024;
+    const sizes = ['bytes', 'KB', 'MB', 'GB'];
+    
+    if (bytes < k) {
+        return bytes + ' bytes';
+    }
+    
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    const size = (bytes / Math.pow(k, i)).toFixed(2);
+    
+    return size + ' ' + sizes[i];
 }
 
 function renderArtifactTypesChart(types) {

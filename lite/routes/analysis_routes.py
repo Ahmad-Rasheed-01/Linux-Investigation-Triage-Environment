@@ -154,7 +154,17 @@ def get_section_data(case_id, section):
                 if data:
                     system_data[artifact.filename] = data
             
-            return jsonify(system_data)
+            # Add CPU information processing (handle case-insensitive matching)
+            cpu_artifacts = _get_artifacts_by_keywords(case.artifacts, ['cpuinformation'])
+            for artifact in cpu_artifacts:
+                data = json_parser.load_json_file(artifact.file_path)
+                if data:
+                    system_data[artifact.filename] = data
+            
+            return jsonify({
+                'success': True,
+                'data': system_data
+            })
         
         elif section == 'users-accounts':
             user_artifacts = _get_artifacts_by_keywords(case.artifacts, 
@@ -514,7 +524,7 @@ def _find_suspicious_processes(process_artifacts, json_parser):
     return suspicious_processes
 
 def _get_collection_metadata(case):
-    """Extract system information from collection metadata JSON file"""
+    """Extract system information from collection metadata JSON file and include artifact information"""
     import glob
     
     # Look for collection metadata file in the case directory
@@ -522,10 +532,28 @@ def _get_collection_metadata(case):
     metadata_pattern = os.path.join(case_dir, 'collection_metadata_*.json')
     metadata_files = glob.glob(metadata_pattern)
     
+    # Get artifact statistics and individual files
+    artifacts = case.artifacts
+    artifact_stats = {
+        'total_count': len(artifacts),
+        'total_size_mb': sum(artifact.file_size_mb for artifact in artifacts if artifact.file_size_mb),
+        'by_category': _get_category_stats(artifacts),
+        'by_status': _get_status_stats(artifacts),
+        'latest_upload': max([artifact.upload_timestamp for artifact in artifacts], default=None),
+        'file_types': {},
+        'files': [artifact.to_dict() for artifact in artifacts]  # Include individual files
+    }
+    
+    # Calculate file type distribution
+    for artifact in artifacts:
+        file_ext = os.path.splitext(artifact.filename)[1].lower() or 'no extension'
+        artifact_stats['file_types'][file_ext] = artifact_stats['file_types'].get(file_ext, 0) + 1
+    
     if not metadata_files:
         return {
             'error': 'Collection metadata file not found',
-            'system_info': {}
+            'system_info': {},
+            'artifact_info': artifact_stats
         }
     
     try:
@@ -552,13 +580,15 @@ def _get_collection_metadata(case):
         return {
             'success': True,
             'system_info': system_info,
+            'artifact_info': artifact_stats,
             'metadata_file': os.path.basename(metadata_file)
         }
         
     except Exception as e:
         return {
             'error': f'Failed to read collection metadata: {str(e)}',
-            'system_info': {}
+            'system_info': {},
+            'artifact_info': artifact_stats
         }
 
 def _parse_collection_logs(case):
