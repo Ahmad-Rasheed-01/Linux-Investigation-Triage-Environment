@@ -1161,8 +1161,8 @@ function renderEnvironment(data) {
         
         // Statistics Cards
         html += `
-            <div class="row mb-4">
-                <div class="col-md-3">
+            <div class="row mb-4 justify-content-center">
+                <div class="col-md-3 col-sm-6 mb-3">
                     <div class="card bg-primary text-white">
                         <div class="card-body text-center">
                             <h5 class="card-title">${variableCount}</h5>
@@ -1170,7 +1170,7 @@ function renderEnvironment(data) {
                         </div>
                     </div>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-3 col-sm-6 mb-3">
                     <div class="card bg-warning text-white">
                         <div class="card-body text-center">
                             <h5 class="card-title">${analysis.securityFindings.length}</h5>
@@ -1178,15 +1178,7 @@ function renderEnvironment(data) {
                         </div>
                     </div>
                 </div>
-                <div class="col-md-3">
-                    <div class="card bg-info text-white">
-                        <div class="card-body text-center">
-                            <h5 class="card-title">${analysis.systemInfo.length}</h5>
-                            <p class="card-text">System Insights</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
+                <div class="col-md-3 col-sm-6 mb-3">
                     <div class="card bg-success text-white">
                         <div class="card-body text-center">
                             <h5 class="card-title">${analysis.pathAnalysis.customPaths.length}</h5>
@@ -1198,7 +1190,7 @@ function renderEnvironment(data) {
         `;
         
         // Analysis Results
-        if (analysis.securityFindings.length > 0 || analysis.systemInfo.length > 0) {
+        if (analysis.securityFindings.length > 0) {
             html += `
                 <div class="row mb-4">
                     <div class="col-12">
@@ -1215,34 +1207,25 @@ function renderEnvironment(data) {
             // Security Findings
             if (analysis.securityFindings.length > 0) {
                 html += `
-                    <div class="col-md-6">
-                        <h6 class="text-warning"><i class="fas fa-shield-alt me-2"></i>Security Findings</h6>
-                        <ul class="list-group list-group-flush">
+                    <div class="col-12">
+                        <h6 class="text-warning mb-3"><i class="fas fa-shield-alt me-2"></i>Security Findings</h6>
+                        <div class="alert alert-warning" role="alert">
                 `;
-                analysis.securityFindings.forEach(finding => {
-                    html += `<li class="list-group-item px-0"><small>${finding}</small></li>`;
+                analysis.securityFindings.forEach((finding, index) => {
+                    html += `
+                            <div class="d-flex align-items-start mb-2 ${index < analysis.securityFindings.length - 1 ? 'border-bottom pb-2' : ''}">
+                                <i class="fas fa-exclamation-triangle text-warning me-2 mt-1"></i>
+                                <span class="text-dark">${finding}</span>
+                            </div>
+                    `;
                 });
                 html += `
-                        </ul>
+                        </div>
                     </div>
                 `;
             }
             
-            // System Information
-            if (analysis.systemInfo.length > 0) {
-                html += `
-                    <div class="col-md-6">
-                        <h6 class="text-info"><i class="fas fa-info-circle me-2"></i>System Information</h6>
-                        <ul class="list-group list-group-flush">
-                `;
-                analysis.systemInfo.forEach(info => {
-                    html += `<li class="list-group-item px-0"><small>${info}</small></li>`;
-                });
-                html += `
-                        </ul>
-                    </div>
-                `;
-            }
+
             
             html += `
                                 </div>
@@ -1266,8 +1249,10 @@ function renderEnvironment(data) {
                         <table class="table table-bordered table-hover" id="environmentTable">
                             <thead class="table-dark">
                                 <tr>
-                                    <th style="width: 25%;">Variable Name</th>
-                                    <th style="width: 75%;">Value</th>
+                                    <th style="width: 8%;">Sr. No.</th>
+                                    <th style="width: 22%;">Variable Name</th>
+                                    <th style="width: 35%;">Description</th>
+                                    <th style="width: 35%;">Value</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -1276,20 +1261,23 @@ function renderEnvironment(data) {
         // Sort variables alphabetically
         const sortedVariables = Object.entries(variables).sort(([a], [b]) => a.localeCompare(b));
         
-        sortedVariables.forEach(([name, value]) => {
+        sortedVariables.forEach(([name, value], index) => {
             // Truncate very long values for display
             const displayValue = value && value.length > 100 ? value.substring(0, 100) + '...' : value;
             const fullValue = value || '';
+            const description = getVariableDescription(name, value);
             
             html += `
                 <tr>
+                    <td class="text-center"><span class="badge bg-secondary">${index + 1}</span></td>
                     <td><strong>${name}</strong></td>
+                    <td><small class="text-muted">${description}</small></td>
                     <td>
                         <span class="variable-value" title="${fullValue.replace(/"/g, '&quot;')}">
                             ${displayValue || '<em class="text-muted">empty</em>'}
                         </span>
                         ${value && value.length > 100 ? `
-                            <button class="btn btn-sm btn-outline-secondary ms-2" onclick="showFullValue('${name}', '${fullValue.replace(/'/g, "\\'").replace(/"/g, '\\"')}')">Show Full</button>
+                            <button class="btn btn-sm btn-outline-secondary ms-2" onclick="showFullValue('${name}', \`${fullValue.replace(/`/g, '\\`')}\`)">Show Full</button>
                         ` : ''}
                     </td>
                 </tr>
@@ -2005,7 +1993,6 @@ function performSearch() {
 function analyzeEnvironmentVariables(variables) {
     const analysis = {
         securityFindings: [],
-        systemInfo: [],
         pathAnalysis: {
             customPaths: [],
             suspiciousPaths: []
@@ -2044,57 +2031,7 @@ function analyzeEnvironmentVariables(variables) {
             analysis.pathAnalysis.customPaths = customPaths;
         }
         
-        // Check for shell configuration that might indicate persistence
-        if ((name === 'SHELL' || name === 'BASH' || name === 'ZSH') && value) {
-            analysis.systemInfo.push(`Shell: ${value}`);
-        }
-        
-        // Check for display/X11 configuration (potential for GUI access)
-        if (name === 'DISPLAY' && value) {
-            analysis.systemInfo.push(`X11 Display configured: ${value}`);
-        }
-        
-        if (name === 'XAUTHORITY' && value) {
-            analysis.systemInfo.push(`X11 Authority file: ${value}`);
-        }
-        
-        // Check for desktop environment
-        if (name === 'XDG_CURRENT_DESKTOP' && value) {
-            analysis.systemInfo.push(`Desktop Environment: ${value}`);
-        }
-        
-        // Check for language/locale settings
-        if (name === 'LANG' && value) {
-            analysis.systemInfo.push(`System Language: ${value}`);
-        }
-        
-        // Check for terminal configuration
-        if (name === 'TERM' && value) {
-            analysis.systemInfo.push(`Terminal Type: ${value}`);
-        }
-        
-        if (name === 'COLORTERM' && value) {
-            analysis.systemInfo.push(`Color Terminal: ${value}`);
-        }
-        
-        // Check for home directory
-        if (name === 'HOME' && value) {
-            analysis.systemInfo.push(`Home Directory: ${value}`);
-        }
-        
-        // Check for current user
-        if (name === 'USER' && value) {
-            analysis.systemInfo.push(`Current User: ${value}`);
-        }
-        
-        if (name === 'LOGNAME' && value) {
-            analysis.systemInfo.push(`Login Name: ${value}`);
-        }
-        
-        // Check for mail configuration
-        if (name === 'MAIL' && value) {
-            analysis.systemInfo.push(`Mail Spool: ${value}`);
-        }
+
         
         // Check for potentially dangerous variables
         if (name.includes('PASSWORD') || name.includes('SECRET') || name.includes('KEY')) {
@@ -2112,6 +2049,81 @@ function analyzeEnvironmentVariables(variables) {
     }
     
     return analysis;
+}
+
+// Function to get variable description
+function getVariableDescription(name, value) {
+    const descriptions = {
+        'PATH': 'System executable search paths - directories where the shell looks for commands',
+        'HOME': 'User home directory path',
+        'USER': 'Current username',
+        'LOGNAME': 'Login name of the current user',
+        'SHELL': 'Default shell program for the user',
+        'TERM': 'Terminal type identifier for proper display formatting',
+        'DISPLAY': 'X11 display server connection string for GUI applications',
+        'LANG': 'System language and locale settings',
+        'LC_ALL': 'Locale settings override for all categories',
+        'PWD': 'Present working directory path',
+        'OLDPWD': 'Previous working directory path',
+        'EDITOR': 'Default text editor program',
+        'PAGER': 'Default pager program for viewing text',
+        'BROWSER': 'Default web browser program',
+        'MAIL': 'Mail spool file location',
+        'MAILCHECK': 'Interval for checking new mail',
+        'PS1': 'Primary shell prompt format string',
+        'PS2': 'Secondary shell prompt for multi-line commands',
+        'IFS': 'Internal Field Separator for word splitting',
+        'HISTFILE': 'Command history file location',
+        'HISTSIZE': 'Number of commands to remember in history',
+        'HISTCONTROL': 'History behavior control settings',
+        'TMOUT': 'Shell timeout value in seconds',
+        'UMASK': 'Default file creation permissions mask',
+        'TZ': 'Timezone setting',
+        'COLORTERM': 'Color terminal capability indicator',
+        'LS_COLORS': 'Color scheme for ls command output',
+        'GREP_COLOR': 'Color highlighting for grep matches',
+        'LESS': 'Default options for less pager',
+        'MANPATH': 'Manual page search directories',
+        'INFOPATH': 'Info document search directories',
+        'CDPATH': 'Directory search path for cd command',
+        'FPATH': 'Function definition search path',
+        'TMPDIR': 'Temporary files directory',
+        'XDG_CONFIG_HOME': 'User configuration files directory',
+        'XDG_DATA_HOME': 'User data files directory',
+        'XDG_CACHE_HOME': 'User cache files directory',
+        'XDG_CURRENT_DESKTOP': 'Current desktop environment name',
+        'DESKTOP_SESSION': 'Desktop session type identifier',
+        'GDMSESSION': 'GDM session type',
+        'SESSION_MANAGER': 'Session management connection string',
+        'DBUS_SESSION_BUS_ADDRESS': 'D-Bus session bus connection address',
+        'SSH_CLIENT': 'SSH client connection information',
+        'SSH_CONNECTION': 'SSH connection details',
+        'SSH_TTY': 'SSH terminal device',
+        'SSH_AUTH_SOCK': 'SSH authentication agent socket',
+        'GPG_AGENT_INFO': 'GPG agent connection information',
+        'XAUTHORITY': 'X11 authorization file location',
+        'WINDOWID': 'X11 window identifier',
+        'COLUMNS': 'Terminal width in characters',
+        'LINES': 'Terminal height in lines'
+    };
+    
+    // Check for sudo-related variables
+    if (name.startsWith('SUDO_')) {
+        return 'Sudo execution context variable - contains information from privilege escalation';
+    }
+    
+    // Check for other common patterns
+    if (name.endsWith('_HOME') && !descriptions[name]) {
+        return 'Application home directory path';
+    }
+    if (name.endsWith('_PATH') && !descriptions[name]) {
+        return 'Application-specific search path';
+    }
+    if (name.endsWith('_CONFIG') && !descriptions[name]) {
+        return 'Application configuration setting';
+    }
+    
+    return descriptions[name] || 'Custom environment variable - application or user defined setting';
 }
 
 function displaySearchResults(results, query) {
