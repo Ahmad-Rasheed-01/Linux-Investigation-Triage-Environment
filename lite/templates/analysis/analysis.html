@@ -990,7 +990,7 @@ function renderHardware(data) {
                                 </h6>
                                 <div class="alert alert-warning">
                                     <small>
-                                        <strong>Known CPU Bugs:</strong><br>
+                                        <strong>Known CPU Bugs</strong><br>
                                         ${processors[0].bugs.split(' ').map(bug => `<span class="badge bg-warning text-dark me-1 mb-1">${bug}</span>`).join('')}
                                     </small>
                                 </div>
@@ -1031,37 +1031,37 @@ function renderHardware(data) {
                             <div class="row">
                                 <div class="col-lg-6">
                                     <div class="mb-3">
-                                        <strong>Total Memory:</strong><br>
+                                        <strong>Total Memory</strong><br>
                                         <span class="text-primary fw-bold">${(memTotal / 1024).toFixed(2)} MB</span>
                                     </div>
                                     <div class="mb-3">
-                                        <strong>Used Memory:</strong><br>
+                                        <strong>Used Memory</strong><br>
                                         <span class="text-warning fw-bold">${(memUsed / 1024).toFixed(2)} MB (${memUsedPercent}%)</span>
                                     </div>
                                     <div class="mb-3">
-                                        <strong>Free Memory:</strong><br>
+                                        <strong>Free Memory</strong><br>
                                         <span class="text-success fw-bold">${(memFree / 1024).toFixed(2)} MB</span>
                                     </div>
                                     <div class="mb-3">
-                                        <strong>Available Memory:</strong><br>
+                                        <strong>Available Memory</strong><br>
                                         <span class="text-info fw-bold">${(memAvailable / 1024).toFixed(2)} MB</span>
                                     </div>
                                 </div>
                                 <div class="col-lg-6">
                                     <div class="mb-3">
-                                        <strong>Cached Memory:</strong><br>
+                                        <strong>Cached Memory</strong><br>
                                         <span class="text-muted">${(cached / 1024).toFixed(2)} MB</span>
                                     </div>
                                     <div class="mb-3">
-                                        <strong>Buffers:</strong><br>
+                                        <strong>Buffers</strong><br>
                                         <span class="text-muted">${(buffers / 1024).toFixed(2)} MB</span>
                                     </div>
                                     <div class="mb-3">
-                                        <strong>Swap Total:</strong><br>
+                                        <strong>Swap Total</strong><br>
                                         <span class="text-muted">${(swapTotal / 1024).toFixed(2)} MB</span>
                                     </div>
                                     <div class="mb-3">
-                                        <strong>Swap Used:</strong><br>
+                                        <strong>Swap Used</strong><br>
                                         <span class="text-${swapUsedPercent > 50 ? 'danger' : 'muted'}">${(swapUsed / 1024).toFixed(2)} MB (${swapUsedPercent}%)</span>
                                     </div>
                                 </div>
