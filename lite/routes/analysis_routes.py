@@ -48,6 +48,7 @@ def analysis_page(case_id):
             'expanded': False,
             'items': {
                 'User Accounts': 'user-accounts',
+                'Login History': 'login-history',
                 'Group Information': 'users-groups',
                 'Authentication': 'users-auth',
                 'Sudo Configuration': 'users-sudo'
@@ -335,6 +336,33 @@ def get_section_data(case_id, section):
                     'success': True,
                     'data': collection_log_data
                 })
+        
+        elif section == 'login-history':
+            # Get login history artifacts
+            login_artifacts = _get_artifacts_by_keywords(case.artifacts, 
+                ['wtmp', 'utmp', 'lastlog', 'auth'])
+            login_data = {}
+            
+            for artifact in login_artifacts:
+                data = json_parser.load_json_file(artifact.file_path)
+                if data:
+                    # Process different log types
+                    if 'wtmp' in artifact.filename.lower():
+                        login_data['wtmp_logs'] = data
+                    elif 'utmp' in artifact.filename.lower():
+                        login_data['utmp_logs'] = data
+                    elif 'lastlog' in artifact.filename.lower():
+                        login_data['lastlog_logs'] = data
+                    elif 'auth' in artifact.filename.lower():
+                        # Limit auth logs for performance (they can be very large)
+                        if isinstance(data, list) and len(data) > 2000:
+                            data = data[:2000]  # Show first 2000 entries
+                        login_data['auth_logs'] = data
+            
+            return jsonify({
+                'success': True,
+                'data': login_data
+            })
         
         else:
             return jsonify({'error': 'Section not found'}), 404

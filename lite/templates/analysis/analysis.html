@@ -321,6 +321,9 @@ function renderSectionContent(section, data) {
         case 'user-accounts':
             renderUserAccounts(data);
             break;
+        case 'login-history':
+            renderLoginHistory(data);
+            break;
         case 'running-processes':
             renderProcesses(data);
             break;
@@ -1811,6 +1814,361 @@ function renderUserAccounts(data) {
                     <i class="fas fa-users fa-3x text-muted mb-3"></i>
                     <h5 class="text-muted mb-3">No User Account Information Available</h5>
                     <p class="text-muted">No user account data found in the uploaded artifacts.</p>
+                </div>
+            </div>
+        `;
+    }
+    
+    contentArea.innerHTML = html;
+}
+
+function renderLoginHistory(data) {
+    const contentArea = document.getElementById('content-area');
+    
+    let html = `
+        <div class="row mb-4">
+            <div class="col-12">
+                <h2 class="h4 mb-3">
+                    <i class="fas fa-sign-in-alt me-2"></i>Login History
+                </h2>
+            </div>
+        </div>
+    `;
+    
+    if (data && Object.keys(data).length > 0) {
+        // Summary Statistics
+        let totalLogins = 0;
+        let uniqueUsers = new Set();
+        let failedLogins = 0;
+        let remoteLogins = 0;
+        
+        // Process auth logs for statistics
+        if (data.auth_logs && Array.isArray(data.auth_logs)) {
+            data.auth_logs.forEach(entry => {
+                if (entry.event_type === 'login') {
+                    totalLogins++;
+                    if (entry.username) uniqueUsers.add(entry.username);
+                }
+                if (entry.auth_result === 'failed') {
+                    failedLogins++;
+                }
+                if (entry.hostname && entry.hostname !== 'localhost') {
+                    remoteLogins++;
+                }
+            });
+        }
+        
+        // Add wtmp login statistics
+        if (data.wtmp_logs && data.wtmp_logs.logs && Array.isArray(data.wtmp_logs.logs)) {
+            data.wtmp_logs.logs.forEach(entry => {
+                if (entry.record_type === 'USER_PROCESS' && entry.username) {
+                    uniqueUsers.add(entry.username);
+                }
+            });
+        }
+        
+        html += `
+            <div class="row mb-4">
+                <div class="col-lg-3 col-md-6 mb-3">
+                    <div class="card border-left-primary shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                        Total Login Events
+                                    </div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">${totalLogins}</div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-sign-in-alt fa-2x text-primary"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6 mb-3">
+                    <div class="card border-left-success shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                        Unique Users
+                                    </div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">${uniqueUsers.size}</div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-users fa-2x text-success"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6 mb-3">
+                    <div class="card border-left-warning shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                        Failed Attempts
+                                    </div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">${failedLogins}</div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-exclamation-triangle fa-2x text-warning"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6 mb-3">
+                    <div class="card border-left-info shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                        Remote Logins
+                                    </div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">${remoteLogins}</div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-globe fa-2x text-info"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Authentication Events (Auth Logs)
+        if (data.auth_logs && Array.isArray(data.auth_logs) && data.auth_logs.length > 0) {
+            html += `
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card shadow">
+                            <div class="card-header py-3">
+                                <h6 class="m-0 font-weight-bold text-primary">
+                                    <i class="fas fa-shield-alt me-2"></i>Authentication Events (${data.auth_logs.length})
+                                </h6>
+                            </div>
+                            <div class="card-body" style="padding: 0;">
+                                <div class="table-responsive" style="overflow-x: auto; overflow-y: auto; max-height: 400px; width: 100%; position: relative; margin: 0; padding: 1rem;">
+                                    <table class="table table-hover" style="min-width: 1200px; margin: 0;">
+                                        <thead class="table-light" style="position: sticky; top: 0; z-index: 10; background-color: #f8f9fa !important;">
+                                            <tr>
+                                                <th style="min-width: 180px;">Timestamp</th>
+                                                <th style="min-width: 120px;">Event Type</th>
+                                                <th style="min-width: 120px;">Username</th>
+                                                <th style="min-width: 120px;">Service</th>
+                                                <th style="min-width: 100px;">Result</th>
+                                                <th style="min-width: 150px;">Hostname</th>
+                                                <th style="min-width: 400px;">Message</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${data.auth_logs.slice(0, 500).map(entry => {
+                                                const timestamp = entry.timestamp ? new Date(entry.timestamp).toLocaleString() : '-';
+                                                const eventType = entry.event_type || '-';
+                                                const username = entry.username || '-';
+                                                const service = entry.service || '-';
+                                                const result = entry.auth_result || '-';
+                                                const hostname = entry.hostname || '-';
+                                                const message = entry.message || '-';
+                                                const resultBadge = result === 'success' ? 'bg-success' : result === 'failed' ? 'bg-danger' : 'bg-secondary';
+                                                const eventBadge = eventType === 'login' ? 'bg-primary' : eventType === 'sudo' ? 'bg-warning' : 'bg-info';
+                                                
+                                                return `
+                                                    <tr>
+                                                        <td>${timestamp}</td>
+                                                        <td><span class="badge ${eventBadge}">${eventType}</span></td>
+                                                        <td><strong>${username}</strong></td>
+                                                        <td>${service}</td>
+                                                        <td><span class="badge ${resultBadge}">${result}</span></td>
+                                                        <td>${hostname}</td>
+                                                        <td style="max-width: 400px; word-wrap: break-word;">${message}</td>
+                                                    </tr>
+                                                `;
+                                            }).join('')}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Session History (WTMP Logs)
+        if (data.wtmp_logs && data.wtmp_logs.logs && Array.isArray(data.wtmp_logs.logs) && data.wtmp_logs.logs.length > 0) {
+            html += `
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card shadow">
+                            <div class="card-header py-3">
+                                <h6 class="m-0 font-weight-bold text-success">
+                                    <i class="fas fa-history me-2"></i>Session History (${data.wtmp_logs.logs.length})
+                                </h6>
+                            </div>
+                            <div class="card-body" style="padding: 0;">
+                                <div class="table-responsive" style="overflow-x: auto; overflow-y: auto; max-height: 400px; width: 100%; position: relative; margin: 0; padding: 1rem;">
+                                    <table class="table table-hover" style="min-width: 1000px; margin: 0;">
+                                        <thead class="table-light" style="position: sticky; top: 0; z-index: 10; background-color: #f8f9fa !important;">
+                                            <tr>
+                                                <th style="min-width: 180px;">Timestamp</th>
+                                                <th style="min-width: 120px;">Record Type</th>
+                                                <th style="min-width: 120px;">Username</th>
+                                                <th style="min-width: 150px;">Terminal</th>
+                                                <th style="min-width: 200px;">Hostname</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${data.wtmp_logs.logs.slice(0, 500).map(entry => {
+                                                const timestamp = entry.timestamp ? new Date(entry.timestamp).toLocaleString() : '-';
+                                                const recordType = entry.record_type || '-';
+                                                const username = entry.username || '-';
+                                                const terminal = entry.terminal || '-';
+                                                const hostname = entry.hostname || '-';
+                                                const typeBadge = recordType === 'USER_PROCESS' ? 'bg-success' : recordType === 'DEAD_PROCESS' ? 'bg-warning' : 'bg-info';
+                                                
+                                                return `
+                                                    <tr>
+                                                        <td>${timestamp}</td>
+                                                        <td><span class="badge ${typeBadge}">${recordType}</span></td>
+                                                        <td><strong>${username}</strong></td>
+                                                        <td>${terminal}</td>
+                                                        <td>${hostname}</td>
+                                                    </tr>
+                                                `;
+                                            }).join('')}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Last Login Information (Lastlog)
+        if (data.lastlog_logs && data.lastlog_logs.logs && Array.isArray(data.lastlog_logs.logs) && data.lastlog_logs.logs.length > 0) {
+            html += `
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card shadow">
+                            <div class="card-header py-3">
+                                <h6 class="m-0 font-weight-bold text-info">
+                                    <i class="fas fa-clock me-2"></i>Last Login Information (${data.lastlog_logs.logs.length})
+                                </h6>
+                            </div>
+                            <div class="card-body" style="padding: 0;">
+                                <div class="table-responsive" style="overflow-x: auto; overflow-y: auto; max-height: 400px; width: 100%; position: relative; margin: 0; padding: 1rem;">
+                                    <table class="table table-hover" style="min-width: 1000px; margin: 0;">
+                                        <thead class="table-light" style="position: sticky; top: 0; z-index: 10; background-color: #f8f9fa !important;">
+                                            <tr>
+                                                <th style="min-width: 100px;">UID</th>
+                                                <th style="min-width: 120px;">Username</th>
+                                                <th style="min-width: 180px;">Last Login</th>
+                                                <th style="min-width: 150px;">Terminal</th>
+                                                <th style="min-width: 200px;">Hostname</th>
+                                                <th style="min-width: 120px;">Login Type</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${data.lastlog_logs.logs.map(entry => {
+                                                const uid = entry.uid || '-';
+                                                const username = entry.username || '-';
+                                                const lastLogin = entry.last_login_time ? new Date(entry.last_login_time).toLocaleString() : 'Never';
+                                                const terminal = entry.terminal || '-';
+                                                const hostname = entry.hostname || '-';
+                                                const loginType = entry.login_type || '-';
+                                                const typeBadge = loginType === 'local' ? 'bg-success' : loginType === 'remote' ? 'bg-warning' : 'bg-secondary';
+                                                
+                                                return `
+                                                    <tr>
+                                                        <td>${uid}</td>
+                                                        <td><strong>${username}</strong></td>
+                                                        <td>${lastLogin}</td>
+                                                        <td>${terminal}</td>
+                                                        <td>${hostname}</td>
+                                                        <td><span class="badge ${typeBadge}">${loginType}</span></td>
+                                                    </tr>
+                                                `;
+                                            }).join('')}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Current Sessions (UTMP Logs)
+        if (data.utmp_logs && Array.isArray(data.utmp_logs) && data.utmp_logs.length > 0) {
+            html += `
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card shadow">
+                            <div class="card-header py-3">
+                                <h6 class="m-0 font-weight-bold text-warning">
+                                    <i class="fas fa-user-clock me-2"></i>Current Sessions (${data.utmp_logs.length})
+                                </h6>
+                            </div>
+                            <div class="card-body" style="padding: 0;">
+                                <div class="table-responsive" style="overflow-x: auto; overflow-y: auto; max-height: 400px; width: 100%; position: relative; margin: 0; padding: 1rem;">
+                                    <table class="table table-hover" style="min-width: 1000px; margin: 0;">
+                                        <thead class="table-light" style="position: sticky; top: 0; z-index: 10; background-color: #f8f9fa !important;">
+                                            <tr>
+                                                <th style="min-width: 120px;">Session Status</th>
+                                                <th style="min-width: 120px;">Session Type</th>
+                                                <th style="min-width: 120px;">Username</th>
+                                                <th style="min-width: 150px;">Terminal</th>
+                                                <th style="min-width: 200px;">Hostname</th>
+                                                <th style="min-width: 180px;">Login Time</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${data.utmp_logs.map(entry => {
+                                                const sessionStatus = entry.session_status || '-';
+                                                const sessionType = entry.session_type || '-';
+                                                const username = entry.username || '-';
+                                                const terminal = entry.terminal || '-';
+                                                const hostname = entry.hostname || '-';
+                                                const loginTime = entry.login_time ? new Date(entry.login_time).toLocaleString() : '-';
+                                                const statusBadge = sessionStatus === 'active' ? 'bg-success' : sessionStatus === 'inactive' ? 'bg-secondary' : 'bg-info';
+                                                const typeBadge = sessionType === 'user' ? 'bg-primary' : sessionType === 'system' ? 'bg-warning' : 'bg-secondary';
+                                                
+                                                return `
+                                                    <tr>
+                                                        <td><span class="badge ${statusBadge}">${sessionStatus}</span></td>
+                                                        <td><span class="badge ${typeBadge}">${sessionType}</span></td>
+                                                        <td><strong>${username}</strong></td>
+                                                        <td>${terminal}</td>
+                                                        <td>${hostname}</td>
+                                                        <td>${loginTime}</td>
+                                                    </tr>
+                                                `;
+                                            }).join('')}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+    } else {
+        html += `
+            <div class="card shadow">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-sign-in-alt fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted mb-3">No Login History Available</h5>
+                    <p class="text-muted">No login history data found in the uploaded artifacts.</p>
                 </div>
             </div>
         `;
