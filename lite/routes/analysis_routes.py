@@ -293,11 +293,14 @@ def get_section_data(case_id, section):
                 if data:
                     network_data[artifact.filename] = data
             
-            return jsonify(network_data)
+            return jsonify({
+                'success': True,
+                'data': network_data
+            })
         
         elif section == 'processes-running':
             process_artifacts = _get_artifacts_by_keywords(case.artifacts, 
-                ['process', 'service', 'systemd'])
+                ['process', 'processes', 'service', 'systemd'])
             process_data = {}
             
             for artifact in process_artifacts:
@@ -305,7 +308,10 @@ def get_section_data(case_id, section):
                 if data:
                     process_data[artifact.filename] = data
             
-            return jsonify(process_data)
+            return jsonify({
+                'success': True,
+                'data': process_data
+            })
         
         elif section == 'logs-system':
             log_artifacts = _get_artifacts_by_keywords(case.artifacts, 
@@ -320,7 +326,10 @@ def get_section_data(case_id, section):
                         data = data[:1000]  # Show first 1000 entries
                     log_data[artifact.filename] = data
             
-            return jsonify(log_data)
+            return jsonify({
+                'success': True,
+                'data': log_data
+            })
         
         elif section == 'collection-logs':
             # Parse collection log file

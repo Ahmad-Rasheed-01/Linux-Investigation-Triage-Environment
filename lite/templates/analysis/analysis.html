@@ -77,7 +77,7 @@
                     <i class="fas fa-chevron-down float-end mt-1"></i>
                 </div>
                 <div class="collapse" id="processesSection">
-                    <a href="#" class="list-group-item list-group-item-action ps-4 nav-link" data-section="running-processes">
+                    <a href="#" class="list-group-item list-group-item-action ps-4 nav-link" data-section="processes-running">
                         <i class="fas fa-play me-2"></i>Running Processes
                     </a>
                     <a href="#" class="list-group-item list-group-item-action ps-4 nav-link" data-section="process-tree">
@@ -324,7 +324,7 @@ function renderSectionContent(section, data) {
         case 'login-history':
             renderLoginHistory(data);
             break;
-        case 'running-processes':
+        case 'processes-running':
             renderProcesses(data);
             break;
         case 'network-connections':
@@ -2212,6 +2212,422 @@ function renderGenericData(section, data) {
     }
     
     contentArea.innerHTML = html;
+}
+
+function renderProcesses(data) {
+    const contentArea = document.getElementById('content-area');
+    
+    let html = `
+        <div class="row mb-4">
+            <div class="col-12">
+                <h2 class="h4 mb-3">
+                    <i class="fas fa-tasks me-2"></i>Running Processes
+                </h2>
+            </div>
+        </div>
+        
+        <!-- Process Filters and Search -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card border-primary">
+                    <div class="card-header bg-primary text-white py-2">
+                        <h6 class="m-0">
+                            <i class="fas fa-filter me-2"></i>Process Filters
+                            <button class="btn btn-sm btn-outline-light float-end" type="button" data-bs-toggle="collapse" data-bs-target="#processFilters" aria-expanded="true">
+                                <i class="fas fa-chevron-down"></i>
+                            </button>
+                        </h6>
+                    </div>
+                    <div class="collapse show" id="processFilters">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <label for="processSearch" class="form-label">Search Processes</label>
+                                    <input type="text" class="form-control" id="processSearch" placeholder="Search by name, command, or user..." onkeyup="filterProcesses()">
+                                </div>
+                                <div class="col-md-2">
+                                    <label for="userFilter" class="form-label">User</label>
+                                    <select class="form-select" id="userFilter" onchange="filterProcesses()">
+                                        <option value="">All Users</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <label for="cpuThreshold" class="form-label">Min CPU %</label>
+                                    <input type="number" class="form-control" id="cpuThreshold" placeholder="0" min="0" max="100" onchange="filterProcesses()">
+                                </div>
+                                <div class="col-md-2">
+                                    <label for="memoryThreshold" class="form-label">Min Memory %</label>
+                                    <input type="number" class="form-control" id="memoryThreshold" placeholder="0" min="0" max="100" onchange="filterProcesses()">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">&nbsp;</label>
+                                    <div class="d-flex gap-2">
+                                        <button class="btn btn-outline-secondary" onclick="clearProcessFilters()">
+                                            <i class="fas fa-times me-1"></i>Clear
+                                        </button>
+                                        <button class="btn btn-outline-info" onclick="exportProcesses()">
+                                            <i class="fas fa-download me-1"></i>Export
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Find processes data
+    let processesData = null;
+    let processCount = 0;
+    
+    for (const [filename, fileData] of Object.entries(data || {})) {
+        if (filename.toLowerCase().includes('process') && fileData) {
+            // Handle different data structures
+            if (Array.isArray(fileData)) {
+                processesData = fileData;
+            } else if (fileData.data && Array.isArray(fileData.data)) {
+                processesData = fileData.data;
+            } else if (fileData.processes && Array.isArray(fileData.processes)) {
+                processesData = fileData.processes;
+            }
+            break;
+        }
+    }
+    
+    if (processesData && processesData.length > 0) {
+        processCount = processesData.length;
+        
+        // Get unique users for filter dropdown
+        const uniqueUsers = [...new Set(processesData.map(p => p.user || p.USER || 'unknown').filter(u => u))];
+        
+        // Statistics Cards
+        const totalCpu = processesData.reduce((sum, p) => sum + parseFloat(p.cpu || p.CPU || p['%CPU'] || 0), 0);
+        const totalMemory = processesData.reduce((sum, p) => sum + parseFloat(p.memory || p.MEM || p['%MEM'] || 0), 0);
+        const runningProcesses = processesData.filter(p => (p.state || p.STAT || p.status || '').includes('R')).length;
+        
+        html += `
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card bg-primary text-white">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">${processCount}</h5>
+                            <p class="card-text">Total Processes</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-success text-white">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">${runningProcesses}</h5>
+                            <p class="card-text">Running</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-warning text-white">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">${totalCpu.toFixed(1)}%</h5>
+                            <p class="card-text">Total CPU</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-info text-white">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">${totalMemory.toFixed(1)}%</h5>
+                            <p class="card-text">Total Memory</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Processes Table
+        html += `
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-list me-2"></i>Process List
+                        <span class="badge bg-secondary ms-2" id="processCount">${processCount}</span>
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover" id="processesTable">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th onclick="sortProcesses('pid')" style="cursor: pointer;">
+                                        PID <i class="fas fa-sort"></i>
+                                    </th>
+                                    <th onclick="sortProcesses('user')" style="cursor: pointer;">
+                                        User <i class="fas fa-sort"></i>
+                                    </th>
+                                    <th onclick="sortProcesses('cpu')" style="cursor: pointer;">
+                                        CPU % <i class="fas fa-sort"></i>
+                                    </th>
+                                    <th onclick="sortProcesses('memory')" style="cursor: pointer;">
+                                        Memory % <i class="fas fa-sort"></i>
+                                    </th>
+                                    <th onclick="sortProcesses('state')" style="cursor: pointer;">
+                                        State <i class="fas fa-sort"></i>
+                                    </th>
+                                    <th onclick="sortProcesses('name')" style="cursor: pointer;">
+                                        Process Name <i class="fas fa-sort"></i>
+                                    </th>
+                                    <th>Command</th>
+                                </tr>
+                            </thead>
+                            <tbody id="processesTableBody">
+        `;
+        
+        // Add processes to table
+        processesData.forEach((process, index) => {
+            const pid = process.pid || process.PID || 'N/A';
+            const user = process.user || process.USER || 'unknown';
+            const cpu = parseFloat(process.cpu || process.CPU || process['%CPU'] || 0).toFixed(1);
+            const memory = parseFloat(process.memory || process.MEM || process['%MEM'] || 0).toFixed(1);
+            const state = process.state || process.STAT || process.status || 'N/A';
+            const name = process.name || process.COMMAND || process.command || process.CMD || 'N/A';
+            const command = process.command || process.COMMAND || process.args || process.CMD || name;
+            
+            // Determine state badge color
+            let stateBadge = 'secondary';
+            if (state.includes('R')) stateBadge = 'success';
+            else if (state.includes('S')) stateBadge = 'primary';
+            else if (state.includes('Z')) stateBadge = 'danger';
+            else if (state.includes('T')) stateBadge = 'warning';
+            
+            // Determine CPU usage color
+            let cpuClass = '';
+            if (parseFloat(cpu) > 50) cpuClass = 'text-danger fw-bold';
+            else if (parseFloat(cpu) > 20) cpuClass = 'text-warning fw-bold';
+            else if (parseFloat(cpu) > 5) cpuClass = 'text-info';
+            
+            // Determine memory usage color
+            let memClass = '';
+            if (parseFloat(memory) > 50) memClass = 'text-danger fw-bold';
+            else if (parseFloat(memory) > 20) memClass = 'text-warning fw-bold';
+            else if (parseFloat(memory) > 5) memClass = 'text-info';
+            
+            html += `
+                <tr class="process-row" data-pid="${pid}" data-user="${user}" data-cpu="${cpu}" data-memory="${memory}" data-name="${name.toLowerCase()}" data-command="${command.toLowerCase()}">
+                    <td><span class="badge bg-light text-dark">${pid}</span></td>
+                    <td><span class="badge bg-secondary">${user}</span></td>
+                    <td><span class="${cpuClass}">${cpu}%</span></td>
+                    <td><span class="${memClass}">${memory}%</span></td>
+                    <td><span class="badge bg-${stateBadge}">${state}</span></td>
+                    <td><strong>${name}</strong></td>
+                    <td><small class="text-muted" title="${command}">${command.length > 60 ? command.substring(0, 60) + '...' : command}</small></td>
+                </tr>
+            `;
+        });
+        
+        html += `
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Populate user filter dropdown
+        setTimeout(() => {
+            const userFilter = document.getElementById('userFilter');
+            if (userFilter) {
+                uniqueUsers.sort().forEach(user => {
+                    const option = document.createElement('option');
+                    option.value = user;
+                    option.textContent = user;
+                    userFilter.appendChild(option);
+                });
+            }
+        }, 100);
+        
+    } else {
+        html += `
+            <div class="card shadow">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-tasks fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted mb-3">No Process Data Available</h5>
+                    <p class="text-muted">No running processes data found in the uploaded artifacts.</p>
+                    <div class="alert alert-info mt-3">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Expected Data:</strong> Upload artifacts containing process information (ps, top, htop output) to view running processes.
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    contentArea.innerHTML = html;
+}
+
+// Process filtering and sorting functions
+let processesOriginalData = [];
+let processesSortOrder = {};
+
+function filterProcesses() {
+    const searchTerm = document.getElementById('processSearch').value.toLowerCase();
+    const userFilter = document.getElementById('userFilter').value;
+    const cpuThreshold = parseFloat(document.getElementById('cpuThreshold').value) || 0;
+    const memoryThreshold = parseFloat(document.getElementById('memoryThreshold').value) || 0;
+    
+    const rows = document.querySelectorAll('.process-row');
+    let visibleCount = 0;
+    
+    rows.forEach(row => {
+        const pid = row.dataset.pid;
+        const user = row.dataset.user;
+        const cpu = parseFloat(row.dataset.cpu);
+        const memory = parseFloat(row.dataset.memory);
+        const name = row.dataset.name;
+        const command = row.dataset.command;
+        
+        let visible = true;
+        
+        // Search filter
+        if (searchTerm && !name.includes(searchTerm) && !command.includes(searchTerm) && !user.toLowerCase().includes(searchTerm) && !pid.includes(searchTerm)) {
+            visible = false;
+        }
+        
+        // User filter
+        if (userFilter && user !== userFilter) {
+            visible = false;
+        }
+        
+        // CPU threshold filter
+        if (cpu < cpuThreshold) {
+            visible = false;
+        }
+        
+        // Memory threshold filter
+        if (memory < memoryThreshold) {
+            visible = false;
+        }
+        
+        row.style.display = visible ? '' : 'none';
+        if (visible) visibleCount++;
+    });
+    
+    // Update process count
+    const countBadge = document.getElementById('processCount');
+    if (countBadge) {
+        countBadge.textContent = visibleCount;
+    }
+}
+
+function sortProcesses(column) {
+    const table = document.getElementById('processesTable');
+    const tbody = table.querySelector('tbody');
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    
+    // Toggle sort order
+    processesSortOrder[column] = processesSortOrder[column] === 'asc' ? 'desc' : 'asc';
+    const isAscending = processesSortOrder[column] === 'asc';
+    
+    // Update sort icons
+    table.querySelectorAll('th i.fas').forEach(icon => {
+        icon.className = 'fas fa-sort';
+    });
+    
+    const currentHeader = table.querySelector(`th[onclick="sortProcesses('${column}')"] i`);
+    if (currentHeader) {
+        currentHeader.className = `fas fa-sort-${isAscending ? 'up' : 'down'}`;
+    }
+    
+    rows.sort((a, b) => {
+        let aVal, bVal;
+        
+        switch (column) {
+            case 'pid':
+                aVal = parseInt(a.dataset.pid) || 0;
+                bVal = parseInt(b.dataset.pid) || 0;
+                break;
+            case 'user':
+                aVal = a.dataset.user.toLowerCase();
+                bVal = b.dataset.user.toLowerCase();
+                break;
+            case 'cpu':
+                aVal = parseFloat(a.dataset.cpu) || 0;
+                bVal = parseFloat(b.dataset.cpu) || 0;
+                break;
+            case 'memory':
+                aVal = parseFloat(a.dataset.memory) || 0;
+                bVal = parseFloat(b.dataset.memory) || 0;
+                break;
+            case 'state':
+                aVal = a.querySelector('td:nth-child(5)').textContent.toLowerCase();
+                bVal = b.querySelector('td:nth-child(5)').textContent.toLowerCase();
+                break;
+            case 'name':
+                aVal = a.dataset.name;
+                bVal = b.dataset.name;
+                break;
+            default:
+                return 0;
+        }
+        
+        if (typeof aVal === 'string') {
+            return isAscending ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+        } else {
+            return isAscending ? aVal - bVal : bVal - aVal;
+        }
+    });
+    
+    // Re-append sorted rows
+    rows.forEach(row => tbody.appendChild(row));
+}
+
+function clearProcessFilters() {
+    document.getElementById('processSearch').value = '';
+    document.getElementById('userFilter').value = '';
+    document.getElementById('cpuThreshold').value = '';
+    document.getElementById('memoryThreshold').value = '';
+    filterProcesses();
+}
+
+function exportProcesses() {
+    const table = document.getElementById('processesTable');
+    if (!table) return;
+    
+    const rows = table.querySelectorAll('tr');
+    let csv = '';
+    
+    // Add headers
+    const headers = [];
+    table.querySelectorAll('thead th').forEach(th => {
+        headers.push(th.textContent.replace(/\s+/g, ' ').trim());
+    });
+    csv += headers.join(',') + '\n';
+    
+    // Add visible data rows
+    table.querySelectorAll('tbody tr').forEach(row => {
+        if (row.style.display !== 'none') {
+            const cells = [];
+            row.querySelectorAll('td').forEach(td => {
+                let cellText = td.textContent.replace(/\s+/g, ' ').trim();
+                // Escape commas and quotes
+                if (cellText.includes(',') || cellText.includes('"')) {
+                    cellText = '"' + cellText.replace(/"/g, '""') + '"';
+                }
+                cells.push(cellText);
+            });
+            csv += cells.join(',') + '\n';
+        }
+    });
+    
+    // Download CSV
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `processes_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
 }
 
 function renderCollectionLogs(data) {
