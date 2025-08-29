@@ -2282,8 +2282,12 @@ function renderProcesses(data) {
     let processesData = null;
     let processCount = 0;
     
-    for (const [filename, fileData] of Object.entries(data || {})) {
-        if (filename.toLowerCase().includes('process') && fileData) {
+    // Data is already extracted by renderSectionContent, use it directly
+    const dataSource = data || {};
+    
+    for (const [filename, fileData] of Object.entries(dataSource)) {
+        // Look specifically for processes_*.json files (running processes), not process_hunting_data
+        if (filename.startsWith('processes_') && filename.endsWith('.json') && fileData) {
             // Handle different data structures
             if (Array.isArray(fileData)) {
                 processesData = fileData;
@@ -2303,9 +2307,9 @@ function renderProcesses(data) {
         const uniqueUsers = [...new Set(processesData.map(p => p.user || p.USER || 'unknown').filter(u => u))];
         
         // Statistics Cards
-        const totalCpu = processesData.reduce((sum, p) => sum + parseFloat(p.cpu || p.CPU || p['%CPU'] || 0), 0);
-        const totalMemory = processesData.reduce((sum, p) => sum + parseFloat(p.memory || p.MEM || p['%MEM'] || 0), 0);
-        const runningProcesses = processesData.filter(p => (p.state || p.STAT || p.status || '').includes('R')).length;
+        const totalCpu = processesData.reduce((sum, p) => sum + parseFloat(p.cpuPercent || p.cpu || p.CPU || p['%CPU'] || 0), 0);
+        const totalMemory = processesData.reduce((sum, p) => sum + parseFloat(p.memoryPercent || p.memory || p.MEM || p['%MEM'] || 0), 0);
+        const runningProcesses = processesData.filter(p => (p.stat || p.state || p.STAT || p.status || '').includes('R')).length;
         
         html += `
             <div class="row mb-4">
@@ -2386,9 +2390,9 @@ function renderProcesses(data) {
         processesData.forEach((process, index) => {
             const pid = process.pid || process.PID || 'N/A';
             const user = process.user || process.USER || 'unknown';
-            const cpu = parseFloat(process.cpu || process.CPU || process['%CPU'] || 0).toFixed(1);
-            const memory = parseFloat(process.memory || process.MEM || process['%MEM'] || 0).toFixed(1);
-            const state = process.state || process.STAT || process.status || 'N/A';
+            const cpu = parseFloat(process.cpuPercent || process.cpu || process.CPU || process['%CPU'] || 0).toFixed(1);
+            const memory = parseFloat(process.memoryPercent || process.memory || process.MEM || process['%MEM'] || 0).toFixed(1);
+            const state = process.stat || process.state || process.STAT || process.status || 'N/A';
             const name = process.name || process.COMMAND || process.command || process.CMD || 'N/A';
             const command = process.command || process.COMMAND || process.args || process.CMD || name;
             
@@ -2414,7 +2418,7 @@ function renderProcesses(data) {
             html += `
                 <tr class="process-row" data-pid="${pid}" data-user="${user}" data-cpu="${cpu}" data-memory="${memory}" data-name="${name.toLowerCase()}" data-command="${command.toLowerCase()}">
                     <td><span class="badge bg-light text-dark">${pid}</span></td>
-                    <td><span class="badge bg-secondary">${user}</span></td>
+                    <td><span class="badge bg-secondary" style="text-transform: none;">${user}</span></td>
                     <td><span class="${cpuClass}">${cpu}%</span></td>
                     <td><span class="${memClass}">${memory}%</span></td>
                     <td><span class="badge bg-${stateBadge}">${state}</span></td>
