@@ -2226,6 +2226,79 @@ function renderProcesses(data) {
             </div>
         </div>
         
+        <!-- Process Analysis Guide -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card border-info">
+                    <div class="card-header bg-info text-white py-2">
+                        <h6 class="m-0">
+                            <i class="fas fa-info-circle me-2"></i>Process Analysis Guide
+                            <button class="btn btn-sm btn-outline-light float-end" type="button" data-bs-toggle="collapse" data-bs-target="#processGuide" aria-expanded="false">
+                                <i class="fas fa-chevron-down"></i>
+                            </button>
+                        </h6>
+                    </div>
+                    <div class="collapse" id="processGuide">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6 class="text-primary"><i class="fas fa-chart-line me-2"></i>Resource Usage Indicators</h6>
+                                    <ul class="list-unstyled">
+                                        <li class="mb-2"><span class="badge bg-success me-2">Low CPU</span> 0-10% CPU usage (normal)</li>
+                                        <li class="mb-2"><span class="badge bg-warning me-2">Med CPU</span> 10-50% CPU usage (moderate)</li>
+                                        <li class="mb-2"><span class="badge bg-danger me-2">High CPU</span> 50%+ CPU usage (investigate)</li>
+                                        <li class="mb-2"><span class="badge bg-info me-2">Memory</span> High memory % may indicate leaks</li>
+                                        <li class="mb-2"><span class="badge bg-secondary me-2">Threads</span> Multiple threads per process</li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6 class="text-primary"><i class="fas fa-shield-alt me-2"></i>Security Analysis Points</h6>
+                                    <ul class="list-unstyled">
+                                        <li class="mb-2"><strong>Process Status:</strong> Running vs Sleeping processes</li>
+                                        <li class="mb-2"><strong>User Context:</strong> Processes running as root or system users</li>
+                                        <li class="mb-2"><strong>Command Line:</strong> Full command with arguments and paths</li>
+                                        <li class="mb-2"><strong>Parent-Child:</strong> Process relationships (PPID)</li>
+                                        <li class="mb-2"><strong>Start Time:</strong> When the process was initiated</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="row mt-3">
+                                <div class="col-12">
+                                    <h6 class="text-primary"><i class="fas fa-info-circle me-2"></i>Process State Column Guide</h6>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <ul class="list-unstyled">
+                                                <li class="mb-2"><span class="badge bg-success me-2">R</span> Running - Process is currently executing</li>
+                                                <li class="mb-2"><span class="badge bg-info me-2">S</span> Sleeping - Interruptible sleep (waiting for event)</li>
+                                                <li class="mb-2"><span class="badge bg-warning me-2">D</span> Disk Sleep - Uninterruptible sleep (I/O wait)</li>
+                                                <li class="mb-2"><span class="badge bg-danger me-2">Z</span> Zombie - Terminated but not reaped by parent</li>
+                                            </ul>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <ul class="list-unstyled">
+                                                <li class="mb-2"><span class="badge bg-secondary me-2">T</span> Stopped - Process stopped by signal</li>
+                                                <li class="mb-2"><span class="badge bg-dark me-2">t</span> Tracing - Process being traced by debugger</li>
+                                                <li class="mb-2"><span class="badge bg-primary me-2">X</span> Dead - Process should never be seen</li>
+                                                <li class="mb-2"><span class="badge bg-light text-dark me-2">I</span> Idle - Kernel thread in uninterruptible wait</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="alert alert-light mt-3 mb-0">
+                                <small class="text-muted">
+                                    <i class="fas fa-lightbulb me-1"></i>
+                                    <strong>Investigation Tips:</strong> Look for unusual processes running as root, high resource usage, 
+                                    suspicious command lines, or processes with no parent (PPID=0). Check for processes 
+                                    running from unusual locations like /tmp or /var/tmp.
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
         <!-- Process Filters and Search -->
         <div class="row mb-4">
             <div class="col-12">
