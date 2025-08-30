@@ -327,6 +327,10 @@ function renderSectionContent(section, data) {
         case 'processes-running':
             renderProcesses(data);
             break;
+        case 'services':
+        case 'processes-services':
+            renderServices(data);
+            break;
         case 'network-connections':
             renderNetworkConnections(data);
             break;
@@ -2701,6 +2705,490 @@ function exportProcesses() {
     const a = document.createElement('a');
     a.href = url;
     a.download = `processes_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+}
+
+function renderServices(data) {
+    const contentArea = document.getElementById('content-area');
+    
+    let html = `
+        <div class="row mb-4">
+            <div class="col-12">
+                <h2 class="h4 mb-3">
+                    <i class="fas fa-cogs me-2"></i>System Services
+                </h2>
+            </div>
+        </div>
+        
+        <!-- Services Analysis Guide -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card border-info">
+                    <div class="card-header bg-info text-white py-2">
+                        <h6 class="m-0">
+                            <i class="fas fa-info-circle me-2"></i>Services Analysis Guide
+                            <button class="btn btn-sm btn-outline-light float-end" type="button" data-bs-toggle="collapse" data-bs-target="#servicesGuide" aria-expanded="false">
+                                <i class="fas fa-chevron-down"></i>
+                            </button>
+                        </h6>
+                    </div>
+                    <div class="collapse" id="servicesGuide">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6 class="text-primary"><i class="fas fa-chart-line me-2"></i>Service States</h6>
+                                    <ul class="list-unstyled">
+                                        <li class="mb-2"><span class="badge bg-success me-2">active</span> Service is running and operational</li>
+                                        <li class="mb-2"><span class="badge bg-secondary me-2">inactive</span> Service is stopped</li>
+                                        <li class="mb-2"><span class="badge bg-warning me-2">failed</span> Service failed to start or crashed</li>
+                                        <li class="mb-2"><span class="badge bg-info me-2">activating</span> Service is starting up</li>
+                                        <li class="mb-2"><span class="badge bg-dark me-2">deactivating</span> Service is shutting down</li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6 class="text-primary"><i class="fas fa-shield-alt me-2"></i>Load States</h6>
+                                    <ul class="list-unstyled">
+                                        <li class="mb-2"><strong>loaded:</strong> Unit configuration loaded successfully</li>
+                                        <li class="mb-2"><strong>not-found:</strong> Unit file not found</li>
+                                        <li class="mb-2"><strong>bad-setting:</strong> Configuration error in unit file</li>
+                                        <li class="mb-2"><strong>error:</strong> Error loading unit configuration</li>
+                                        <li class="mb-2"><strong>masked:</strong> Unit is masked and cannot be started</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="alert alert-light mt-3 mb-0">
+                                <small class="text-muted">
+                                    <i class="fas fa-lightbulb me-1"></i>
+                                    <strong>Investigation Tips:</strong> Look for failed services, unusual services running as root, 
+                                    services with suspicious names, or services that should be running but are inactive. 
+                                    Pay attention to services with recent start times or those running from unusual locations.
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Services Filters -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card border-primary">
+                    <div class="card-header bg-primary text-white py-2">
+                        <h6 class="m-0">
+                            <i class="fas fa-filter me-2"></i>Service Filters
+                            <button class="btn btn-sm btn-outline-light float-end" type="button" data-bs-toggle="collapse" data-bs-target="#servicesFilters" aria-expanded="true">
+                                <i class="fas fa-chevron-down"></i>
+                            </button>
+                        </h6>
+                    </div>
+                    <div class="collapse show" id="servicesFilters">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <label for="serviceSearch" class="form-label">Search Services</label>
+                                    <input type="text" class="form-control" id="serviceSearch" placeholder="Search by name or description..." onkeyup="filterServices()">
+                                </div>
+                                <div class="col-md-2">
+                                    <label for="loadStateFilter" class="form-label">Load State</label>
+                                    <select class="form-select" id="loadStateFilter" onchange="filterServices()">
+                                        <option value="">All States</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <label for="activeStateFilter" class="form-label">Active State</label>
+                                    <select class="form-select" id="activeStateFilter" onchange="filterServices()">
+                                        <option value="">All States</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <label for="subStateFilter" class="form-label">Sub State</label>
+                                    <select class="form-select" id="subStateFilter" onchange="filterServices()">
+                                        <option value="">All States</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">&nbsp;</label>
+                                    <div class="d-flex gap-2">
+                                        <button class="btn btn-outline-secondary" onclick="clearServicesFilters()">
+                                            <i class="fas fa-times me-1"></i>Clear
+                                        </button>
+                                        <button class="btn btn-outline-info" onclick="exportServices()">
+                                            <i class="fas fa-download me-1"></i>Export
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Find services data
+    let servicesData = null;
+    let serviceCount = 0;
+    
+    // Data is already extracted by renderSectionContent, use it directly
+    const dataSource = data || {};
+    
+    console.log('Services data received:', dataSource); // Debug log
+    
+    for (const [filename, fileData] of Object.entries(dataSource)) {
+        console.log('Processing file:', filename, fileData); // Debug log
+        // Look specifically for systemdServices_*.json files
+        if (filename.includes('systemdServices') && fileData) {
+            // Handle different data structures
+            if (Array.isArray(fileData)) {
+                servicesData = fileData;
+            } else if (fileData.data && Array.isArray(fileData.data)) {
+                servicesData = fileData.data;
+            } else if (fileData.services && Array.isArray(fileData.services)) {
+                servicesData = fileData.services;
+            }
+            console.log('Found services data:', servicesData); // Debug log
+            break;
+        }
+    }
+    
+    if (servicesData && servicesData.length > 0) {
+        serviceCount = servicesData.length;
+        
+        // Get unique states for filter dropdowns
+        const uniqueLoadStates = [...new Set(servicesData.map(s => s.load_state || s.load || s.LOAD || 'unknown').filter(s => s))];
+        const uniqueActiveStates = [...new Set(servicesData.map(s => s.active_state || s.active || s.ACTIVE || 'unknown').filter(s => s))];
+        const uniqueSubStates = [...new Set(servicesData.map(s => s.sub_state || s.sub || s.SUB || 'unknown').filter(s => s))];
+        
+        // Statistics Cards
+        const activeServices = servicesData.filter(s => (s.active_state || s.active || s.ACTIVE || '').toLowerCase() === 'active').length;
+        const failedServices = servicesData.filter(s => (s.active_state || s.active || s.ACTIVE || '').toLowerCase() === 'failed').length;
+        const loadedServices = servicesData.filter(s => (s.load_state || s.load || s.LOAD || '').toLowerCase() === 'loaded').length;
+        
+        html += `
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card bg-primary text-white">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">${serviceCount}</h5>
+                            <p class="card-text">Total Services</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-success text-white">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">${activeServices}</h5>
+                            <p class="card-text">Active</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-danger text-white">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">${failedServices}</h5>
+                            <p class="card-text">Failed</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-info text-white">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">${loadedServices}</h5>
+                            <p class="card-text">Loaded</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Services Table
+        html += `
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-list me-2"></i>Services List
+                        <span class="badge bg-secondary ms-2" id="serviceCount">${serviceCount}</span>
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover" id="servicesTable">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th onclick="sortServices('unit')" style="cursor: pointer;">
+                                        Unit Name <i class="fas fa-sort"></i>
+                                    </th>
+                                    <th onclick="sortServices('load')" style="cursor: pointer;">
+                                        Load State<i class="fas fa-sort"></i>
+                                    </th>
+                                    <th onclick="sortServices('active')" style="cursor: pointer;">
+                                        Active State<i class="fas fa-sort"></i>
+                                    </th>
+                                    <th onclick="sortServices('sub')" style="cursor: pointer;">
+                                        Sub State<i class="fas fa-sort"></i>
+                                    </th>
+                                    <th>Description</th>
+                                </tr>
+                            </thead>
+                            <tbody id="servicesTableBody">
+        `;
+        
+        // Add services to table
+        servicesData.forEach((service, index) => {
+            const unit = service.unit || service.UNIT || 'N/A';
+            const load = service.load_state || service.load || service.LOAD || 'unknown';
+            const active = service.active_state || service.active || service.ACTIVE || 'unknown';
+            const sub = service.sub_state || service.sub || service.SUB || 'unknown';
+            const description = service.description || service.DESCRIPTION || 'No description available';
+            
+            // Determine load state badge color
+            let loadBadge = 'secondary';
+            if (load.toLowerCase() === 'loaded') loadBadge = 'success';
+            else if (load.toLowerCase() === 'not-found') loadBadge = 'warning';
+            else if (load.toLowerCase() === 'error') loadBadge = 'danger';
+            else if (load.toLowerCase() === 'masked') loadBadge = 'dark';
+            
+            // Determine active state badge color
+            let activeBadge = 'secondary';
+            if (active.toLowerCase() === 'active') activeBadge = 'success';
+            else if (active.toLowerCase() === 'inactive') activeBadge = 'secondary';
+            else if (active.toLowerCase() === 'failed') activeBadge = 'danger';
+            else if (active.toLowerCase() === 'activating') activeBadge = 'info';
+            else if (active.toLowerCase() === 'deactivating') activeBadge = 'warning';
+            
+            // Determine sub state badge color
+            let subBadge = 'light text-dark';
+            if (sub.toLowerCase() === 'running') subBadge = 'success';
+            else if (sub.toLowerCase() === 'dead') subBadge = 'secondary';
+            else if (sub.toLowerCase() === 'failed') subBadge = 'danger';
+            else if (sub.toLowerCase() === 'exited') subBadge = 'info';
+            
+            html += `
+                <tr class="service-row" data-unit="${unit.toLowerCase()}" data-load="${load.toLowerCase()}" data-active="${active.toLowerCase()}" data-sub="${sub.toLowerCase()}" data-description="${description.toLowerCase()}">
+                    <td><strong>${unit}</strong></td>
+                    <td><span class="badge bg-${loadBadge}">${load}</span></td>
+                    <td><span class="badge bg-${activeBadge}">${active}</span></td>
+                    <td><span class="badge bg-${subBadge}">${sub}</span></td>
+                    <td><small class="text-muted" title="${description}">${description.length > 80 ? description.substring(0, 80) + '...' : description}</small></td>
+                </tr>
+            `;
+        });
+        
+        html += `
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Populate filter dropdowns
+        setTimeout(() => {
+            const loadStateFilter = document.getElementById('loadStateFilter');
+            const activeStateFilter = document.getElementById('activeStateFilter');
+            const subStateFilter = document.getElementById('subStateFilter');
+            
+            if (loadStateFilter) {
+                uniqueLoadStates.sort().forEach(state => {
+                    const option = document.createElement('option');
+                    option.value = state;
+                    option.textContent = state;
+                    loadStateFilter.appendChild(option);
+                });
+            }
+            
+            if (activeStateFilter) {
+                uniqueActiveStates.sort().forEach(state => {
+                    const option = document.createElement('option');
+                    option.value = state;
+                    option.textContent = state;
+                    activeStateFilter.appendChild(option);
+                });
+            }
+            
+            if (subStateFilter) {
+                uniqueSubStates.sort().forEach(state => {
+                    const option = document.createElement('option');
+                    option.value = state;
+                    option.textContent = state;
+                    subStateFilter.appendChild(option);
+                });
+            }
+        }, 100);
+        
+    } else {
+        console.log('No services data found. Available files:', Object.keys(dataSource)); // Debug log
+        html += `
+            <div class="card shadow">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-cogs fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted mb-3">No Services Data Available</h5>
+                    <p class="text-muted">No systemd services data found in the uploaded artifacts.</p>
+                    <div class="alert alert-info mt-3">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Expected Data:</strong> Upload artifacts containing systemd services information to view system services.
+                        <br><small class="text-muted">Available files: ${Object.keys(dataSource).join(', ')}</small>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    contentArea.innerHTML = html;
+}
+
+// Services filtering and sorting functions
+let servicesOriginalData = [];
+let servicesSortOrder = {};
+
+function filterServices() {
+    const searchTerm = document.getElementById('serviceSearch').value.toLowerCase();
+    const loadStateFilter = document.getElementById('loadStateFilter').value.toLowerCase();
+    const activeStateFilter = document.getElementById('activeStateFilter').value.toLowerCase();
+    const subStateFilter = document.getElementById('subStateFilter').value.toLowerCase();
+    
+    const rows = document.querySelectorAll('.service-row');
+    let visibleCount = 0;
+    
+    rows.forEach(row => {
+        const unit = row.dataset.unit;
+        const load = row.dataset.load;
+        const active = row.dataset.active;
+        const sub = row.dataset.sub;
+        const description = row.dataset.description;
+        
+        let visible = true;
+        
+        // Search filter
+        if (searchTerm && !unit.includes(searchTerm) && !description.includes(searchTerm)) {
+            visible = false;
+        }
+        
+        // Load state filter
+        if (loadStateFilter && load !== loadStateFilter) {
+            visible = false;
+        }
+        
+        // Active state filter
+        if (activeStateFilter && active !== activeStateFilter) {
+            visible = false;
+        }
+        
+        // Sub state filter
+        if (subStateFilter && sub !== subStateFilter) {
+            visible = false;
+        }
+        
+        row.style.display = visible ? '' : 'none';
+        if (visible) visibleCount++;
+    });
+    
+    // Update service count
+    const countBadge = document.getElementById('serviceCount');
+    if (countBadge) {
+        countBadge.textContent = visibleCount;
+    }
+}
+
+function sortServices(column) {
+    const table = document.getElementById('servicesTable');
+    const tbody = table.querySelector('tbody');
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    
+    // Toggle sort order
+    servicesSortOrder[column] = servicesSortOrder[column] === 'asc' ? 'desc' : 'asc';
+    const isAscending = servicesSortOrder[column] === 'asc';
+    
+    // Update sort icons
+    table.querySelectorAll('th i').forEach(icon => {
+        icon.className = 'fas fa-sort';
+    });
+    
+    const currentHeader = table.querySelector(`th[onclick="sortServices('${column}')"] i`);
+    if (currentHeader) {
+        currentHeader.className = isAscending ? 'fas fa-sort-up' : 'fas fa-sort-down';
+    }
+    
+    // Sort rows
+    rows.sort((a, b) => {
+        let aVal, bVal;
+        
+        switch (column) {
+            case 'unit':
+                aVal = a.dataset.unit;
+                bVal = b.dataset.unit;
+                break;
+            case 'load':
+                aVal = a.dataset.load;
+                bVal = b.dataset.load;
+                break;
+            case 'active':
+                aVal = a.dataset.active;
+                bVal = b.dataset.active;
+                break;
+            case 'sub':
+                aVal = a.dataset.sub;
+                bVal = b.dataset.sub;
+                break;
+            default:
+                return 0;
+        }
+        
+        return isAscending ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+    });
+    
+    // Re-append sorted rows
+    rows.forEach(row => tbody.appendChild(row));
+}
+
+function clearServicesFilters() {
+    document.getElementById('serviceSearch').value = '';
+    document.getElementById('loadStateFilter').value = '';
+    document.getElementById('activeStateFilter').value = '';
+    document.getElementById('subStateFilter').value = '';
+    filterServices();
+}
+
+function exportServices() {
+    const table = document.getElementById('servicesTable');
+    if (!table) return;
+    
+    const rows = table.querySelectorAll('tr');
+    let csv = '';
+    
+    // Add headers
+    const headers = [];
+    table.querySelectorAll('thead th').forEach(th => {
+        headers.push(th.textContent.replace(/\s+/g, ' ').trim());
+    });
+    csv += headers.join(',') + '\n';
+    
+    // Add visible data rows
+    table.querySelectorAll('tbody tr').forEach(row => {
+        if (row.style.display !== 'none') {
+            const cells = [];
+            row.querySelectorAll('td').forEach(td => {
+                let cellText = td.textContent.replace(/\s+/g, ' ').trim();
+                // Escape commas and quotes
+                if (cellText.includes(',') || cellText.includes('"')) {
+                    cellText = '"' + cellText.replace(/"/g, '""') + '"';
+                }
+                cells.push(cellText);
+            });
+            csv += cells.join(',') + '\n';
+        }
+    });
+    
+    // Download CSV
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `services_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

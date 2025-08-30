@@ -313,6 +313,22 @@ def get_section_data(case_id, section):
                 'data': process_data
             })
         
+        elif section == 'services' or section == 'processes-services':
+            # Get systemd services artifacts
+            service_artifacts = _get_artifacts_by_keywords(case.artifacts, 
+                ['systemdservices', 'services', 'systemd'])
+            service_data = {}
+            
+            for artifact in service_artifacts:
+                data = json_parser.load_json_file(artifact.file_path)
+                if data:
+                    service_data[artifact.filename] = data
+            
+            return jsonify({
+                'success': True,
+                'data': service_data
+            })
+        
         elif section == 'logs-system':
             log_artifacts = _get_artifacts_by_keywords(case.artifacts, 
                 ['log', 'syslog', 'auth', 'kern', 'audit'])
