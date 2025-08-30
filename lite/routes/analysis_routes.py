@@ -59,6 +59,7 @@ def analysis_page(case_id):
             'expanded': False,
             'items': {
                 'Running Processes': 'processes-running',
+                'Process Hunting': 'process-hunting',
                 'Process Tree': 'processes-tree',
                 'System Services': 'processes-services',
                 'Scheduled Tasks': 'processes-scheduled'
@@ -311,6 +312,22 @@ def get_section_data(case_id, section):
             return jsonify({
                 'success': True,
                 'data': process_data
+            })
+        
+        elif section == 'process-hunting':
+            # Get process hunting artifacts
+            hunting_artifacts = _get_artifacts_by_keywords(case.artifacts, 
+                ['process_hunting_data', 'hunting', 'process_hunting'])
+            hunting_data = {}
+            
+            for artifact in hunting_artifacts:
+                data = json_parser.load_json_file(artifact.file_path)
+                if data:
+                    hunting_data[artifact.filename] = data
+            
+            return jsonify({
+                'success': True,
+                'data': hunting_data
             })
         
         elif section == 'services' or section == 'processes-services':

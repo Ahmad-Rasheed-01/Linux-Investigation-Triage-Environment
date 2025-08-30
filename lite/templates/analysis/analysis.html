@@ -73,16 +73,19 @@
             <div class="list-group-item list-group-item-action bg-light p-0">
                 <div class="nav-section-header p-3" data-bs-toggle="collapse" data-bs-target="#processesSection" aria-expanded="false">
                     <i class="fas fa-tasks me-2"></i>
-                    <strong>Processes</strong>
+                    <strong>Process & Service</strong>
                     <i class="fas fa-chevron-down float-end mt-1"></i>
                 </div>
                 <div class="collapse" id="processesSection">
                     <a href="#" class="list-group-item list-group-item-action ps-4 nav-link" data-section="processes-running">
                         <i class="fas fa-play me-2"></i>Running Processes
                     </a>
-                    <a href="#" class="list-group-item list-group-item-action ps-4 nav-link" data-section="process-tree">
-                        <i class="fas fa-sitemap me-2"></i>Process Tree
+                    <a href="#" class="list-group-item list-group-item-action ps-4 nav-link" data-section="process-hunting">
+                        <i class="fas fa-search me-2"></i>Process Hunting
                     </a>
+                    <!-- <a href="#" class="list-group-item list-group-item-action ps-4 nav-link" data-section="process-tree">
+                        <i class="fas fa-sitemap me-2"></i>Process Tree
+                    </a> -->
                     <a href="#" class="list-group-item list-group-item-action ps-4 nav-link" data-section="services">
                         <i class="fas fa-cogs me-2"></i>Services
                     </a>
@@ -326,6 +329,9 @@ function renderSectionContent(section, data) {
             break;
         case 'processes-running':
             renderProcesses(data);
+            break;
+        case 'process-hunting':
+            renderProcessHunting(data);
             break;
         case 'services':
         case 'processes-services':
@@ -2545,8 +2551,478 @@ function renderProcesses(data) {
     contentArea.innerHTML = html;
 }
 
+function renderProcessHunting(data) {
+    const contentArea = document.getElementById('content-area');
+    
+    let html = `
+        <div class="row mb-4">
+            <div class="col-12">
+                <h2 class="h4 mb-3">
+                    <i class="fas fa-search me-2"></i>Process Hunting
+                </h2>
+            </div>
+        </div>
+        
+        <!-- Process Hunting Analysis Guide -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card border-warning">
+                    <div class="card-header bg-warning text-dark py-2">
+                        <h6 class="m-0">
+                            <i class="fas fa-info-circle me-2"></i>Process Hunting Analysis Guide
+                            <button class="btn btn-sm btn-outline-dark float-end" type="button" data-bs-toggle="collapse" data-bs-target="#huntingGuide" aria-expanded="false">
+                                <i class="fas fa-chevron-down"></i>
+                            </button>
+                        </h6>
+                    </div>
+                    <div class="collapse" id="huntingGuide">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6 class="text-primary"><i class="fas fa-fingerprint me-2"></i>Hash Analysis</h6>
+                                    <ul class="list-unstyled">
+                                        <li class="mb-2"><strong>SHA256:</strong> Primary hash for file identification</li>
+                                        <li class="mb-2"><strong>MD5:</strong> Legacy hash for quick comparison</li>
+                                        <li class="mb-2"><strong>Known Good:</strong> Compare against baseline hashes</li>
+                                        <li class="mb-2"><strong>Suspicious:</strong> Unknown or modified binaries</li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6 class="text-primary"><i class="fas fa-shield-alt me-2"></i>Security Indicators</h6>
+                                    <ul class="list-unstyled">
+                                        <li class="mb-2"><strong>File Path:</strong> Unusual locations (/tmp, /var/tmp)</li>
+                                        <li class="mb-2"><strong>Permissions:</strong> Executable files with unusual permissions</li>
+                                        <li class="mb-2"><strong>Timestamps:</strong> Recent modifications or access times</li>
+                                        <li class="mb-2"><strong>Size:</strong> Unusually large or small binaries</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="alert alert-warning mt-3 mb-0">
+                                <small class="text-muted">
+                                    <i class="fas fa-exclamation-triangle me-1"></i>
+                                    <strong>Investigation Focus:</strong> Look for processes in unusual locations, 
+                                    recently modified binaries, or executables with suspicious hash values. 
+                                    Cross-reference with threat intelligence databases.
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Process Hunting Filters -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card border-primary">
+                    <div class="card-header bg-primary text-white py-2">
+                        <h6 class="m-0">
+                            <i class="fas fa-filter me-2"></i>Hunting Filters
+                            <button class="btn btn-sm btn-outline-light float-end" type="button" data-bs-toggle="collapse" data-bs-target="#huntingFilters" aria-expanded="true">
+                                <i class="fas fa-chevron-down"></i>
+                            </button>
+                        </h6>
+                    </div>
+                    <div class="collapse show" id="huntingFilters">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <label for="huntingSearch" class="form-label">Search Processes</label>
+                                    <input type="text" class="form-control" id="huntingSearch" placeholder="Search by path, hash, or size..." onkeyup="filterProcessHunting()">
+                                </div>
+                                <div class="col-md-2">
+                                    <label for="pathFilter" class="form-label">Path Contains</label>
+                                    <select class="form-select" id="pathFilter" onchange="filterProcessHunting()">
+                                        <option value="">All Paths</option>
+                                        <option value="/tmp">/tmp</option>
+                                        <option value="/var/tmp">/var/tmp</option>
+                                        <option value="/usr/bin">/usr/bin</option>
+                                        <option value="/sbin">/sbin</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <label for="sizeFilter" class="form-label">Min Size (KB)</label>
+                                    <input type="number" class="form-control" id="sizeFilter" placeholder="0" min="0" onchange="filterProcessHunting()">
+                                </div>
+                                <div class="col-md-2">
+                                    <label for="permissionFilter" class="form-label">Permissions</label>
+                                    <select class="form-select" id="permissionFilter" onchange="filterProcessHunting()">
+                                        <option value="">All Permissions</option>
+                                        <option value="755">755 (rwxr-xr-x)</option>
+                                        <option value="777">777 (rwxrwxrwx)</option>
+                                        <option value="4755">4755 (setuid)</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">&nbsp;</label>
+                                    <div class="d-flex gap-2">
+                                        <button class="btn btn-outline-secondary" onclick="clearHuntingFilters()">
+                                            <i class="fas fa-times me-1"></i>Clear
+                                        </button>
+                                        <button class="btn btn-outline-info" onclick="exportProcessHunting()">
+                                            <i class="fas fa-download me-1"></i>Export
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Find process hunting data
+    let huntingData = null;
+    let processCount = 0;
+    
+    const dataSource = data || {};
+    
+    for (const [filename, fileData] of Object.entries(dataSource)) {
+        if (filename.includes('process_hunting_data') && filename.endsWith('.json') && fileData) {
+            if (Array.isArray(fileData)) {
+                huntingData = fileData;
+            } else if (fileData.data && Array.isArray(fileData.data)) {
+                huntingData = fileData.data;
+            }
+            break;
+        }
+    }
+    
+    if (huntingData && huntingData.length > 0) {
+        processCount = huntingData.length;
+        
+        // Calculate statistics
+        const totalSize = huntingData.reduce((sum, p) => sum + (p.metadata?.size || 0), 0);
+        const avgSize = totalSize / processCount;
+        const uniquePaths = [...new Set(huntingData.map(p => p.metadata?.path?.split('/').slice(0, -1).join('/') || 'unknown'))];
+        const recentFiles = huntingData.filter(p => {
+            const mtime = p.metadata?.mtime || 0;
+            const dayAgo = Date.now() / 1000 - 86400;
+            return mtime > dayAgo;
+        }).length;
+        
+        // Statistics Cards
+        html += `
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card bg-primary text-white">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">${processCount}</h5>
+                            <p class="card-text">Total Processes</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-info text-white">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">${uniquePaths.length}</h5>
+                            <p class="card-text">Unique Paths</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-success text-white">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">${(avgSize / 1024).toFixed(1)}KB</h5>
+                            <p class="card-text">Avg Size</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-warning text-white">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">${recentFiles}</h5>
+                            <p class="card-text">Recent Files</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Process Hunting Table
+        html += `
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-list me-2"></i>Process Hunting Results
+                        <span class="badge bg-secondary ms-2" id="huntingCount">${processCount}</span>
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover" id="huntingTable">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th onclick="sortProcessHunting('path')" style="cursor: pointer;">
+                                        Path <i class="fas fa-sort"></i>
+                                    </th>
+                                    <th onclick="sortProcessHunting('size')" style="cursor: pointer;">
+                                        Size <i class="fas fa-sort"></i>
+                                    </th>
+                                    <th onclick="sortProcessHunting('permissions')" style="cursor: pointer;">
+                                        Permissions <i class="fas fa-sort"></i>
+                                    </th>
+                                    <th onclick="sortProcessHunting('mtime')" style="cursor: pointer;">
+                                        Modified <i class="fas fa-sort"></i>
+                                    </th>
+                                    <th>SHA256 Hash</th>
+                                    <th>MD5 Hash</th>
+                                </tr>
+                            </thead>
+                            <tbody id="huntingTableBody">
+        `;
+        
+        // Add hunting data to table
+        huntingData.forEach((process, index) => {
+            const metadata = process.metadata || {};
+            const hashes = process.hashes || {};
+            
+            const path = metadata.path || 'N/A';
+            const size = metadata.size || 0;
+            const mode = metadata.mode || '0o000000';
+            const mtime = metadata.mtime || 0;
+            const sha256 = hashes.sha256 || 'N/A';
+            const md5 = hashes.md5 || 'N/A';
+            
+            // Format size
+            const sizeFormatted = size > 1024 * 1024 ? 
+                `${(size / (1024 * 1024)).toFixed(1)} MB` : 
+                size > 1024 ? 
+                `${(size / 1024).toFixed(1)} KB` : 
+                `${size} B`;
+            
+            // Format permissions
+            const permissions = mode.replace('0o', '');
+            
+            // Format timestamp
+            const modifiedDate = mtime > 0 ? new Date(mtime * 1000).toLocaleString() : 'N/A';
+            
+            // Determine if path is suspicious
+            let pathClass = '';
+            if (path.includes('/tmp') || path.includes('/var/tmp')) {
+                pathClass = 'text-warning fw-bold';
+            }
+            
+            // Determine if size is unusual
+            let sizeClass = '';
+            if (size > 10 * 1024 * 1024) { // > 10MB
+                sizeClass = 'text-danger fw-bold';
+            } else if (size < 1024) { // < 1KB
+                sizeClass = 'text-warning';
+            }
+            
+            html += `
+                <tr class="hunting-row" data-path="${path.toLowerCase()}" data-size="${size}" data-permissions="${permissions}" data-mtime="${mtime}">
+                    <td class="${pathClass}">
+                        <i class="fas fa-file-code me-1"></i>
+                        <span title="${path}">${path.length > 50 ? path.substring(0, 47) + '...' : path}</span>
+                    </td>
+                    <td class="${sizeClass}">${sizeFormatted}</td>
+                    <td>
+                        <span class="badge bg-secondary">${permissions}</span>
+                    </td>
+                    <td>${modifiedDate}</td>
+                    <td>
+                        <small class="font-monospace text-muted" title="${sha256}">
+                            ${sha256.substring(0, 16)}...
+                        </small>
+                    </td>
+                    <td>
+                        <small class="font-monospace text-muted" title="${md5}">
+                            ${md5.substring(0, 16)}...
+                        </small>
+                    </td>
+                </tr>
+            `;
+        });
+        
+        html += `
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Store original data for filtering
+        window.huntingOriginalData = huntingData;
+        
+    } else {
+        html += `
+            <div class="alert alert-warning" role="alert">
+                <h4 class="alert-heading"><i class="fas fa-exclamation-triangle me-2"></i>No Process Hunting Data Available</h4>
+                <p class="mb-0">No process hunting data found in the uploaded artifacts.</p>
+                <hr>
+                <p class="mb-0">
+                    <strong>Expected Data:</strong> Upload artifacts containing process hunting information 
+                    (process_hunting_data_*.json files) to view detailed process analysis.
+                </p>
+            </div>
+        `;
+    }
+    
+    contentArea.innerHTML = html;
+}
+
 // Process filtering and sorting functions
 let processesOriginalData = [];
+let huntingOriginalData = [];
+let huntingSortOrder = {};
+
+// Process Hunting filtering and sorting functions
+function filterProcessHunting() {
+    const searchTerm = document.getElementById('huntingSearch').value.toLowerCase();
+    const pathFilter = document.getElementById('pathFilter').value;
+    const sizeFilter = parseInt(document.getElementById('sizeFilter').value) || 0;
+    const permissionFilter = document.getElementById('permissionFilter').value;
+    
+    const rows = document.querySelectorAll('.hunting-row');
+    let visibleCount = 0;
+    
+    rows.forEach(row => {
+        const path = row.dataset.path;
+        const size = parseInt(row.dataset.size) || 0;
+        const permissions = row.dataset.permissions;
+        const rowText = row.textContent.toLowerCase();
+        
+        let show = true;
+        
+        // Search filter
+        if (searchTerm && !rowText.includes(searchTerm)) {
+            show = false;
+        }
+        
+        // Path filter
+        if (pathFilter && !path.includes(pathFilter.toLowerCase())) {
+            show = false;
+        }
+        
+        // Size filter (in KB)
+        if (sizeFilter > 0 && size < sizeFilter * 1024) {
+            show = false;
+        }
+        
+        // Permission filter
+        if (permissionFilter && !permissions.includes(permissionFilter)) {
+            show = false;
+        }
+        
+        row.style.display = show ? '' : 'none';
+        if (show) visibleCount++;
+    });
+    
+    // Update count
+    const countElement = document.getElementById('huntingCount');
+    if (countElement) {
+        countElement.textContent = visibleCount;
+    }
+}
+
+function sortProcessHunting(column) {
+    const table = document.getElementById('huntingTable');
+    const tbody = document.getElementById('huntingTableBody');
+    const rows = Array.from(tbody.querySelectorAll('.hunting-row'));
+    
+    // Toggle sort order
+    huntingSortOrder[column] = huntingSortOrder[column] === 'asc' ? 'desc' : 'asc';
+    const isAsc = huntingSortOrder[column] === 'asc';
+    
+    rows.sort((a, b) => {
+        let aVal, bVal;
+        
+        switch (column) {
+            case 'path':
+                aVal = a.dataset.path;
+                bVal = b.dataset.path;
+                break;
+            case 'size':
+                aVal = parseInt(a.dataset.size) || 0;
+                bVal = parseInt(b.dataset.size) || 0;
+                break;
+            case 'permissions':
+                aVal = a.dataset.permissions;
+                bVal = b.dataset.permissions;
+                break;
+            case 'mtime':
+                aVal = parseInt(a.dataset.mtime) || 0;
+                bVal = parseInt(b.dataset.mtime) || 0;
+                break;
+            default:
+                return 0;
+        }
+        
+        if (typeof aVal === 'string') {
+            return isAsc ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+        } else {
+            return isAsc ? aVal - bVal : bVal - aVal;
+        }
+    });
+    
+    // Clear and re-append sorted rows
+    tbody.innerHTML = '';
+    rows.forEach(row => tbody.appendChild(row));
+    
+    // Update sort indicators
+    const headers = table.querySelectorAll('th[onclick]');
+    headers.forEach(header => {
+        const icon = header.querySelector('i');
+        if (header.textContent.toLowerCase().includes(column)) {
+            icon.className = `fas fa-sort-${isAsc ? 'up' : 'down'}`;
+        } else {
+            icon.className = 'fas fa-sort';
+        }
+    });
+}
+
+function clearHuntingFilters() {
+    document.getElementById('huntingSearch').value = '';
+    document.getElementById('pathFilter').value = '';
+    document.getElementById('sizeFilter').value = '';
+    document.getElementById('permissionFilter').value = '';
+    filterProcessHunting();
+}
+
+function exportProcessHunting() {
+    if (!window.huntingOriginalData || window.huntingOriginalData.length === 0) {
+        alert('No process hunting data available to export.');
+        return;
+    }
+    
+    // Create CSV content
+    const headers = ['Path', 'Size (Bytes)', 'Permissions', 'Modified Time', 'SHA256', 'MD5', 'UID', 'GID', 'Inode', 'Device'];
+    let csvContent = headers.join(',') + '\n';
+    
+    window.huntingOriginalData.forEach(process => {
+        const metadata = process.metadata || {};
+        const hashes = process.hashes || {};
+        
+        const row = [
+            `"${metadata.path || 'N/A'}"`,
+            metadata.size || 0,
+            `"${metadata.mode || 'N/A'}"`,
+            metadata.mtime || 0,
+            `"${hashes.sha256 || 'N/A'}"`,
+            `"${hashes.md5 || 'N/A'}"`,
+            metadata.uid || 0,
+            metadata.gid || 0,
+            metadata.inode || 0,
+            metadata.device || 0
+        ];
+        csvContent += row.join(',') + '\n';
+    });
+    
+    // Create and download file
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `process_hunting_export_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
 let processesSortOrder = {};
 
 function filterProcesses() {
