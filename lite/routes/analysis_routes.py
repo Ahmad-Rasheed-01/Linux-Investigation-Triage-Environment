@@ -60,6 +60,7 @@ def analysis_page(case_id):
             'items': {
                 'Running Processes': 'processes-running',
                 'Process Hunting': 'process-hunting',
+                'Crontabs': 'crontabs',
                 'Process Tree': 'processes-tree',
                 'System Services': 'processes-services',
                 'Scheduled Tasks': 'processes-scheduled'
@@ -328,6 +329,22 @@ def get_section_data(case_id, section):
             return jsonify({
                 'success': True,
                 'data': hunting_data
+            })
+        
+        elif section == 'crontabs':
+            # Get crontab artifacts
+            crontab_artifacts = _get_artifacts_by_keywords(case.artifacts, 
+                ['crontab', 'userCrontabs', 'cron'])
+            crontab_data = {}
+            
+            for artifact in crontab_artifacts:
+                data = json_parser.load_json_file(artifact.file_path)
+                if data:
+                    crontab_data[artifact.filename] = data
+            
+            return jsonify({
+                'success': True,
+                'data': crontab_data
             })
         
         elif section == 'services' or section == 'processes-services':
