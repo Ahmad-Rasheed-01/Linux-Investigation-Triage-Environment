@@ -879,6 +879,73 @@ function renderArtifacts(data) {
                         </div>
                     </div>
                 </div>
+                </div>
+            </div>
+            
+            <!-- Security Analysis -->
+            <div class="mb-4">
+                <h4 class="text-secondary mb-3"><i class="fas fa-shield-alt me-2"></i>Security Analysis</h4>
+                <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card bg-danger text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h4 class="mb-0">${suspiciousJobs}</h4>
+                                    <p class="mb-0">Suspicious Jobs</p>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-exclamation-triangle fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-dark text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h4 class="mb-0">${rootJobs}</h4>
+                                    <p class="mb-0">Root Jobs</p>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-user-shield fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-secondary text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h4 class="mb-0">${systemUsers}</h4>
+                                    <p class="mb-0">System Users</p>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-cogs fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-purple text-white" style="background-color: #6f42c1 !important;">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h4 class="mb-0">${nightTimeJobs}</h4>
+                                    <p class="mb-0">Night Jobs</p>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-moon fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         `;
     }
@@ -2876,39 +2943,107 @@ function renderCrontabs(data) {
     const contentArea = document.getElementById('content-area');
     
     let html = `
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2><i class="fas fa-clock me-2"></i>Crontabs Analysis</h2>
-            <div class="btn-group" role="group">
-                <button type="button" class="btn btn-outline-primary" onclick="exportCrontabs()">
-                    <i class="fas fa-download me-1"></i>Export CSV
-                </button>
-                <button type="button" class="btn btn-outline-secondary" onclick="clearCrontabFilters()">
-                    <i class="fas fa-times me-1"></i>Clear Filters
-                </button>
+        <!-- Header Section -->
+        <div class="bg-light p-4 rounded mb-4 border">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="mb-2"><i class="fas fa-clock me-2 text-primary"></i>Crontabs Analysis</h2>
+                    <p class="text-muted mb-0">Analyze scheduled tasks and identify potential security risks</p>
+                </div>
+                <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-outline-primary" onclick="exportCrontabs()">
+                        <i class="fas fa-download me-1"></i>Export CSV
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" onclick="clearCrontabFilters()">
+                        <i class="fas fa-times me-1"></i>Clear Filters
+                    </button>
+                </div>
             </div>
         </div>
         
         <!-- Crontab Analysis Guide -->
-        <div class="alert alert-info mb-4">
-            <h5><i class="fas fa-info-circle me-2"></i>Crontab Analysis Guide</h5>
-            <div class="row">
-                <div class="col-md-6">
-                    <h6>Security Indicators:</h6>
-                    <ul class="mb-0">
-                        <li><span class="badge bg-danger">High Risk</span> - Root user crontabs</li>
-                        <li><span class="badge bg-warning">Medium Risk</span> - System user crontabs</li>
-                        <li><span class="badge bg-success">Low Risk</span> - Regular user crontabs</li>
-                        <li><span class="badge bg-info">Info</span> - No crontab entries</li>
-                    </ul>
-                </div>
-                <div class="col-md-6">
-                    <h6>Analysis Points:</h6>
-                    <ul class="mb-0">
-                        <li>Check for suspicious commands or scripts</li>
-                        <li>Verify execution times and frequencies</li>
-                        <li>Look for unusual file paths or URLs</li>
-                        <li>Monitor privilege escalation attempts</li>
-                    </ul>
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card border-primary">
+                    <div class="card-header bg-primary text-white py-2">
+                        <h6 class="m-0">
+                            <i class="fas fa-info-circle me-2"></i>Crontab Analysis Guide
+                            <button class="btn btn-sm btn-outline-light float-end" type="button" data-bs-toggle="collapse" data-bs-target="#crontabGuide" aria-expanded="false">
+                                <i class="fas fa-chevron-down"></i>
+                            </button>
+                        </h6>
+                    </div>
+                    <div class="collapse" id="crontabGuide">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <h6 class="text-primary"><i class="fas fa-shield-alt me-2"></i>Security Risk Levels</h6>
+                                    <ul class="list-unstyled">
+                                        <li class="mb-2"><span class="badge bg-danger me-2">Critical</span> Root user crontabs with system commands</li>
+                                        <li class="mb-2"><span class="badge bg-warning me-2">High</span> System user crontabs (daemon, www-data)</li>
+                                        <li class="mb-2"><span class="badge bg-info me-2">Medium</span> Regular user crontabs with network access</li>
+                                        <li class="mb-2"><span class="badge bg-success me-2">Low</span> Standard user maintenance tasks</li>
+                                        <li class="mb-2"><span class="badge bg-secondary me-2">Info</span> Users with no crontab entries</li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-4">
+                                    <h6 class="text-primary"><i class="fas fa-search me-2"></i>Investigation Points</h6>
+                                    <ul class="list-unstyled">
+                                        <li class="mb-2"><strong>Command Analysis:</strong> Suspicious scripts or binaries</li>
+                                        <li class="mb-2"><strong>File Paths:</strong> Unusual locations (/tmp, /dev/shm)</li>
+                                        <li class="mb-2"><strong>Network Activity:</strong> wget, curl, nc commands</li>
+                                        <li class="mb-2"><strong>Privilege Escalation:</strong> sudo, su usage</li>
+                                        <li class="mb-2"><strong>Data Exfiltration:</strong> scp, rsync, ftp commands</li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-4">
+                                    <h6 class="text-primary"><i class="fas fa-clock me-2"></i>Timing Analysis</h6>
+                                    <ul class="list-unstyled">
+                                        <li class="mb-2"><strong>Frequency:</strong> Unusual execution intervals</li>
+                                        <li class="mb-2"><strong>Off-hours:</strong> Jobs running at night/weekends</li>
+                                        <li class="mb-2"><strong>System Load:</strong> Resource-intensive tasks</li>
+                                        <li class="mb-2"><strong>Persistence:</strong> Jobs ensuring backdoor survival</li>
+                                        <li class="mb-2"><strong>Cleanup:</strong> Log deletion or evidence removal</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="row mt-3">
+                                <div class="col-12">
+                                    <h6 class="text-primary"><i class="fas fa-exclamation-triangle me-2"></i>Cron Format Reference</h6>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="bg-light p-3 rounded">
+                                                <code>* * * * * command</code><br>
+                                                <small class="text-muted">│ │ │ │ │<br>
+                                                │ │ │ │ └─ Day of week (0-7, Sun=0/7)<br>
+                                                │ │ │ └─── Month (1-12)<br>
+                                                │ │ └───── Day of month (1-31)<br>
+                                                │ └─────── Hour (0-23)<br>
+                                                └───────── Minute (0-59)</small>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <ul class="list-unstyled">
+                                                <li class="mb-1"><code>@reboot</code> - Run at startup</li>
+                                                <li class="mb-1"><code>@daily</code> - Run once a day</li>
+                                                <li class="mb-1"><code>@hourly</code> - Run once an hour</li>
+                                                <li class="mb-1"><code>@weekly</code> - Run once a week</li>
+                                                <li class="mb-1"><code>@monthly</code> - Run once a month</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="alert alert-warning mt-3 mb-0">
+                                <small class="text-muted">
+                                    <i class="fas fa-lightbulb me-1"></i>
+                                    <strong>Forensic Tip:</strong> Pay special attention to crontabs that execute scripts from writable directories, 
+                                    use network commands, or run with elevated privileges. Cross-reference execution times with system logs 
+                                    and network activity for comprehensive analysis.
+                                </small>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -2962,31 +3097,78 @@ function renderCrontabs(data) {
     let totalJobs = 0;
     let activeJobs = 0;
     
-    // Process crontab data
+    // Process crontab data - extract user crontab information
     if (data && data.success && data.data) {
-        for (const [filename, fileData] of Object.entries(data.data)) {
-            if (fileData && fileData.data && Array.isArray(fileData.data)) {
-                crontabData = fileData.data;
-                break;
+        // Check if data.data is an array (direct crontab data)
+        if (Array.isArray(data.data)) {
+            crontabData = data.data;
+        } else {
+            // Iterate through all files in the data (nested structure)
+            for (const [filename, fileData] of Object.entries(data.data)) {
+                // Check if this file contains valid crontab data
+                if (fileData && fileData.success && fileData.data && Array.isArray(fileData.data)) {
+                    crontabData = fileData.data;
+                    break; // Use the first valid crontab file found
+                }
             }
         }
     }
     
-    if (crontabData && crontabData.length > 0) {
+    // Data processing complete
+    // Data processing completed successfully
+    // Show the interface when we have user information, regardless of whether they have crontab entries
+    // This is important because "no crontab" status is valuable forensic information
+    if (crontabData && Array.isArray(crontabData) && crontabData.length > 0) {
         totalUsers = crontabData.length;
         
         // Calculate statistics
+        let suspiciousJobs = 0;
+        let systemUsers = 0;
+        let nightTimeJobs = 0;
+        let rootJobs = 0;
+        
         crontabData.forEach(user => {
             if (user.entry_count > 0) {
                 usersWithCrontabs++;
                 totalJobs += user.entry_count;
                 activeJobs += user.active_jobs || 0;
+                
+                // Security analysis
+                if (user.username === 'root') {
+                    rootJobs += user.entry_count;
+                }
+                
+                // Check for system users (UID < 1000)
+                if (user.username.match(/^(daemon|bin|sys|sync|games|man|lp|mail|news|uucp|proxy|www-data|backup|list|irc|gnats|nobody|systemd|syslog)$/)) {
+                    systemUsers++;
+                }
+                
+                // Analyze job timing for suspicious patterns
+                if (user.crontab_entries) {
+                    user.crontab_entries.forEach(entry => {
+                        if (entry.schedule) {
+                            // Check for night time execution (22:00-06:00)
+                            const hourMatch = entry.schedule.match(/^(\d+|\*)\s+(2[2-3]|[0-5]|\*)/);
+                            if (hourMatch && (hourMatch[2] === '22' || hourMatch[2] === '23' || ['0','1','2','3','4','5'].includes(hourMatch[2]))) {
+                                nightTimeJobs++;
+                            }
+                            
+                            // Check for suspicious commands
+                            if (entry.command && entry.command.match(/(wget|curl|nc|netcat|bash|sh|python|perl|ruby|php).*http/i)) {
+                                suspiciousJobs++;
+                            }
+                        }
+                    });
+                }
             }
         });
         
         // Statistics cards
         html += `
-            <div class="row mb-4">
+            <!-- Overview Statistics -->
+            <div class="mb-4">
+                <h4 class="text-secondary mb-3"><i class="fas fa-chart-bar me-2"></i>Overview Statistics</h4>
+                <div class="row mb-4">
                 <div class="col-md-3">
                     <div class="card bg-primary text-white">
                         <div class="card-body">
@@ -3047,14 +3229,22 @@ function renderCrontabs(data) {
                         </div>
                     </div>
                 </div>
+                </div>
             </div>
         `;
         
         // Crontab table
         html += `
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0"><i class="fas fa-table me-2"></i>Crontab Entries</h5>
+            <!-- Detailed Data -->
+            <div class="mb-4">
+                <h4 class="text-secondary mb-3"><i class="fas fa-table me-2"></i>Crontab Entries</h4>
+            </div>
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="text-muted">Click on column headers to sort data</span>
+                        <small class="text-muted">Total entries: ${totalUsers}</small>
+                    </div>
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
@@ -3184,11 +3374,13 @@ function renderCrontabs(data) {
             </div>
         `;
     } else {
+        console.log('No crontab data found - showing error message');
         html += `
-            <div class="alert alert-warning text-center">
-                <i class="fas fa-exclamation-triangle fa-3x mb-3"></i>
+            <div class="alert alert-info text-center">
+                <i class="fas fa-info-circle fa-3x mb-3"></i>
                 <h4>No Crontab Data Available</h4>
-                <p>No crontab information was found in the analysis data.</p>
+                <p>No crontab artifacts were found in the system investigation data.</p>
+                <p class="text-muted">Expected file: userCrontabs_*.json</p>
             </div>
         `;
     }
