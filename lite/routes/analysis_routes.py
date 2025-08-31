@@ -60,7 +60,6 @@ def analysis_page(case_id):
             'items': {
                 'Running Processes': 'processes-running',
                 'Process Hunting': 'process-hunting',
-                'Crontabs': 'crontabs',
                 'Process Tree': 'processes-tree',
                 'System Services': 'processes-services',
                 'Scheduled Tasks': 'processes-scheduled'
@@ -331,22 +330,7 @@ def get_section_data(case_id, section):
                 'data': hunting_data
             })
         
-        elif section == 'crontabs':
-            # Get crontab artifacts
-            crontab_artifacts = _get_artifacts_by_keywords(case.artifacts, 
-                ['crontab', 'userCrontabs', 'cron'])
-            crontab_data = {}
-            
-            for artifact in crontab_artifacts:
-                data = json_parser.load_json_file(artifact.file_path)
-                if data:
-                    crontab_data[artifact.filename] = data
-            
-            return jsonify({
-                'success': True,
-                'data': crontab_data
-            })
-        
+
         elif section == 'services' or section == 'processes-services':
             # Get systemd services artifacts
             service_artifacts = _get_artifacts_by_keywords(case.artifacts, 
@@ -384,10 +368,10 @@ def get_section_data(case_id, section):
         elif section == 'collection-logs':
             # Parse collection log file
             collection_log_data = _parse_collection_logs(case)
-            if not collection_log_data.get('success', True):
+            if 'error' in collection_log_data:
                 return jsonify({
                     'success': False,
-                    'message': collection_log_data.get('message', 'Failed to load collection log data'),
+                    'message': collection_log_data.get('error', 'Failed to load collection log data'),
                     'data': None
                 })
             else:
@@ -790,7 +774,7 @@ def _parse_collection_logs(case):
     
     # Look for collection log file in the case directory
     case_dir = os.path.join('cases', case.case_id)
-    log_pattern = os.path.join(case_dir, '*_*.log')
+    log_pattern = os.path.join(case_dir, 'sea_*.log')
     log_files = glob.glob(log_pattern)
     
     if not log_files:

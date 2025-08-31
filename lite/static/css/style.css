@@ -236,6 +236,20 @@ body {
     border-color: #e3e6f0;
 }
 
+/* Sticky Table Header */
+.table thead th.sticky-top {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: linear-gradient(135deg, var(--primary-color) 0%, #224abe 100%) !important;
+}
+
+.table-responsive .table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
 /* Badge Styles */
 .badge {
     font-size: 0.75rem;

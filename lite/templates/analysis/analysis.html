@@ -83,9 +83,7 @@
                     <a href="#" class="list-group-item list-group-item-action ps-4 nav-link" data-section="process-hunting">
                                 <i class="fas fa-search me-2"></i>Process Hunting
                             </a>
-                            <a href="#" class="list-group-item list-group-item-action ps-4 nav-link" data-section="crontabs">
-                                <i class="fas fa-clock me-2"></i>Crontabs
-                            </a>
+
                     <!-- <a href="#" class="list-group-item list-group-item-action ps-4 nav-link" data-section="process-tree">
                         <i class="fas fa-sitemap me-2"></i>Process Tree
                     </a> -->
@@ -336,9 +334,7 @@ function renderSectionContent(section, data) {
         case 'process-hunting':
             renderProcessHunting(data);
             break;
-        case 'crontabs':
-            renderCrontabs(data);
-            break;
+
         case 'services':
         case 'processes-services':
             renderServices(data);
@@ -882,71 +878,6 @@ function renderArtifacts(data) {
                 </div>
             </div>
             
-            <!-- Security Analysis -->
-            <div class="mb-4">
-                <h4 class="text-secondary mb-3"><i class="fas fa-shield-alt me-2"></i>Security Analysis</h4>
-                <div class="row mb-4">
-                <div class="col-md-3">
-                    <div class="card bg-danger text-white">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between">
-                                <div>
-                                    <h4 class="mb-0">${suspiciousJobs}</h4>
-                                    <p class="mb-0">Suspicious Jobs</p>
-                                </div>
-                                <div class="align-self-center">
-                                    <i class="fas fa-exclamation-triangle fa-2x"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="card bg-dark text-white">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between">
-                                <div>
-                                    <h4 class="mb-0">${rootJobs}</h4>
-                                    <p class="mb-0">Root Jobs</p>
-                                </div>
-                                <div class="align-self-center">
-                                    <i class="fas fa-user-shield fa-2x"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="card bg-secondary text-white">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between">
-                                <div>
-                                    <h4 class="mb-0">${systemUsers}</h4>
-                                    <p class="mb-0">System Users</p>
-                                </div>
-                                <div class="align-self-center">
-                                    <i class="fas fa-cogs fa-2x"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="card bg-purple text-white" style="background-color: #6f42c1 !important;">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between">
-                                <div>
-                                    <h4 class="mb-0">${nightTimeJobs}</h4>
-                                    <p class="mb-0">Night Jobs</p>
-                                </div>
-                                <div class="align-self-center">
-                                    <i class="fas fa-moon fa-2x"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
         `;
     }
     
@@ -2938,619 +2869,27 @@ function renderProcessHunting(data) {
     contentArea.innerHTML = html;
 }
 
-// Render Crontabs function
-function renderCrontabs(data) {
-    const contentArea = document.getElementById('content-area');
-    
-    let html = `
-        <!-- Header Section -->
-        <div class="bg-light p-4 rounded mb-4 border">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <h2 class="mb-2"><i class="fas fa-clock me-2 text-primary"></i>Crontabs Analysis</h2>
-                    <p class="text-muted mb-0">Analyze scheduled tasks and identify potential security risks</p>
-                </div>
-                <div class="btn-group" role="group">
-                    <button type="button" class="btn btn-outline-primary" onclick="exportCrontabs()">
-                        <i class="fas fa-download me-1"></i>Export CSV
-                    </button>
-                    <button type="button" class="btn btn-outline-secondary" onclick="clearCrontabFilters()">
-                        <i class="fas fa-times me-1"></i>Clear Filters
-                    </button>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Crontab Analysis Guide -->
-        <div class="row mb-4">
-            <div class="col-12">
-                <div class="card border-primary">
-                    <div class="card-header bg-primary text-white py-2">
-                        <h6 class="m-0">
-                            <i class="fas fa-info-circle me-2"></i>Crontab Analysis Guide
-                            <button class="btn btn-sm btn-outline-light float-end" type="button" data-bs-toggle="collapse" data-bs-target="#crontabGuide" aria-expanded="false">
-                                <i class="fas fa-chevron-down"></i>
-                            </button>
-                        </h6>
-                    </div>
-                    <div class="collapse" id="crontabGuide">
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-4">
-                                    <h6 class="text-primary"><i class="fas fa-shield-alt me-2"></i>Security Risk Levels</h6>
-                                    <ul class="list-unstyled">
-                                        <li class="mb-2"><span class="badge bg-danger me-2">Critical</span> Root user crontabs with system commands</li>
-                                        <li class="mb-2"><span class="badge bg-warning me-2">High</span> System user crontabs (daemon, www-data)</li>
-                                        <li class="mb-2"><span class="badge bg-info me-2">Medium</span> Regular user crontabs with network access</li>
-                                        <li class="mb-2"><span class="badge bg-success me-2">Low</span> Standard user maintenance tasks</li>
-                                        <li class="mb-2"><span class="badge bg-secondary me-2">Info</span> Users with no crontab entries</li>
-                                    </ul>
-                                </div>
-                                <div class="col-md-4">
-                                    <h6 class="text-primary"><i class="fas fa-search me-2"></i>Investigation Points</h6>
-                                    <ul class="list-unstyled">
-                                        <li class="mb-2"><strong>Command Analysis:</strong> Suspicious scripts or binaries</li>
-                                        <li class="mb-2"><strong>File Paths:</strong> Unusual locations (/tmp, /dev/shm)</li>
-                                        <li class="mb-2"><strong>Network Activity:</strong> wget, curl, nc commands</li>
-                                        <li class="mb-2"><strong>Privilege Escalation:</strong> sudo, su usage</li>
-                                        <li class="mb-2"><strong>Data Exfiltration:</strong> scp, rsync, ftp commands</li>
-                                    </ul>
-                                </div>
-                                <div class="col-md-4">
-                                    <h6 class="text-primary"><i class="fas fa-clock me-2"></i>Timing Analysis</h6>
-                                    <ul class="list-unstyled">
-                                        <li class="mb-2"><strong>Frequency:</strong> Unusual execution intervals</li>
-                                        <li class="mb-2"><strong>Off-hours:</strong> Jobs running at night/weekends</li>
-                                        <li class="mb-2"><strong>System Load:</strong> Resource-intensive tasks</li>
-                                        <li class="mb-2"><strong>Persistence:</strong> Jobs ensuring backdoor survival</li>
-                                        <li class="mb-2"><strong>Cleanup:</strong> Log deletion or evidence removal</li>
-                                    </ul>
-                                </div>
-                            </div>
-                            <div class="row mt-3">
-                                <div class="col-12">
-                                    <h6 class="text-primary"><i class="fas fa-exclamation-triangle me-2"></i>Cron Format Reference</h6>
-                                    <div class="row">
-                                        <div class="col-md-6">
-                                            <div class="bg-light p-3 rounded">
-                                                <code>* * * * * command</code><br>
-                                                <small class="text-muted">│ │ │ │ │<br>
-                                                │ │ │ │ └─ Day of week (0-7, Sun=0/7)<br>
-                                                │ │ │ └─── Month (1-12)<br>
-                                                │ │ └───── Day of month (1-31)<br>
-                                                │ └─────── Hour (0-23)<br>
-                                                └───────── Minute (0-59)</small>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <ul class="list-unstyled">
-                                                <li class="mb-1"><code>@reboot</code> - Run at startup</li>
-                                                <li class="mb-1"><code>@daily</code> - Run once a day</li>
-                                                <li class="mb-1"><code>@hourly</code> - Run once an hour</li>
-                                                <li class="mb-1"><code>@weekly</code> - Run once a week</li>
-                                                <li class="mb-1"><code>@monthly</code> - Run once a month</li>
-                                            </ul>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="alert alert-warning mt-3 mb-0">
-                                <small class="text-muted">
-                                    <i class="fas fa-lightbulb me-1"></i>
-                                    <strong>Forensic Tip:</strong> Pay special attention to crontabs that execute scripts from writable directories, 
-                                    use network commands, or run with elevated privileges. Cross-reference execution times with system logs 
-                                    and network activity for comprehensive analysis.
-                                </small>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Filters -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Filters</h5>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-3">
-                        <label for="crontabSearch" class="form-label">Search</label>
-                        <input type="text" class="form-control" id="crontabSearch" placeholder="Search users, commands..." onkeyup="filterCrontabs()">
-                    </div>
-                    <div class="col-md-3">
-                        <label for="userFilter" class="form-label">User Type</label>
-                        <select class="form-select" id="userFilter" onchange="filterCrontabs()">
-                            <option value="">All Users</option>
-                            <option value="root">Root User</option>
-                            <option value="system">System Users</option>
-                            <option value="regular">Regular Users</option>
-                            <option value="no_crontab">No Crontab</option>
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <label for="statusFilter" class="form-label">Status</label>
-                        <select class="form-select" id="statusFilter" onchange="filterCrontabs()">
-                            <option value="">All Status</option>
-                            <option value="no_crontab">No Crontab</option>
-                            <option value="has_entries">Has Entries</option>
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <label for="jobCountFilter" class="form-label">Job Count</label>
-                        <select class="form-select" id="jobCountFilter" onchange="filterCrontabs()">
-                            <option value="">All Counts</option>
-                            <option value="0">No Jobs</option>
-                            <option value="1-5">1-5 Jobs</option>
-                            <option value="6+">6+ Jobs</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    let crontabData = [];
-    let totalUsers = 0;
-    let usersWithCrontabs = 0;
-    let totalJobs = 0;
-    let activeJobs = 0;
-    
-    // Process crontab data - extract user crontab information
-    if (data && data.success && data.data) {
-        // Check if data.data is an array (direct crontab data)
-        if (Array.isArray(data.data)) {
-            crontabData = data.data;
-        } else {
-            // Iterate through all files in the data (nested structure)
-            for (const [filename, fileData] of Object.entries(data.data)) {
-                // Check if this file contains valid crontab data
-                if (fileData && fileData.success && fileData.data && Array.isArray(fileData.data)) {
-                    crontabData = fileData.data;
-                    break; // Use the first valid crontab file found
-                }
-            }
-        }
-    }
-    
-    // Data processing complete
-    // Data processing completed successfully
-    // Show the interface when we have user information, regardless of whether they have crontab entries
-    // This is important because "no crontab" status is valuable forensic information
-    if (crontabData && Array.isArray(crontabData) && crontabData.length > 0) {
-        totalUsers = crontabData.length;
-        
-        // Calculate statistics
-        let suspiciousJobs = 0;
-        let systemUsers = 0;
-        let nightTimeJobs = 0;
-        let rootJobs = 0;
-        
-        crontabData.forEach(user => {
-            if (user.entry_count > 0) {
-                usersWithCrontabs++;
-                totalJobs += user.entry_count;
-                activeJobs += user.active_jobs || 0;
-                
-                // Security analysis
-                if (user.username === 'root') {
-                    rootJobs += user.entry_count;
-                }
-                
-                // Check for system users (UID < 1000)
-                if (user.username.match(/^(daemon|bin|sys|sync|games|man|lp|mail|news|uucp|proxy|www-data|backup|list|irc|gnats|nobody|systemd|syslog)$/)) {
-                    systemUsers++;
-                }
-                
-                // Analyze job timing for suspicious patterns
-                if (user.crontab_entries) {
-                    user.crontab_entries.forEach(entry => {
-                        if (entry.schedule) {
-                            // Check for night time execution (22:00-06:00)
-                            const hourMatch = entry.schedule.match(/^(\d+|\*)\s+(2[2-3]|[0-5]|\*)/);
-                            if (hourMatch && (hourMatch[2] === '22' || hourMatch[2] === '23' || ['0','1','2','3','4','5'].includes(hourMatch[2]))) {
-                                nightTimeJobs++;
-                            }
-                            
-                            // Check for suspicious commands
-                            if (entry.command && entry.command.match(/(wget|curl|nc|netcat|bash|sh|python|perl|ruby|php).*http/i)) {
-                                suspiciousJobs++;
-                            }
-                        }
-                    });
-                }
-            }
-        });
-        
-        // Statistics cards
-        html += `
-            <!-- Overview Statistics -->
-            <div class="mb-4">
-                <h4 class="text-secondary mb-3"><i class="fas fa-chart-bar me-2"></i>Overview Statistics</h4>
-                <div class="row mb-4">
-                <div class="col-md-3">
-                    <div class="card bg-primary text-white">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between">
-                                <div>
-                                    <h4 class="mb-0">${totalUsers}</h4>
-                                    <p class="mb-0">Total Users</p>
-                                </div>
-                                <div class="align-self-center">
-                                    <i class="fas fa-users fa-2x"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="card bg-success text-white">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between">
-                                <div>
-                                    <h4 class="mb-0">${usersWithCrontabs}</h4>
-                                    <p class="mb-0">Users with Crontabs</p>
-                                </div>
-                                <div class="align-self-center">
-                                    <i class="fas fa-user-check fa-2x"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="card bg-info text-white">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between">
-                                <div>
-                                    <h4 class="mb-0">${totalJobs}</h4>
-                                    <p class="mb-0">Total Jobs</p>
-                                </div>
-                                <div class="align-self-center">
-                                    <i class="fas fa-tasks fa-2x"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="card bg-warning text-white">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between">
-                                <div>
-                                    <h4 class="mb-0">${activeJobs}</h4>
-                                    <p class="mb-0">Active Jobs</p>
-                                </div>
-                                <div class="align-self-center">
-                                    <i class="fas fa-play fa-2x"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                </div>
-            </div>
-        `;
-        
-        // Crontab table
-        html += `
-            <!-- Detailed Data -->
-            <div class="mb-4">
-                <h4 class="text-secondary mb-3"><i class="fas fa-table me-2"></i>Crontab Entries</h4>
-            </div>
-            <div class="card shadow-sm">
-                <div class="card-header bg-light">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <span class="text-muted">Click on column headers to sort data</span>
-                        <small class="text-muted">Total entries: ${totalUsers}</small>
-                    </div>
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-striped table-hover">
-                            <thead class="table-dark">
-                                <tr>
-                                    <th onclick="sortCrontabs('username')" style="cursor: pointer;">
-                                        Username <i class="fas fa-sort"></i>
-                                    </th>
-                                    <th onclick="sortCrontabs('status')" style="cursor: pointer;">
-                                        Status <i class="fas fa-sort"></i>
-                                    </th>
-                                    <th onclick="sortCrontabs('entry_count')" style="cursor: pointer;">
-                                        Job Count <i class="fas fa-sort"></i>
-                                    </th>
-                                    <th onclick="sortCrontabs('active_jobs')" style="cursor: pointer;">
-                                        Active Jobs <i class="fas fa-sort"></i>
-                                    </th>
-                                    <th>Message</th>
-                                    <th>Execution Time</th>
-                                    <th>Return Code</th>
-                                </tr>
-                            </thead>
-                            <tbody id="crontabTableBody">
-        `;
-        
-        crontabData.forEach(user => {
-            // Determine user type and risk level
-            let userType = 'regular';
-            let riskBadge = 'bg-success';
-            let riskText = 'Low Risk';
-            
-            if (user.username === 'root') {
-                userType = 'root';
-                riskBadge = 'bg-danger';
-                riskText = 'High Risk';
-            } else if (['daemon', 'bin', 'sys', 'sync', 'games', 'man', 'lp', 'mail', 'news', 'uucp', 'proxy', 'www-data', 'backup', 'list', 'irc', 'gnats', 'nobody', 'systemd-network', 'systemd-resolve', 'messagebus', 'systemd-timesync', 'syslog', 'uuidd', 'tcpdump', 'tss', 'landscape', 'fwupd-refresh', 'usbmux', 'lxd', 'dnsmasq', 'libvirt-qemu', 'libvirt-dnsmasq', 'postgres', 'mysql', 'redis', 'mongodb'].includes(user.username)) {
-                userType = 'system';
-                riskBadge = 'bg-warning';
-                riskText = 'Medium Risk';
-            }
-            
-            if (user.status === 'no_crontab') {
-                riskBadge = 'bg-info';
-                riskText = 'No Crontab';
-            }
-            
-            // Format execution time
-            const execTime = user.execution_time ? (user.execution_time * 1000).toFixed(2) + 'ms' : 'N/A';
-            
-            html += `
-                <tr class="crontab-row" data-username="${user.username.toLowerCase()}" data-status="${user.status}" data-usertype="${userType}" data-jobcount="${user.entry_count}">
-                    <td>
-                        <div class="d-flex align-items-center">
-                            <i class="fas fa-user me-2"></i>
-                            <span class="fw-bold">${user.username}</span>
-                            <span class="badge ${riskBadge} ms-2">${riskText}</span>
-                        </div>
-                    </td>
-                    <td>
-                        <span class="badge ${user.status === 'no_crontab' ? 'bg-secondary' : 'bg-success'}">
-                            ${user.status.replace('_', ' ').toUpperCase()}
-                        </span>
-                    </td>
-                    <td>
-                        <span class="badge ${user.entry_count > 0 ? 'bg-primary' : 'bg-light text-dark'}">
-                            ${user.entry_count}
-                        </span>
-                    </td>
-                    <td>
-                        <span class="badge ${user.active_jobs > 0 ? 'bg-success' : 'bg-light text-dark'}">
-                            ${user.active_jobs || 0}
-                        </span>
-                    </td>
-                    <td>
-                        <small class="text-muted">${user.message || 'N/A'}</small>
-                    </td>
-                    <td>
-                        <small class="text-muted">${execTime}</small>
-                    </td>
-                    <td>
-                        <span class="badge ${user.return_code === 0 ? 'bg-success' : 'bg-danger'}">
-                            ${user.return_code}
-                        </span>
-                    </td>
-                </tr>
-            `;
-            
-            // If user has crontab entries, show them
-            if (user.parsed_entries && user.parsed_entries.length > 0) {
-                user.parsed_entries.forEach(entry => {
-                    html += `
-                        <tr class="crontab-entry-row">
-                            <td colspan="7" class="ps-5">
-                                <div class="card border-start border-primary border-3">
-                                    <div class="card-body py-2">
-                                        <div class="row">
-                                            <div class="col-md-3">
-                                                <strong>Schedule:</strong><br>
-                                                <code>${entry.schedule || 'N/A'}</code>
-                                            </div>
-                                            <div class="col-md-6">
-                                                <strong>Command:</strong><br>
-                                                <code class="text-break">${entry.command || 'N/A'}</code>
-                                            </div>
-                                            <div class="col-md-3">
-                                                <strong>Status:</strong><br>
-                                                <span class="badge ${entry.active ? 'bg-success' : 'bg-secondary'}">
-                                                    ${entry.active ? 'Active' : 'Inactive'}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </td>
-                        </tr>
-                    `;
-                });
-            }
-        });
-        
-        html += `
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        `;
-    } else {
-        console.log('No crontab data found - showing error message');
-        html += `
-            <div class="alert alert-info text-center">
-                <i class="fas fa-info-circle fa-3x mb-3"></i>
-                <h4>No Crontab Data Available</h4>
-                <p>No crontab artifacts were found in the system investigation data.</p>
-                <p class="text-muted">Expected file: userCrontabs_*.json</p>
-            </div>
-        `;
-    }
-    
-    contentArea.innerHTML = html;
-}
 
-// Crontab filtering and sorting functions
-let crontabsOriginalData = [];
-let crontabsSortOrder = {};
 
-function filterCrontabs() {
-    const searchTerm = document.getElementById('crontabSearch').value.toLowerCase();
-    const userFilter = document.getElementById('userFilter').value;
-    const statusFilter = document.getElementById('statusFilter').value;
-    const jobCountFilter = document.getElementById('jobCountFilter').value;
-    
-    const rows = document.querySelectorAll('.crontab-row');
-    
-    rows.forEach(row => {
-        const username = row.dataset.username;
-        const status = row.dataset.status;
-        const userType = row.dataset.usertype;
-        const jobCount = parseInt(row.dataset.jobcount);
-        
-        let showRow = true;
-        
-        // Search filter
-        if (searchTerm && !username.includes(searchTerm)) {
-            const rowText = row.textContent.toLowerCase();
-            if (!rowText.includes(searchTerm)) {
-                showRow = false;
-            }
-        }
-        
-        // User type filter
-        if (userFilter) {
-            if (userFilter === 'no_crontab' && status !== 'no_crontab') {
-                showRow = false;
-            } else if (userFilter !== 'no_crontab' && userType !== userFilter) {
-                showRow = false;
-            }
-        }
-        
-        // Status filter
-        if (statusFilter) {
-            if (statusFilter === 'no_crontab' && status !== 'no_crontab') {
-                showRow = false;
-            } else if (statusFilter === 'has_entries' && status === 'no_crontab') {
-                showRow = false;
-            }
-        }
-        
-        // Job count filter
-        if (jobCountFilter) {
-            if (jobCountFilter === '0' && jobCount !== 0) {
-                showRow = false;
-            } else if (jobCountFilter === '1-5' && (jobCount < 1 || jobCount > 5)) {
-                showRow = false;
-            } else if (jobCountFilter === '6+' && jobCount < 6) {
-                showRow = false;
-            }
-        }
-        
-        row.style.display = showRow ? '' : 'none';
-        
-        // Also hide/show associated entry rows
-        let nextRow = row.nextElementSibling;
-        while (nextRow && nextRow.classList.contains('crontab-entry-row')) {
-            nextRow.style.display = showRow ? '' : 'none';
-            nextRow = nextRow.nextElementSibling;
-        }
-    });
-}
 
-function sortCrontabs(column) {
-    const tbody = document.getElementById('crontabTableBody');
-    const rows = Array.from(tbody.querySelectorAll('.crontab-row'));
-    
-    // Toggle sort order
-    crontabsSortOrder[column] = crontabsSortOrder[column] === 'asc' ? 'desc' : 'asc';
-    const isAsc = crontabsSortOrder[column] === 'asc';
-    
-    rows.sort((a, b) => {
-        let aVal, bVal;
-        
-        switch (column) {
-            case 'username':
-                aVal = a.dataset.username;
-                bVal = b.dataset.username;
-                break;
-            case 'status':
-                aVal = a.dataset.status;
-                bVal = b.dataset.status;
-                break;
-            case 'entry_count':
-            case 'active_jobs':
-                aVal = parseInt(a.dataset.jobcount) || 0;
-                bVal = parseInt(b.dataset.jobcount) || 0;
-                break;
-            default:
-                return 0;
-        }
-        
-        if (typeof aVal === 'string') {
-            return isAsc ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
-        } else {
-            return isAsc ? aVal - bVal : bVal - aVal;
-        }
-    });
-    
-    // Clear tbody and re-append sorted rows with their entry rows
-    tbody.innerHTML = '';
-    rows.forEach(row => {
-        tbody.appendChild(row);
-        
-        // Re-append associated entry rows
-        const originalNextSibling = row.nextElementSibling;
-        let entryRows = [];
-        let nextRow = originalNextSibling;
-        
-        // Find all entry rows that belong to this user
-        const allRows = Array.from(document.querySelectorAll('.crontab-entry-row'));
-        allRows.forEach(entryRow => {
-            const prevRow = entryRow.previousElementSibling;
-            if (prevRow && prevRow.dataset.username === row.dataset.username) {
-                entryRows.push(entryRow);
-            }
-        });
-        
-        entryRows.forEach(entryRow => {
-            tbody.appendChild(entryRow);
-        });
-    });
-}
 
-function clearCrontabFilters() {
-    document.getElementById('crontabSearch').value = '';
-    document.getElementById('userFilter').value = '';
-    document.getElementById('statusFilter').value = '';
-    document.getElementById('jobCountFilter').value = '';
-    filterCrontabs();
-}
 
-function exportCrontabs() {
-    const rows = document.querySelectorAll('.crontab-row:not([style*="display: none"])');
-    let csv = 'Username,Status,Job Count,Active Jobs,Message,Execution Time,Return Code\n';
-    
-    rows.forEach(row => {
-        const cells = row.querySelectorAll('td');
-        const username = row.dataset.username;
-        const status = row.dataset.status;
-        const jobCount = row.dataset.jobcount;
-        const message = cells[4].textContent.trim();
-        const execTime = cells[5].textContent.trim();
-        const returnCode = cells[6].textContent.trim();
-        
-        csv += `"${username}","${status}","${jobCount}","0","${message}","${execTime}","${returnCode}"\n`;
-    });
-    
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'crontabs_analysis.csv';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
-}
+
+
+
+
+
+
+
+
+
+
+
+// }
+
+
+
+
 
 // Process filtering and sorting functions
 let processesOriginalData = [];
@@ -4371,8 +3710,8 @@ function renderCollectionLogs(data) {
         </div>
     `;
     
-    if (data && data.success && data.data) {
-        const logData = data.data;
+    if (data && data.logs) {
+        const logData = data;
         
         // Statistics Cards
         if (logData.statistics) {
@@ -4482,18 +3821,15 @@ function renderCollectionLogs(data) {
         if (logData.logs && logData.logs.length > 0) {
             html += `
                 <div class="card">
-                    <div class="card-header">
-                        <h5 class="mb-0">Log Entries (${logData.log_file || 'Collection Log'})</h5>
-                    </div>
                     <div class="card-body p-0">
                         <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
                             <table class="table table-striped table-hover mb-0" id="collectionLogsTable">
                                 <thead class="table-dark sticky-top">
                                     <tr>
-                                        <th style="width: 180px;">Timestamp</th>
-                                        <th style="width: 80px;">Level</th>
-                                        <th style="width: 150px;">Component</th>
-                                        <th>Message</th>
+                                        <th class="sticky-top" onclick="sortCollectionLogs('timestamp')" style="width: 180px; cursor: pointer;">Timestamp <i class="fas fa-sort"></i></th>
+                                        <th class="sticky-top" onclick="sortCollectionLogs('level')" style="width: 80px; cursor: pointer;">Level <i class="fas fa-sort"></i></th>
+                                        <th class="sticky-top" onclick="sortCollectionLogs('component')" style="width: 150px; cursor: pointer;">Component <i class="fas fa-sort"></i></th>
+                                        <th class="sticky-top" onclick="sortCollectionLogs('message')" style="cursor: pointer;">Message <i class="fas fa-sort"></i></th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -4582,6 +3918,68 @@ function clearCollectionLogFilters() {
     document.getElementById('componentFilter').value = '';
     document.getElementById('messageFilter').value = '';
     filterCollectionLogs();
+}
+
+// Collection logs sorting
+let collectionLogsSortOrder = {};
+
+function sortCollectionLogs(column) {
+    const table = document.getElementById('collectionLogsTable');
+    if (!table) return;
+    
+    const tbody = table.querySelector('tbody');
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    
+    // Toggle sort order
+    collectionLogsSortOrder[column] = collectionLogsSortOrder[column] === 'asc' ? 'desc' : 'asc';
+    const isAscending = collectionLogsSortOrder[column] === 'asc';
+    
+    // Update sort icons
+    table.querySelectorAll('th i.fas').forEach(icon => {
+        icon.className = 'fas fa-sort';
+    });
+    
+    const currentHeader = table.querySelector(`th[onclick="sortCollectionLogs('${column}')"] i`);
+    if (currentHeader) {
+        currentHeader.className = `fas fa-sort-${isAscending ? 'up' : 'down'}`;
+    }
+    
+    rows.sort((a, b) => {
+        let aVal, bVal;
+        
+        switch (column) {
+            case 'timestamp':
+                aVal = a.querySelector('td:nth-child(1)').textContent;
+                bVal = b.querySelector('td:nth-child(1)').textContent;
+                // Convert to Date for proper sorting
+                aVal = new Date(aVal).getTime() || 0;
+                bVal = new Date(bVal).getTime() || 0;
+                break;
+            case 'level':
+                aVal = a.dataset.level.toLowerCase();
+                bVal = b.dataset.level.toLowerCase();
+                break;
+            case 'component':
+                aVal = a.dataset.component.toLowerCase();
+                bVal = b.dataset.component.toLowerCase();
+                break;
+            case 'message':
+                aVal = a.querySelector('td:nth-child(4)').textContent.toLowerCase();
+                bVal = b.querySelector('td:nth-child(4)').textContent.toLowerCase();
+                break;
+            default:
+                return 0;
+        }
+        
+        if (typeof aVal === 'string') {
+            return isAscending ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+        } else {
+            return isAscending ? aVal - bVal : bVal - aVal;
+        }
+    });
+    
+    // Re-append sorted rows
+    rows.forEach(row => tbody.appendChild(row));
 }
 
 function setActiveNavLink(activeLink) {
@@ -5054,6 +4452,14 @@ function showFullPasswordHash(username, fullHash) {
     document.getElementById('fullPasswordHashModal').addEventListener('hidden.bs.modal', function() {
         this.remove();
     });
+}
+
+function renderNetworkConnections(data) {
+    renderGenericData('network-connections', data);
+}
+
+function renderLogs(data) {
+    renderGenericData('system-logs', data);
 }
 
 function copyToClipboard(text) {
