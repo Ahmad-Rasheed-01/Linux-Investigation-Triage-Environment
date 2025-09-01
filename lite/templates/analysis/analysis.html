@@ -234,7 +234,25 @@ let sidebarCollapsed = false;
 
 // Initialize page
 document.addEventListener('DOMContentLoaded', function() {
-    loadSection('overview-summary');
+    // Check for saved section in localStorage
+    const savedSection = localStorage.getItem('analysis-current-section');
+    const defaultSection = 'overview-summary';
+    const sectionToLoad = savedSection || defaultSection;
+    
+    // Load the saved or default section
+    loadSection(sectionToLoad);
+    
+    // Set active nav link for the loaded section
+    const activeNavLink = document.querySelector(`[data-section="${sectionToLoad}"]`);
+    if (activeNavLink) {
+        setActiveNavLink(activeNavLink);
+        
+        // Expand the parent section if needed
+        const parentCollapse = activeNavLink.closest('.collapse');
+        if (parentCollapse && !parentCollapse.classList.contains('show')) {
+            const bsCollapse = new bootstrap.Collapse(parentCollapse, { show: true });
+        }
+    }
     
     // Setup navigation click handlers
     document.querySelectorAll('.nav-link[data-section]').forEach(link => {
@@ -278,6 +296,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
 function loadSection(section) {
     currentSection = section;
+    
+    // Save current section to localStorage
+    localStorage.setItem('analysis-current-section', section);
+    
     const contentArea = document.getElementById('content-area');
     
     // Show loading spinner
