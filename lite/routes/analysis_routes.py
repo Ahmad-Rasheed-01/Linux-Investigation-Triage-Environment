@@ -339,8 +339,15 @@ def get_section_data(case_id, section):
                     case.folder_path, 
                     'networkConnections_20250825_231424.json'
                 )
+                # Also load connection tracking data
+                connection_tracking_file = os.path.join(
+                    base_dir, 
+                    case.folder_path, 
+                    'connectionTracking_20250825_231418.json'
+                )
             else:
                 network_connections_file = None
+                connection_tracking_file = None
             
             network_data = {}
             file_found = False
@@ -349,6 +356,13 @@ def get_section_data(case_id, section):
                 data = json_parser.load_json_file(network_connections_file)
                 if data:
                     network_data['networkConnections_20250825_231424.json'] = data
+                    file_found = True
+            
+            # Load connection tracking data
+            if connection_tracking_file and os.path.exists(connection_tracking_file):
+                data = json_parser.load_json_file(connection_tracking_file)
+                if data:
+                    network_data['connectionTracking_20250825_231418.json'] = data
                     file_found = True
             
             # Also check for other network artifacts as fallback
@@ -372,6 +386,52 @@ def get_section_data(case_id, section):
             return jsonify({
                 'success': True,
                 'data': network_data
+            })
+        
+        elif section == 'network-ports':
+            # Load specific open ports JSON file
+            if case.folder_path:
+                # Construct absolute path from relative folder_path
+                # Go up two levels from lite/routes/ to get to project root
+                base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+                open_ports_file = os.path.join(
+                    base_dir, 
+                    case.folder_path, 
+                    'openPorts_20250825_231425.json'
+                )
+            else:
+                open_ports_file = None
+            
+            ports_data = {}
+            file_found = False
+            
+            if open_ports_file and os.path.exists(open_ports_file):
+                data = json_parser.load_json_file(open_ports_file)
+                if data:
+                    ports_data['openPorts_20250825_231425.json'] = data
+                    file_found = True
+            
+            # Also check for other port-related artifacts as fallback
+            port_artifacts = _get_artifacts_by_keywords(case.artifacts, 
+                ['port', 'openports', 'netstat', 'ss', 'lsof'])
+            
+            for artifact in port_artifacts:
+                data = json_parser.load_json_file(artifact.file_path)
+                if data:
+                    ports_data[artifact.filename] = data
+                    file_found = True
+            
+            # If no open ports data found, provide a helpful message
+            if not file_found:
+                return jsonify({
+                    'success': False,
+                    'message': 'No open ports data found. The openPorts_20250825_231425.json file was not found in the case directory. Please ensure open ports artifacts have been collected and are available in the case folder.',
+                    'data': None
+                })
+            
+            return jsonify({
+                'success': True,
+                'data': ports_data
             })
         
         elif section == 'processes-running':

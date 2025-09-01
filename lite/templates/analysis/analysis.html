@@ -110,6 +110,9 @@
                     <a href="#" class="list-group-item list-group-item-action ps-4 nav-link" data-section="network-interfaces">
                         <i class="fas fa-ethernet me-2"></i>Interfaces
                     </a>
+                    <a href="#" class="list-group-item list-group-item-action ps-4 nav-link" data-section="network-ports">
+                        <i class="fas fa-door-open me-2"></i>Open Ports
+                    </a>
                     <a href="#" class="list-group-item list-group-item-action ps-4 nav-link" data-section="network-config">
                         <i class="fas fa-network-wired me-2"></i>Configuration
                     </a>
@@ -372,6 +375,9 @@ function renderSectionContent(section, data) {
             break;
         case 'network-connections':
             renderNetworkConnections(data);
+            break;
+        case 'network-ports':
+            renderNetworkPorts(data);
             break;
         case 'system-logs':
             renderLogs(data);
@@ -5050,6 +5056,7 @@ function renderNetworkConnections(data) {
     // Find network connections data
     let connectionsData = null;
     let connectionCount = 0;
+    let connectionTrackingData = null;
     
     // Data is already extracted by renderSectionContent, use it directly
     const dataSource = data || {};
@@ -5071,6 +5078,14 @@ function renderNetworkConnections(data) {
                 connectionCount = connectionsData.length;
                 break;
             }
+        }
+    }
+    
+    // Process connection tracking data
+    for (const key in dataSource) {
+        if (key.includes('connectionTracking') && dataSource[key]) {
+            connectionTrackingData = parseConnectionTrackingData(dataSource[key]);
+            break;
         }
     }
     
@@ -5311,6 +5326,728 @@ function renderNetworkConnections(data) {
                 </div>
             `;
         }
+    }
+    
+    // Add Connection Tracking section if data is available
+    if (connectionTrackingData && connectionTrackingData.length > 0) {
+        html += `
+            <div class="row mt-5 mb-4">
+                <div class="col-12">
+                    <h3 class="h5 mb-3">
+                        <i class="fas fa-route me-2"></i>Connection Tracking (conntrack)
+                    </h3>
+                </div>
+            </div>
+            
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card bg-info text-white">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">${connectionTrackingData.length}</h5>
+                            <p class="card-text">Tracked Flows</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-success text-white">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">${connectionTrackingData.filter(c => c.protocol === 'tcp').length}</h5>
+                            <p class="card-text">TCP Flows</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-warning text-white">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">${connectionTrackingData.filter(c => c.protocol === 'udp').length}</h5>
+                            <p class="card-text">UDP Flows</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-danger text-white">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">${connectionTrackingData.filter(c => c.flags && c.flags.includes('UNREPLIED')).length}</h5>
+                            <p class="card-text">Unreplied</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Connection Tracking Filters -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-3">
+                                    <label class="form-label">Search Connections</label>
+                                    <input type="text" class="form-control" id="conntrackSearch" placeholder="Search by IP, port, or protocol..." oninput="filterConntrack()">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">Protocol</label>
+                                    <select class="form-select" id="conntrackProtocolFilter" onchange="filterConntrack()">
+                                        <option value="">All Protocols</option>
+                                        <option value="tcp">TCP</option>
+                                        <option value="udp">UDP</option>
+                                        <option value="icmp">ICMP</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">Flags</label>
+                                    <select class="form-select" id="conntrackFlagsFilter" onchange="filterConntrack()">
+                                        <option value="">All Flags</option>
+                                        <option value="UNREPLIED">UNREPLIED</option>
+                                        <option value="ASSURED">ASSURED</option>
+                                        <option value="SEEN_REPLY">SEEN_REPLY</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">TTL Range</label>
+                                    <select class="form-select" id="conntrackTtlFilter" onchange="filterConntrack()">
+                                        <option value="">All TTL</option>
+                                        <option value="low">Low (< 30s)</option>
+                                        <option value="medium">Medium (30-300s)</option>
+                                        <option value="high">High (> 300s)</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">&nbsp;</label>
+                                    <div class="d-flex gap-2">
+                                        <button class="btn btn-outline-secondary" onclick="clearConntrackFilters()">
+                                            <i class="fas fa-times me-1"></i>Clear
+                                        </button>
+                                        <button class="btn btn-outline-info" onclick="exportConntrack()">
+                                            <i class="fas fa-download me-1"></i>Export
+                                        </button>
+                                        <span class="badge bg-primary align-self-center ms-2" id="conntrackCount">${connectionTrackingData.length}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-12">
+                    <div class="card shadow">
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0" id="conntrackTable">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th>Protocol</th>
+                                            <th>Source</th>
+                                            <th>Destination</th>
+                                            <th>Reply Source</th>
+                                            <th>Reply Destination</th>
+                                            <th>TTL</th>
+                                            <th>Flags</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+        `;
+        
+        connectionTrackingData.forEach(flow => {
+            const protocolBadge = flow.protocol === 'tcp' ? 'bg-success' : flow.protocol === 'udp' ? 'bg-info' : 'bg-secondary';
+            const flagsBadges = flow.flags ? flow.flags.map(flag => `<span class="badge bg-${flag === 'UNREPLIED' ? 'danger' : flag === 'ASSURED' ? 'success' : 'secondary'} me-1">${flag}</span>`).join('') : '';
+            
+            html += `
+                <tr class="conntrack-row" 
+                    data-protocol="${flow.protocol}" 
+                    data-src="${flow.src}" 
+                    data-dst="${flow.dst}" 
+                    data-sport="${flow.sport}" 
+                    data-dport="${flow.dport}" 
+                    data-ttl="${flow.ttl}" 
+                    data-flags="${flow.flags ? flow.flags.join(',') : ''}">
+                    <td>
+                        <span class="badge ${protocolBadge}">${flow.protocol.toUpperCase()}</span>
+                        <br><small class="text-muted">ID: ${flow.protocolNumber}</small>
+                    </td>
+                    <td>
+                        <code>${flow.src}:${flow.sport}</code>
+                    </td>
+                    <td>
+                        <code>${flow.dst}:${flow.dport}</code>
+                    </td>
+                    <td>
+                        <code>${flow.replySrc}:${flow.replySport}</code>
+                    </td>
+                    <td>
+                        <code>${flow.replyDst}:${flow.replyDport}</code>
+                    </td>
+                    <td>
+                        <span class="badge ${flow.ttl < 30 ? 'bg-warning' : 'bg-info'}">${flow.ttl}s</span>
+                    </td>
+                    <td>
+                        ${flagsBadges || '<span class="text-muted">None</span>'}
+                    </td>
+                </tr>
+            `;
+        });
+        
+        html += `
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    contentArea.innerHTML = html;
+}
+
+// Function to parse connection tracking data from conntrack output
+function parseConnectionTrackingData(trackingData) {
+    if (!trackingData || !trackingData.stdout) {
+        return [];
+    }
+    
+    const lines = trackingData.stdout.trim().split('\n');
+    const flows = [];
+    
+    lines.forEach(line => {
+        if (line.trim()) {
+            const flow = parseConntrackLine(line);
+            if (flow) {
+                flows.push(flow);
+            }
+        }
+    });
+    
+    return flows;
+}
+
+// Function to parse individual conntrack line
+function parseConntrackLine(line) {
+    const parts = line.split(/\s+/);
+    const flow = {
+        protocol: parts[0],
+        protocolNumber: parts[1],
+        ttl: parseInt(parts[2]),
+        flags: []
+    };
+    
+    // Parse key-value pairs
+    for (let i = 3; i < parts.length; i++) {
+        const part = parts[i];
+        
+        if (part.startsWith('src=')) {
+            if (!flow.src) {
+                flow.src = part.substring(4);
+            } else {
+                flow.replySrc = part.substring(4);
+            }
+        } else if (part.startsWith('dst=')) {
+            if (!flow.dst) {
+                flow.dst = part.substring(4);
+            } else {
+                flow.replyDst = part.substring(4);
+            }
+        } else if (part.startsWith('sport=')) {
+            if (!flow.sport) {
+                flow.sport = part.substring(6);
+            } else {
+                flow.replySport = part.substring(6);
+            }
+        } else if (part.startsWith('dport=')) {
+            if (!flow.dport) {
+                flow.dport = part.substring(6);
+            } else {
+                flow.replyDport = part.substring(6);
+            }
+        } else if (part.startsWith('[') && part.endsWith(']')) {
+            flow.flags.push(part.substring(1, part.length - 1));
+        }
+    }
+    
+    return flow;
+}
+
+// Function to filter connection tracking data
+function filterConntrack() {
+    const searchTerm = document.getElementById('conntrackSearch').value.toLowerCase();
+    const protocolFilter = document.getElementById('conntrackProtocolFilter').value.toLowerCase();
+    const flagsFilter = document.getElementById('conntrackFlagsFilter').value;
+    const ttlFilter = document.getElementById('conntrackTtlFilter').value;
+    
+    const rows = document.querySelectorAll('.conntrack-row');
+    let visibleCount = 0;
+    
+    rows.forEach(row => {
+        const protocol = row.dataset.protocol.toLowerCase();
+        const src = row.dataset.src.toLowerCase();
+        const dst = row.dataset.dst.toLowerCase();
+        const sport = row.dataset.sport;
+        const dport = row.dataset.dport;
+        const ttl = parseInt(row.dataset.ttl);
+        const flags = row.dataset.flags.toLowerCase();
+        
+        let show = true;
+        
+        // Search filter
+        if (searchTerm) {
+            const searchText = `${protocol} ${src} ${dst} ${sport} ${dport}`.toLowerCase();
+            if (!searchText.includes(searchTerm)) {
+                show = false;
+            }
+        }
+        
+        // Protocol filter
+        if (protocolFilter && protocol !== protocolFilter) {
+            show = false;
+        }
+        
+        // Flags filter
+        if (flagsFilter && !flags.includes(flagsFilter.toLowerCase())) {
+            show = false;
+        }
+        
+        // TTL filter
+        if (ttlFilter) {
+            if (ttlFilter === 'low' && ttl >= 30) show = false;
+            if (ttlFilter === 'medium' && (ttl < 30 || ttl > 300)) show = false;
+            if (ttlFilter === 'high' && ttl <= 300) show = false;
+        }
+        
+        row.style.display = show ? '' : 'none';
+        if (show) visibleCount++;
+    });
+    
+    // Update count badge
+    const countBadge = document.getElementById('conntrackCount');
+    if (countBadge) {
+        countBadge.textContent = visibleCount;
+    }
+}
+
+// Function to clear connection tracking filters
+function clearConntrackFilters() {
+    document.getElementById('conntrackSearch').value = '';
+    document.getElementById('conntrackProtocolFilter').value = '';
+    document.getElementById('conntrackFlagsFilter').value = '';
+    document.getElementById('conntrackTtlFilter').value = '';
+    
+    const rows = document.querySelectorAll('.conntrack-row');
+    rows.forEach(row => {
+        row.style.display = '';
+    });
+    
+    // Update count badge
+    const countBadge = document.getElementById('conntrackCount');
+    if (countBadge) {
+        countBadge.textContent = rows.length;
+    }
+}
+
+// Function to export connection tracking data
+function exportConntrack() {
+    const visibleRows = Array.from(document.querySelectorAll('.conntrack-row')).filter(row => row.style.display !== 'none');
+    
+    if (visibleRows.length === 0) {
+        alert('No connection tracking data to export');
+        return;
+    }
+    
+    let csvContent = 'Protocol,Source,Destination,Reply Source,Reply Destination,TTL,Flags\n';
+    
+    visibleRows.forEach(row => {
+        const protocol = row.dataset.protocol;
+        const src = `${row.dataset.src}:${row.dataset.sport}`;
+        const dst = `${row.dataset.dst}:${row.dataset.dport}`;
+        const replySrc = row.cells[3].textContent.trim();
+        const replyDst = row.cells[4].textContent.trim();
+        const ttl = row.dataset.ttl;
+        const flags = row.dataset.flags || 'None';
+        
+        csvContent += `"${protocol}","${src}","${dst}","${replySrc}","${replyDst}","${ttl}","${flags}"\n`;
+    });
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'connection_tracking_data.csv');
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+function filterPorts() {
+    const searchTerm = document.getElementById('portSearch').value.toLowerCase();
+    const typeFilter = document.getElementById('portTypeFilter').value.toLowerCase();
+    const protocolFilter = document.getElementById('portProtocolFilter').value.toLowerCase();
+    const statusFilter = document.getElementById('portStatusFilter').value.toLowerCase();
+    
+    const rows = document.querySelectorAll('.port-row');
+    let visibleCount = 0;
+    
+    rows.forEach(row => {
+        const process = row.getAttribute('data-process') || '';
+        const user = row.getAttribute('data-user') || '';
+        const type = row.getAttribute('data-type') || '';
+        const localIp = row.getAttribute('data-local-ip') || '';
+        const localPort = row.getAttribute('data-local-port') || '';
+        const remoteIp = row.getAttribute('data-remote-ip') || '';
+        const remotePort = row.getAttribute('data-remote-port') || '';
+        const status = row.getAttribute('data-status') || '';
+        
+        // Search filter
+        const matchesSearch = !searchTerm || 
+            process.includes(searchTerm) ||
+            user.includes(searchTerm) ||
+            localIp.includes(searchTerm) ||
+            localPort.includes(searchTerm) ||
+            remoteIp.includes(searchTerm) ||
+            remotePort.includes(searchTerm);
+        
+        // Type filter (TCP/UDP)
+        const matchesType = !typeFilter || type.includes(typeFilter);
+        
+        // Protocol filter (IPv4/IPv6)
+        const matchesProtocol = !protocolFilter || type.includes(protocolFilter);
+        
+        // Status filter (listening/connected)
+        const matchesStatus = !statusFilter || status === statusFilter;
+        
+        if (matchesSearch && matchesType && matchesProtocol && matchesStatus) {
+            row.style.display = '';
+            visibleCount++;
+        } else {
+            row.style.display = 'none';
+        }
+    });
+    
+    // Update count badge
+    const countBadge = document.getElementById('portCount');
+    if (countBadge) {
+        countBadge.textContent = visibleCount;
+    }
+}
+
+function clearPortFilters() {
+    document.getElementById('portSearch').value = '';
+    document.getElementById('portTypeFilter').value = '';
+    document.getElementById('portProtocolFilter').value = '';
+    document.getElementById('portStatusFilter').value = '';
+    filterPorts();
+}
+
+function exportPorts() {
+    const visibleRows = document.querySelectorAll('.port-row:not([style*="display: none"])');
+    
+    if (visibleRows.length === 0) {
+        alert('No data to export');
+        return;
+    }
+    
+    let csvContent = 'Process,PID,User,Type,Local Address,Local Port,Remote Address,Remote Port\n';
+    
+    visibleRows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        const rowData = [];
+        
+        cells.forEach(cell => {
+            // Extract text content, removing HTML tags and extra whitespace
+            let cellText = cell.textContent.trim();
+            // Escape quotes and wrap in quotes if contains comma
+            if (cellText.includes(',') || cellText.includes('"')) {
+                cellText = '"' + cellText.replace(/"/g, '""') + '"';
+            }
+            rowData.push(cellText);
+        });
+        
+        csvContent += rowData.join(',') + '\n';
+    });
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'open_ports_data.csv');
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+function renderNetworkPorts(data) {
+    const contentArea = document.getElementById('content-area');
+    
+    let html = `
+        <div class="row mb-4">
+            <div class="col-12">
+                <h2 class="h4 mb-3">
+                    <i class="fas fa-door-open me-2"></i>Open Ports
+                </h2>
+            </div>
+        </div>
+        
+        <!-- Open Ports Analysis Guide -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card border-info">
+                    <div class="card-header bg-info text-white py-2">
+                        <h6 class="m-0">
+                            <i class="fas fa-info-circle me-2"></i>Open Ports Analysis Guide
+                            <button class="btn btn-sm btn-outline-light float-end" type="button" data-bs-toggle="collapse" data-bs-target="#portsGuide" aria-expanded="false">
+                                <i class="fas fa-chevron-down"></i>
+                            </button>
+                        </h6>
+                    </div>
+                    <div class="collapse" id="portsGuide">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6 class="text-primary"><i class="fas fa-shield-alt me-2"></i>Port Types</h6>
+                                    <ul class="list-unstyled">
+                                        <li class="mb-2"><span class="badge bg-success me-2">TCP</span> Reliable connection-oriented protocol</li>
+                                        <li class="mb-2"><span class="badge bg-info me-2">UDP</span> Fast connectionless protocol</li>
+                                        <li class="mb-2"><span class="badge bg-warning me-2">IPv4</span> Standard IP version 4</li>
+                                        <li class="mb-2"><span class="badge bg-secondary me-2">IPv6</span> Next generation IP version 6</li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6 class="text-primary"><i class="fas fa-search me-2"></i>Security Analysis Points</h6>
+                                    <ul class="list-unstyled">
+                                        <li class="mb-2"><strong>Process:</strong> Which application opened the port</li>
+                                        <li class="mb-2"><strong>User:</strong> Account running the process</li>
+                                        <li class="mb-2"><strong>Local Address:</strong> Interface binding (0.0.0.0 = all)</li>
+                                        <li class="mb-2"><strong>Remote Address:</strong> Connected endpoints</li>
+                                        <li class="mb-2"><strong>Port Numbers:</strong> Well-known (<1024) vs dynamic</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="alert alert-light mt-3 mb-0">
+                                <small class="text-muted">
+                                    <i class="fas fa-lightbulb me-1"></i>
+                                    <strong>Investigation Tips:</strong> Look for unusual processes listening on network ports, 
+                                    services bound to all interfaces (0.0.0.0), high port numbers used by unknown processes, 
+                                    and processes running as privileged users. Pay attention to remote connections and 
+                                    processes that shouldn't normally accept network connections.
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Find open ports data
+    let portsData = null;
+    let portCount = 0;
+    
+    // Data is already extracted by renderSectionContent, use it directly
+    const dataSource = data || {};
+    
+    console.log('Open ports data received:', dataSource); // Debug log
+    
+    // Try to find ports data in various possible structures
+    if (dataSource.openPorts && Array.isArray(dataSource.openPorts)) {
+        portsData = dataSource.openPorts;
+        portCount = portsData.length;
+    } else if (dataSource.openPorts_data && Array.isArray(dataSource.openPorts_data)) {
+        portsData = dataSource.openPorts_data;
+        portCount = portsData.length;
+    } else {
+        // Try to find in nested structure
+        for (const key in dataSource) {
+            if (key.includes('openPorts') && dataSource[key] && Array.isArray(dataSource[key])) {
+                portsData = dataSource[key];
+                portCount = portsData.length;
+                break;
+            }
+        }
+    }
+    
+    if (portsData && portCount > 0) {
+        // Calculate statistics
+        const tcpPorts = portsData.filter(p => p.type && p.type.toLowerCase().includes('tcp')).length;
+        const udpPorts = portsData.filter(p => p.type && p.type.toLowerCase().includes('udp')).length;
+        const ipv4Ports = portsData.filter(p => p.type && p.type.toLowerCase().includes('ipv4')).length;
+        const ipv6Ports = portsData.filter(p => p.type && p.type.toLowerCase().includes('ipv6')).length;
+        const listeningPorts = portsData.filter(p => p.localAddress && p.localAddress !== '' && (!p.remoteAddress || p.remoteAddress === '')).length;
+        
+        html += `
+            <div class="row mb-4">
+                <div class="col-md-2">
+                    <div class="card bg-primary text-white">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">${portCount}</h5>
+                            <p class="card-text">Total Ports</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="card bg-success text-white">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">${tcpPorts}</h5>
+                            <p class="card-text">TCP</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="card bg-info text-white">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">${udpPorts}</h5>
+                            <p class="card-text">UDP</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="card bg-warning text-white">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">${ipv4Ports}</h5>
+                            <p class="card-text">IPv4</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="card bg-secondary text-white">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">${ipv6Ports}</h5>
+                            <p class="card-text">IPv6</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="card bg-dark text-white">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">${listeningPorts}</h5>
+                            <p class="card-text">Listening</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Filters -->
+            <div class="row mb-3">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-3">
+                                    <label for="portSearch" class="form-label">Search</label>
+                                    <input type="text" class="form-control" id="portSearch" placeholder="Search by process, user, IP, or port..." oninput="filterPorts()">
+                                </div>
+                                <div class="col-md-2">
+                                    <label for="portTypeFilter" class="form-label">Type</label>
+                                    <select class="form-select" id="portTypeFilter" onchange="filterPorts()">
+                                        <option value="">All Types</option>
+                                        <option value="tcp">TCP</option>
+                                        <option value="udp">UDP</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <label for="portProtocolFilter" class="form-label">Protocol</label>
+                                    <select class="form-select" id="portProtocolFilter" onchange="filterPorts()">
+                                        <option value="">All Protocols</option>
+                                        <option value="ipv4">IPv4</option>
+                                        <option value="ipv6">IPv6</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <label for="portStatusFilter" class="form-label">Status</label>
+                                    <select class="form-select" id="portStatusFilter" onchange="filterPorts()">
+                                        <option value="">All Status</option>
+                                        <option value="listening">Listening</option>
+                                        <option value="connected">Connected</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">&nbsp;</label>
+                                    <div class="d-flex gap-2">
+                                        <button class="btn btn-outline-secondary" onclick="clearPortFilters()">
+                                            <i class="fas fa-times me-1"></i>Clear
+                                        </button>
+                                        <button class="btn btn-outline-primary" onclick="exportPorts()">
+                                            <i class="fas fa-download me-1"></i>Export
+                                        </button>
+                                        <span class="badge bg-primary align-self-center ms-2" id="portCount">${portCount}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Ports Table -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-striped table-hover">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th>Process</th>
+                                            <th>PID</th>
+                                            <th>User</th>
+                                            <th>Type</th>
+                                            <th>Local Address</th>
+                                            <th>Local Port</th>
+                                            <th>Remote Address</th>
+                                            <th>Remote Port</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="portsTableBody">
+        `;
+        
+        // Generate table rows
+        portsData.forEach((port, index) => {
+            const isListening = port.localAddress && port.localAddress !== '' && (!port.remoteAddress || port.remoteAddress === '');
+            const statusClass = isListening ? 'listening' : 'connected';
+            
+            html += `
+                <tr class="port-row" 
+                    data-process="${(port.command || '').toLowerCase()}" 
+                    data-user="${(port.user || '').toLowerCase()}" 
+                    data-type="${(port.type || '').toLowerCase()}" 
+                    data-local-ip="${(port.localIP || '').toLowerCase()}" 
+                    data-local-port="${port.localPort || ''}" 
+                    data-remote-ip="${(port.remoteIP || '').toLowerCase()}" 
+                    data-remote-port="${port.remotePort || ''}" 
+                    data-status="${statusClass}">
+                    <td><span class="badge bg-secondary me-1">${port.command || 'N/A'}</span></td>
+                    <td>${port.pid || 'N/A'}</td>
+                    <td><span class="badge bg-info">${port.user || 'N/A'}</span></td>
+                    <td><span class="badge ${port.type && port.type.toLowerCase().includes('tcp') ? 'bg-success' : 'bg-info'}">${port.type || 'N/A'}</span></td>
+                    <td><code>${port.localAddress || port.localIP || 'N/A'}</code></td>
+                    <td><span class="badge bg-primary">${port.localPort || 'N/A'}</span></td>
+                    <td><code>${port.remoteAddress || port.remoteIP || 'N/A'}</code></td>
+                    <td><span class="badge bg-warning">${port.remotePort || 'N/A'}</span></td>
+                </tr>
+            `;
+        });
+        
+        html += `
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    } else {
+        html += `
+            <div class="row">
+                <div class="col-12">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        No open ports data available for this case.
+                    </div>
+                </div>
+            </div>
+        `;
     }
     
     contentArea.innerHTML = html;
