@@ -284,15 +284,90 @@ def get_section_data(case_id, section):
                 'data': user_data
             })
         
+        elif section == 'network-interfaces':
+            # Load specific network interfaces JSON file
+            if case.folder_path:
+                # Construct absolute path from relative folder_path
+                base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                network_interfaces_file = os.path.join(
+                    base_dir, 
+                    case.folder_path, 
+                    'networkInterfaces_20250825_231424.json'
+                )
+            else:
+                network_interfaces_file = None
+            
+            network_data = {}
+            file_found = False
+            
+            if network_interfaces_file and os.path.exists(network_interfaces_file):
+                data = json_parser.load_json_file(network_interfaces_file)
+                if data:
+                    network_data['networkInterfaces_20250825_231424.json'] = data
+                    file_found = True
+            
+            # Also check for other network interface artifacts as fallback
+            interface_artifacts = _get_artifacts_by_keywords(case.artifacts, 
+                ['interface', 'networkinterface', 'ifconfig', 'ip_addr', 'ip_link'])
+            
+            for artifact in interface_artifacts:
+                data = json_parser.load_json_file(artifact.file_path)
+                if data:
+                    network_data[artifact.filename] = data
+                    file_found = True
+            
+            # If no network interface data found, provide a helpful message
+            if not file_found:
+                return jsonify({
+                    'success': False,
+                    'message': 'No network interface data found. The networkInterfaces_20250825_231424.json file was not found in the case directory. Please ensure network interface artifacts have been collected and are available in the case folder.',
+                    'data': None
+                })
+            
+            return jsonify({
+                'success': True,
+                'data': network_data
+            })
+        
         elif section == 'network-connections':
+            # Load specific network connections JSON file
+            if case.folder_path:
+                # Construct absolute path from relative folder_path
+                base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                network_connections_file = os.path.join(
+                    base_dir, 
+                    case.folder_path, 
+                    'networkConnections_20250825_231424.json'
+                )
+            else:
+                network_connections_file = None
+            
+            network_data = {}
+            file_found = False
+            
+            if network_connections_file and os.path.exists(network_connections_file):
+                data = json_parser.load_json_file(network_connections_file)
+                if data:
+                    network_data['networkConnections_20250825_231424.json'] = data
+                    file_found = True
+            
+            # Also check for other network artifacts as fallback
             network_artifacts = _get_artifacts_by_keywords(case.artifacts, 
                 ['network', 'connection', 'port', 'socket', 'interface'])
-            network_data = {}
             
             for artifact in network_artifacts:
                 data = json_parser.load_json_file(artifact.file_path)
                 if data:
                     network_data[artifact.filename] = data
+                    file_found = True
+            
+            # If no network data found, provide a helpful message
+            if not file_found:
+                return jsonify({
+                    'success': False,
+                    'message': 'No network connection data found. The networkConnections_20250825_231424.json file was not found in the case directory. Please ensure network connection artifacts have been collected and are available in the case folder.',
+                    'data': None
+                })
             
             return jsonify({
                 'success': True,

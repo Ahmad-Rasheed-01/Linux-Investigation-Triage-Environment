@@ -367,6 +367,9 @@ function renderSectionContent(section, data) {
         case 'triggered-tasks':
             renderTriggeredTasks(data);
             break;
+        case 'network-interfaces':
+            renderNetworkInterfaces(data);
+            break;
         case 'network-connections':
             renderNetworkConnections(data);
             break;
@@ -4993,16 +4996,712 @@ function renderNetworkConnections(data) {
             </div>
         </div>
         
-        <div class="card shadow">
-            <div class="card-body text-center py-5">
-                <i class="fas fa-network-wired fa-3x text-muted mb-3"></i>
-                <h5 class="text-muted mb-3">Network Connections Analysis</h5>
-                <p class="text-muted">Network connections analysis interface will be implemented here.</p>
+        <!-- Network Connections Analysis Guide -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card border-info">
+                    <div class="card-header bg-info text-white py-2">
+                        <h6 class="m-0">
+                            <i class="fas fa-info-circle me-2"></i>Network Connections Analysis Guide
+                            <button class="btn btn-sm btn-outline-light float-end" type="button" data-bs-toggle="collapse" data-bs-target="#networkGuide" aria-expanded="false">
+                                <i class="fas fa-chevron-down"></i>
+                            </button>
+                        </h6>
+                    </div>
+                    <div class="collapse" id="networkGuide">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6 class="text-primary"><i class="fas fa-shield-alt me-2"></i>Connection States</h6>
+                                    <ul class="list-unstyled">
+                                        <li class="mb-2"><span class="badge bg-success me-2">ESTABLISHED</span> Active connection in use</li>
+                                        <li class="mb-2"><span class="badge bg-info me-2">LISTEN</span> Service waiting for connections</li>
+                                        <li class="mb-2"><span class="badge bg-warning me-2">TIME_WAIT</span> Connection closing gracefully</li>
+                                        <li class="mb-2"><span class="badge bg-secondary me-2">CLOSE_WAIT</span> Waiting for local close</li>
+                                        <li class="mb-2"><span class="badge bg-danger me-2">SYN_SENT</span> Connection attempt in progress</li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6 class="text-primary"><i class="fas fa-search me-2"></i>Security Analysis Points</h6>
+                                    <ul class="list-unstyled">
+                                        <li class="mb-2"><strong>Protocol:</strong> TCP vs UDP connection types</li>
+                                        <li class="mb-2"><strong>Local Address:</strong> Interface and port binding</li>
+                                        <li class="mb-2"><strong>Remote Address:</strong> External connection endpoints</li>
+                                        <li class="mb-2"><strong>Process ID:</strong> Associated running process</li>
+                                        <li class="mb-2"><strong>Port Numbers:</strong> Well-known vs high ports</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="alert alert-light mt-3 mb-0">
+                                <small class="text-muted">
+                                    <i class="fas fa-lightbulb me-1"></i>
+                                    <strong>Investigation Tips:</strong> Look for unusual listening ports, external connections to suspicious IPs, 
+                                    high port numbers (>1024) used by unknown processes, and connections at unusual times. 
+                                    Pay attention to processes with network activity that shouldn't normally communicate externally.
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     `;
     
+    // Find network connections data
+    let connectionsData = null;
+    let connectionCount = 0;
+    
+    // Data is already extracted by renderSectionContent, use it directly
+    const dataSource = data || {};
+    
+    console.log('Network connections data received:', dataSource); // Debug log
+    
+    // Try to find connections data in various possible structures
+    if (dataSource.connections && Array.isArray(dataSource.connections)) {
+        connectionsData = dataSource.connections;
+        connectionCount = connectionsData.length;
+    } else if (dataSource.networkConnections_data && Array.isArray(dataSource.networkConnections_data)) {
+        connectionsData = dataSource.networkConnections_data;
+        connectionCount = connectionsData.length;
+    } else {
+        // Try to find in nested structure
+        for (const key in dataSource) {
+            if (key.includes('networkConnections') && dataSource[key] && dataSource[key].connections) {
+                connectionsData = dataSource[key].connections;
+                connectionCount = connectionsData.length;
+                break;
+            }
+        }
+    }
+    
+    if (connectionsData && connectionCount > 0) {
+        // Calculate statistics
+        const tcpConnections = connectionsData.filter(c => c.protocol === 'tcp').length;
+        const udpConnections = connectionsData.filter(c => c.protocol === 'udp').length;
+        const listeningConnections = connectionsData.filter(c => c.state === 'LISTEN').length;
+        const establishedConnections = connectionsData.filter(c => c.state === 'ESTABLISHED').length;
+        
+        html += `
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card bg-primary text-white">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">${connectionCount}</h5>
+                            <p class="card-text">Total Connections</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-success text-white">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">${tcpConnections}</h5>
+                            <p class="card-text">TCP</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-info text-white">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">${udpConnections}</h5>
+                            <p class="card-text">UDP</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-warning text-white">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">${listeningConnections}</h5>
+                            <p class="card-text">Listening</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Filters -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-3">
+                                    <label class="form-label">Search Connections</label>
+                                    <input type="text" class="form-control" id="connectionSearch" placeholder="Search by IP, port, or protocol..." oninput="filterConnections()">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">Protocol</label>
+                                    <select class="form-select" id="protocolFilter" onchange="filterConnections()">
+                                        <option value="">All Protocols</option>
+                                        <option value="tcp">TCP</option>
+                                        <option value="udp">UDP</option>
+                                        <option value="tcp6">TCP6</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">State</label>
+                                    <select class="form-select" id="stateFilter" onchange="filterConnections()">
+                                        <option value="">All States</option>
+                                        <option value="LISTEN">LISTEN</option>
+                                        <option value="ESTABLISHED">ESTABLISHED</option>
+                                        <option value="CLOSE_WAIT">CLOSE_WAIT</option>
+                                        <option value="TIME_WAIT">TIME_WAIT</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">Port Range</label>
+                                    <select class="form-select" id="portFilter" onchange="filterConnections()">
+                                        <option value="">All Ports</option>
+                                        <option value="well-known">Well-known (1-1023)</option>
+                                        <option value="registered">Registered (1024-49151)</option>
+                                        <option value="dynamic">Dynamic (49152-65535)</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">&nbsp;</label>
+                                    <div class="d-flex gap-2">
+                                        <button class="btn btn-outline-secondary" onclick="clearConnectionFilters()">
+                                            <i class="fas fa-times me-1"></i>Clear
+                                        </button>
+                                        <button class="btn btn-outline-info" onclick="exportConnections()">
+                                            <i class="fas fa-download me-1"></i>Export
+                                        </button>
+                                        <span class="badge bg-primary align-self-center ms-2" id="connectionCount">${connectionCount}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Connections Table -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="card shadow">
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0" id="connectionsTable">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th onclick="sortConnections('protocol')" style="cursor: pointer;">
+                                                Protocol <i class="fas fa-sort ms-1"></i>
+                                            </th>
+                                            <th onclick="sortConnections('localAddress')" style="cursor: pointer;">
+                                                Local Address <i class="fas fa-sort ms-1"></i>
+                                            </th>
+                                            <th onclick="sortConnections('remoteAddress')" style="cursor: pointer;">
+                                                Remote Address <i class="fas fa-sort ms-1"></i>
+                                            </th>
+                                            <th onclick="sortConnections('state')" style="cursor: pointer;">
+                                                State <i class="fas fa-sort ms-1"></i>
+                                            </th>
+                                            <th onclick="sortConnections('localPort')" style="cursor: pointer;">
+                                                Local Port <i class="fas fa-sort ms-1"></i>
+                                            </th>
+                                            <th onclick="sortConnections('remotePort')" style="cursor: pointer;">
+                                                Remote Port <i class="fas fa-sort ms-1"></i>
+                                            </th>
+                                            <th>Risk Level</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+        `;
+        
+        connectionsData.forEach((connection, index) => {
+            const localPort = connection.localPort || connection.localAddress?.split(':').pop() || 'N/A';
+            const remotePort = connection.remotePort || connection.remoteAddress?.split(':').slice(-1)[0] || 'N/A';
+            const localIP = connection.localIP || connection.localAddress?.split(':').slice(0, -1).join(':') || 'N/A';
+            const remoteIP = connection.remoteIP || connection.remoteAddress?.split(':').slice(0, -1).join(':') || 'N/A';
+            
+            // Determine risk level
+            let riskLevel = 'low';
+            let riskBadge = 'success';
+            let riskText = 'Low';
+            
+            if (connection.state === 'ESTABLISHED' && remoteIP !== '0.0.0.0' && remoteIP !== '::' && !remoteIP.startsWith('127.') && !remoteIP.startsWith('192.168.') && !remoteIP.startsWith('10.')) {
+                riskLevel = 'high';
+                riskBadge = 'danger';
+                riskText = 'High';
+            } else if (parseInt(localPort) > 49152 || parseInt(remotePort) > 49152) {
+                riskLevel = 'medium';
+                riskBadge = 'warning';
+                riskText = 'Medium';
+            }
+            
+            html += `
+                <tr class="connection-row" 
+                    data-protocol="${connection.protocol?.toLowerCase() || ''}" 
+                    data-state="${connection.state?.toLowerCase() || ''}" 
+                    data-local-port="${localPort}" 
+                    data-remote-port="${remotePort}"
+                    data-local-ip="${localIP}"
+                    data-remote-ip="${remoteIP}"
+                    data-risk="${riskLevel}">
+                    <td>
+                        <span class="badge bg-secondary">${connection.protocol?.toUpperCase() || 'N/A'}</span>
+                    </td>
+                    <td>
+                        <code>${connection.localAddress || 'N/A'}</code>
+                        <br><small class="text-muted">IP: ${localIP}</small>
+                    </td>
+                    <td>
+                        <code>${connection.remoteAddress || 'N/A'}</code>
+                        <br><small class="text-muted">IP: ${remoteIP}</small>
+                    </td>
+                    <td>
+                        <span class="badge ${connection.state === 'LISTEN' ? 'bg-info' : connection.state === 'ESTABLISHED' ? 'bg-success' : 'bg-secondary'}">
+                            ${connection.state || 'N/A'}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="badge ${parseInt(localPort) <= 1023 ? 'bg-primary' : parseInt(localPort) <= 49151 ? 'bg-info' : 'bg-warning'}">
+                            ${localPort}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="badge ${parseInt(remotePort) <= 1023 ? 'bg-primary' : parseInt(remotePort) <= 49151 ? 'bg-info' : 'bg-warning'}">
+                            ${remotePort}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="badge bg-${riskBadge}">${riskText}</span>
+                    </td>
+                </tr>
+            `;
+        });
+        
+        html += `
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+    } else {
+        // Check if this is an error response from the backend
+        if (dataSource.error) {
+            html += `
+                <div class="card shadow border-warning">
+                    <div class="card-body text-center py-5">
+                        <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                        <h5 class="text-warning mb-3">Network Data Error</h5>
+                        <p class="text-muted">${dataSource.error}</p>
+                        <div class="alert alert-info mt-3">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Expected Data:</strong> Upload artifacts containing network connections information 
+                            (networkConnections_*.json files) to view active network connections.
+                        </div>
+                    </div>
+                </div>
+            `;
+        } else {
+            html += `
+                <div class="card shadow">
+                    <div class="card-body text-center py-5">
+                        <i class="fas fa-network-wired fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted mb-3">No Network Connections Available</h5>
+                        <p class="text-muted">No network connections data found in the uploaded artifacts.</p>
+                        <p class="text-muted">
+                            <strong>Expected Data:</strong> Upload artifacts containing network connections information 
+                            (networkConnections_*.json files) to view active network connections.
+                        </p>
+                    </div>
+                </div>
+            `;
+        }
+    }
+    
     contentArea.innerHTML = html;
+}
+
+function renderNetworkInterfaces(data) {
+    const contentArea = document.getElementById('content-area');
+    
+    let html = `
+        <div class="row mb-4">
+            <div class="col-12">
+                <h2 class="h4 mb-3">
+                    <i class="fas fa-ethernet me-2"></i>Network Interfaces
+                </h2>
+            </div>
+        </div>
+        
+        <!-- Network Interfaces Analysis Guide -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card border-info">
+                    <div class="card-header bg-info text-white py-2">
+                        <h6 class="m-0">
+                            <i class="fas fa-info-circle me-2"></i>Network Interfaces Analysis Guide
+                            <button class="btn btn-sm btn-outline-light float-end" type="button" data-bs-toggle="collapse" data-bs-target="#interfaceGuide" aria-expanded="false">
+                                <i class="fas fa-chevron-down"></i>
+                            </button>
+                        </h6>
+                    </div>
+                    <div class="collapse" id="interfaceGuide">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6 class="text-primary"><i class="fas fa-network-wired me-2"></i>Interface States</h6>
+                                    <ul class="list-unstyled">
+                                        <li class="mb-2"><span class="badge bg-success me-2">UP</span> Interface is active and operational</li>
+                                        <li class="mb-2"><span class="badge bg-secondary me-2">DOWN</span> Interface is inactive or disabled</li>
+                                        <li class="mb-2"><span class="badge bg-info me-2">RUNNING</span> Interface has carrier signal</li>
+                                        <li class="mb-2"><span class="badge bg-warning me-2">PROMISC</span> Promiscuous mode enabled</li>
+                                        <li class="mb-2"><span class="badge bg-dark me-2">LOOPBACK</span> Local loopback interface</li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6 class="text-primary"><i class="fas fa-shield-alt me-2"></i>Security Analysis Points</h6>
+                                    <ul class="list-unstyled">
+                                        <li class="mb-2"><strong>IP Addresses:</strong> IPv4 and IPv6 configurations</li>
+                                        <li class="mb-2"><strong>MAC Address:</strong> Hardware identifier</li>
+                                        <li class="mb-2"><strong>MTU Size:</strong> Maximum transmission unit</li>
+                                        <li class="mb-2"><strong>Traffic Stats:</strong> RX/TX packets and bytes</li>
+                                        <li class="mb-2"><strong>Interface Type:</strong> Physical, virtual, or tunnel</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="alert alert-light mt-3 mb-0">
+                                <small class="text-muted">
+                                    <i class="fas fa-lightbulb me-1"></i>
+                                    <strong>Investigation Tips:</strong> Look for unusual interface configurations, suspicious IP addresses, 
+                                    promiscuous mode enabled on interfaces, unexpected network ranges, and hidden or tunneling interfaces. 
+                                    Pay attention to interfaces with high traffic volumes or unusual naming patterns.
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Find network interfaces data
+    let interfacesData = null;
+    let interfaceCount = 0;
+    
+    // Data is already extracted by renderSectionContent, use it directly
+    const dataSource = data || {};
+    
+    console.log('Network interfaces data received:', dataSource); // Debug log
+    
+    // Try to find interfaces data in various possible structures
+    if (dataSource.interfaces && Array.isArray(dataSource.interfaces)) {
+        interfacesData = dataSource.interfaces;
+        interfaceCount = interfacesData.length;
+    } else {
+        // Try to find in nested structure - look for networkInterfaces file
+        for (const key in dataSource) {
+            if (key.includes('networkInterfaces') && dataSource[key]) {
+                const fileData = dataSource[key];
+                // Parse ifconfig, ipAddr, and ipLink data
+                interfacesData = parseNetworkInterfaceData(fileData);
+                interfaceCount = interfacesData ? interfacesData.length : 0;
+                break;
+            }
+        }
+    }
+    
+    if (interfacesData && interfaceCount > 0) {
+        // Calculate statistics
+        const activeInterfaces = interfacesData.filter(i => i.status === 'UP').length;
+        const ipv4Interfaces = interfacesData.filter(i => i.ipv4Address && i.ipv4Address !== '127.0.0.1').length;
+        const ipv6Interfaces = interfacesData.filter(i => i.ipv6Address).length;
+        
+        html += `
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card bg-primary text-white">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">${interfaceCount}</h5>
+                            <p class="card-text">Total Interfaces</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-success text-white">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">${activeInterfaces}</h5>
+                            <p class="card-text">Active</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-info text-white">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">${ipv4Interfaces}</h5>
+                            <p class="card-text">IPv4</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-warning text-white">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">${ipv6Interfaces}</h5>
+                            <p class="card-text">IPv6</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Filters -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-3">
+                                    <label class="form-label">Search Interfaces</label>
+                                    <input type="text" class="form-control" id="interfaceSearch" placeholder="Search by name, IP, or MAC..." oninput="filterInterfaces()">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">Status</label>
+                                    <select class="form-select" id="statusFilter" onchange="filterInterfaces()">
+                                        <option value="">All Status</option>
+                                        <option value="UP">UP</option>
+                                        <option value="DOWN">DOWN</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">Type</label>
+                                    <select class="form-select" id="typeFilter" onchange="filterInterfaces()">
+                                        <option value="">All Types</option>
+                                        <option value="ethernet">Ethernet</option>
+                                        <option value="loopback">Loopback</option>
+                                        <option value="wireless">Wireless</option>
+                                        <option value="bridge">Bridge</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">IP Version</label>
+                                    <select class="form-select" id="ipFilter" onchange="filterInterfaces()">
+                                        <option value="">All IPs</option>
+                                        <option value="ipv4">IPv4 Only</option>
+                                        <option value="ipv6">IPv6 Only</option>
+                                        <option value="both">Both IPv4 & IPv6</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">&nbsp;</label>
+                                    <div class="d-flex gap-2">
+                                        <button class="btn btn-outline-secondary" onclick="clearInterfaceFilters()">
+                                            <i class="fas fa-times me-1"></i>Clear
+                                        </button>
+                                        <button class="btn btn-outline-info" onclick="exportInterfaces()">
+                                            <i class="fas fa-download me-1"></i>Export
+                                        </button>
+                                        <span class="badge bg-primary align-self-center ms-2" id="interfaceCount">${interfaceCount}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Interfaces Table -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="card shadow">
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0" id="interfacesTable">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th onclick="sortInterfaces('name')" style="cursor: pointer;">
+                                                Interface <i class="fas fa-sort ms-1"></i>
+                                            </th>
+                                            <th onclick="sortInterfaces('status')" style="cursor: pointer;">
+                                                Status <i class="fas fa-sort ms-1"></i>
+                                            </th>
+                                            <th onclick="sortInterfaces('ipv4Address')" style="cursor: pointer;">
+                                                IPv4 Address <i class="fas fa-sort ms-1"></i>
+                                            </th>
+                                            <th onclick="sortInterfaces('ipv6Address')" style="cursor: pointer;">
+                                                IPv6 Address <i class="fas fa-sort ms-1"></i>
+                                            </th>
+                                            <th onclick="sortInterfaces('macAddress')" style="cursor: pointer;">
+                                                MAC Address <i class="fas fa-sort ms-1"></i>
+                                            </th>
+                                            <th onclick="sortInterfaces('mtu')" style="cursor: pointer;">
+                                                MTU <i class="fas fa-sort ms-1"></i>
+                                            </th>
+                                            <th>RX/TX Stats</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+        `;
+        
+        interfacesData.forEach((interface, index) => {
+            const statusBadge = interface.status === 'UP' ? 'bg-success' : 'bg-secondary';
+            const ipv4 = interface.ipv4Address || 'N/A';
+            const ipv6 = interface.ipv6Address || 'N/A';
+            const mac = interface.macAddress || 'N/A';
+            const mtu = interface.mtu || 'N/A';
+            const rxStats = interface.rxPackets ? `${interface.rxPackets} packets (${interface.rxBytes || 'N/A'})` : 'N/A';
+            const txStats = interface.txPackets ? `${interface.txPackets} packets (${interface.txBytes || 'N/A'})` : 'N/A';
+            
+            html += `
+                <tr class="interface-row" 
+                    data-name="${interface.name}" 
+                    data-status="${interface.status || 'Unknown'}" 
+                    data-type="${(interface.type || 'Unknown').toLowerCase()}" 
+                    data-ipv4="${interface.ipv4Address || ''}" 
+                    data-ipv6="${interface.ipv6Address || ''}" 
+                    data-mac="${interface.macAddress || ''}" 
+                    data-mtu="${interface.mtu || 0}">
+                    <td>
+                        <strong>${interface.name}</strong>
+                        <br><small class="text-muted">${interface.type || 'Unknown'}</small>
+                    </td>
+                    <td>
+                        <span class="badge ${statusBadge}">${interface.status || 'Unknown'}</span>
+                        ${interface.flags ? `<br><small class="text-muted">${interface.flags}</small>` : ''}
+                    </td>
+                    <td>
+                        <code>${ipv4}</code>
+                        ${interface.netmask ? `<br><small class="text-muted">Mask: ${interface.netmask}</small>` : ''}
+                        ${interface.broadcast ? `<br><small class="text-muted">Broadcast: ${interface.broadcast}</small>` : ''}
+                    </td>
+                    <td>
+                        <code>${ipv6}</code>
+                        ${interface.ipv6Scope ? `<br><small class="text-muted">Scope: ${interface.ipv6Scope}</small>` : ''}
+                    </td>
+                    <td>
+                        <code>${mac}</code>
+                    </td>
+                    <td>
+                        <span class="badge bg-info">${mtu}</span>
+                    </td>
+                    <td>
+                        <small class="text-success">RX: ${rxStats}</small>
+                        <br><small class="text-primary">TX: ${txStats}</small>
+                        ${interface.rxErrors || interface.txErrors ? `<br><small class="text-danger">Errors: RX ${interface.rxErrors || 0}, TX ${interface.txErrors || 0}</small>` : ''}
+                    </td>
+                </tr>
+            `;
+        });
+        
+        html += `
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+    } else {
+        // Check if this is an error response from the backend
+        if (dataSource.error) {
+            html += `
+                <div class="card shadow border-warning">
+                    <div class="card-body text-center py-5">
+                        <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                        <h5 class="text-warning mb-3">Network Interface Data Error</h5>
+                        <p class="text-muted">${dataSource.error}</p>
+                        <div class="alert alert-info mt-3">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Expected Data:</strong> Upload artifacts containing network interface information 
+                            (networkInterfaces_*.json files) to view network interface configurations.
+                        </div>
+                    </div>
+                </div>
+            `;
+        } else {
+            html += `
+                <div class="card shadow">
+                    <div class="card-body text-center py-5">
+                        <i class="fas fa-ethernet fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted mb-3">No Network Interfaces Available</h5>
+                        <p class="text-muted">No network interface data found in the uploaded artifacts.</p>
+                        <p class="text-muted">
+                            <strong>Expected Data:</strong> Upload artifacts containing network interface information 
+                            (networkInterfaces_*.json files) to view network interface configurations.
+                        </p>
+                    </div>
+                </div>
+            `;
+        }
+    }
+    
+    contentArea.innerHTML = html;
+}
+
+function parseNetworkInterfaceData(fileData) {
+    const interfaces = [];
+    
+    // Parse ifconfig output
+    if (fileData.ifconfig && fileData.ifconfig.stdout) {
+        const ifconfigOutput = fileData.ifconfig.stdout;
+        const interfaceBlocks = ifconfigOutput.split(/\n(?=\w)/);
+        
+        interfaceBlocks.forEach(block => {
+            if (block.trim()) {
+                const lines = block.split('\n');
+                const firstLine = lines[0];
+                const match = firstLine.match(/^(\w+):\s*flags=\d+<([^>]+)>\s*mtu\s+(\d+)/);
+                
+                if (match) {
+                    const interfaceData = {
+                        name: match[1],
+                        flags: match[2],
+                        mtu: match[3],
+                        status: match[2].includes('UP') ? 'UP' : 'DOWN',
+                        type: match[1].startsWith('eth') ? 'Ethernet' : 
+                              match[1].startsWith('lo') ? 'Loopback' : 
+                              match[1].startsWith('wlan') ? 'Wireless' : 'Other'
+                    };
+                    
+                    // Parse additional lines for IP addresses, MAC, etc.
+                    lines.forEach(line => {
+                        const inetMatch = line.match(/inet\s+([\d.]+)\s+netmask\s+([\d.]+)(?:\s+broadcast\s+([\d.]+))?/);
+                        const inet6Match = line.match(/inet6\s+([\w:]+)\s+prefixlen\s+(\d+)\s+scopeid\s+([\w<>]+)/);
+                        const etherMatch = line.match(/ether\s+([\w:]+)/);
+                        const rxMatch = line.match(/RX packets\s+(\d+)\s+bytes\s+(\d+)/);
+                        const txMatch = line.match(/TX packets\s+(\d+)\s+bytes\s+(\d+)/);
+                        const rxErrorMatch = line.match(/RX errors\s+(\d+)/);
+                        const txErrorMatch = line.match(/TX errors\s+(\d+)/);
+                        
+                        if (inetMatch) {
+                            interfaceData.ipv4Address = inetMatch[1];
+                            interfaceData.netmask = inetMatch[2];
+                            if (inetMatch[3]) interfaceData.broadcast = inetMatch[3];
+                        }
+                        if (inet6Match) {
+                            interfaceData.ipv6Address = inet6Match[1];
+                            interfaceData.ipv6Scope = inet6Match[3];
+                        }
+                        if (etherMatch) {
+                            interfaceData.macAddress = etherMatch[1];
+                        }
+                        if (rxMatch) {
+                            interfaceData.rxPackets = rxMatch[1];
+                            interfaceData.rxBytes = rxMatch[2];
+                        }
+                        if (txMatch) {
+                            interfaceData.txPackets = txMatch[1];
+                            interfaceData.txBytes = txMatch[2];
+                        }
+                        if (rxErrorMatch) {
+                            interfaceData.rxErrors = rxErrorMatch[1];
+                        }
+                        if (txErrorMatch) {
+                            interfaceData.txErrors = txErrorMatch[1];
+                        }
+                    });
+                    
+                    interfaces.push(interfaceData);
+                }
+            }
+        });
+    }
+    
+    return interfaces;
 }
 
 function renderLogs(data) {
@@ -5035,6 +5734,351 @@ function copyToClipboard(text) {
     }).catch(function(err) {
         console.error('Failed to copy text: ', err);
     });
+}
+
+// Network Connections Functions
+function filterConnections() {
+    const searchTerm = document.getElementById('connectionSearch').value.toLowerCase();
+    const protocolFilter = document.getElementById('protocolFilter').value.toLowerCase();
+    const stateFilter = document.getElementById('stateFilter').value.toLowerCase();
+    const portFilter = document.getElementById('portFilter').value;
+    
+    const rows = document.querySelectorAll('.connection-row');
+    let visibleCount = 0;
+    
+    rows.forEach(row => {
+        const protocol = row.dataset.protocol;
+        const state = row.dataset.state;
+        const localPort = parseInt(row.dataset.localPort);
+        const remotePort = parseInt(row.dataset.remotePort);
+        const localIP = row.dataset.localIp;
+        const remoteIP = row.dataset.remoteIp;
+        
+        let showRow = true;
+        
+        // Search filter
+        if (searchTerm) {
+            const searchableText = `${protocol} ${state} ${localIP} ${remoteIP} ${localPort} ${remotePort}`.toLowerCase();
+            if (!searchableText.includes(searchTerm)) {
+                showRow = false;
+            }
+        }
+        
+        // Protocol filter
+        if (protocolFilter && protocol !== protocolFilter) {
+            showRow = false;
+        }
+        
+        // State filter
+        if (stateFilter && state !== stateFilter) {
+            showRow = false;
+        }
+        
+        // Port range filter
+        if (portFilter) {
+            const port = Math.max(localPort, remotePort);
+            if (portFilter === 'well-known' && port > 1023) {
+                showRow = false;
+            } else if (portFilter === 'registered' && (port <= 1023 || port > 49151)) {
+                showRow = false;
+            } else if (portFilter === 'dynamic' && port <= 49151) {
+                showRow = false;
+            }
+        }
+        
+        row.style.display = showRow ? '' : 'none';
+        if (showRow) visibleCount++;
+    });
+    
+    // Update count badge
+    const countBadge = document.getElementById('connectionCount');
+    if (countBadge) {
+        countBadge.textContent = visibleCount;
+    }
+}
+
+function clearConnectionFilters() {
+    document.getElementById('connectionSearch').value = '';
+    document.getElementById('protocolFilter').value = '';
+    document.getElementById('stateFilter').value = '';
+    document.getElementById('portFilter').value = '';
+    filterConnections();
+}
+
+let connectionSortOrder = {};
+
+function sortConnections(column) {
+    const table = document.getElementById('connectionsTable');
+    const tbody = table.querySelector('tbody');
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    
+    // Toggle sort order
+    connectionSortOrder[column] = connectionSortOrder[column] === 'asc' ? 'desc' : 'asc';
+    const isAscending = connectionSortOrder[column] === 'asc';
+    
+    rows.sort((a, b) => {
+        let aVal, bVal;
+        
+        switch (column) {
+            case 'protocol':
+                aVal = a.dataset.protocol;
+                bVal = b.dataset.protocol;
+                break;
+            case 'localAddress':
+                aVal = a.dataset.localIp;
+                bVal = b.dataset.localIp;
+                break;
+            case 'remoteAddress':
+                aVal = a.dataset.remoteIp;
+                bVal = b.dataset.remoteIp;
+                break;
+            case 'state':
+                aVal = a.dataset.state;
+                bVal = b.dataset.state;
+                break;
+            case 'localPort':
+                aVal = parseInt(a.dataset.localPort) || 0;
+                bVal = parseInt(b.dataset.localPort) || 0;
+                break;
+            case 'remotePort':
+                aVal = parseInt(a.dataset.remotePort) || 0;
+                bVal = parseInt(b.dataset.remotePort) || 0;
+                break;
+            default:
+                return 0;
+        }
+        
+        if (typeof aVal === 'string') {
+            return isAscending ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+        } else {
+            return isAscending ? aVal - bVal : bVal - aVal;
+        }
+    });
+    
+    // Clear tbody and append sorted rows
+    tbody.innerHTML = '';
+    rows.forEach(row => tbody.appendChild(row));
+    
+    // Update sort indicators
+    const headers = table.querySelectorAll('th[onclick]');
+    headers.forEach(header => {
+        const icon = header.querySelector('i');
+        if (header.getAttribute('onclick').includes(column)) {
+            icon.className = `fas fa-sort-${isAscending ? 'up' : 'down'} ms-1`;
+        } else {
+            icon.className = 'fas fa-sort ms-1';
+        }
+    });
+}
+
+function exportConnections() {
+    const table = document.getElementById('connectionsTable');
+    if (!table) return;
+    
+    const rows = table.querySelectorAll('tr');
+    let csv = '';
+    
+    // Add headers
+    const headers = Array.from(rows[0].querySelectorAll('th')).map(th => th.textContent.trim().replace(/\s+/g, ' '));
+    csv += headers.join(',') + '\n';
+    
+    // Add data rows (only visible ones)
+    const dataRows = Array.from(rows).slice(1).filter(row => row.style.display !== 'none');
+    dataRows.forEach(row => {
+        const cells = Array.from(row.querySelectorAll('td')).map(td => {
+            // Extract text content, handling badges and code elements
+            let text = td.textContent.trim().replace(/\s+/g, ' ');
+            // Remove "IP: " prefix from address cells
+            text = text.replace(/IP: /g, '');
+            return `"${text}"`;
+        });
+        csv += cells.join(',') + '\n';
+    });
+    
+    // Download CSV
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `network_connections_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+}
+
+// Network Interfaces Functions
+function filterInterfaces() {
+    const searchTerm = document.getElementById('interfaceSearch').value.toLowerCase();
+    const statusFilter = document.getElementById('statusFilter').value.toLowerCase();
+    const typeFilter = document.getElementById('typeFilter').value.toLowerCase();
+    const ipFilter = document.getElementById('ipFilter').value;
+    
+    const rows = document.querySelectorAll('.interface-row');
+    let visibleCount = 0;
+    
+    rows.forEach(row => {
+        const name = row.dataset.name.toLowerCase();
+        const status = row.dataset.status.toLowerCase();
+        const type = row.dataset.type.toLowerCase();
+        const ipv4 = row.dataset.ipv4.toLowerCase();
+        const ipv6 = row.dataset.ipv6.toLowerCase();
+        const mac = row.dataset.mac.toLowerCase();
+        
+        let showRow = true;
+        
+        // Search filter
+        if (searchTerm) {
+            const searchableText = `${name} ${ipv4} ${ipv6} ${mac}`.toLowerCase();
+            if (!searchableText.includes(searchTerm)) {
+                showRow = false;
+            }
+        }
+        
+        // Status filter
+        if (statusFilter && status !== statusFilter) {
+            showRow = false;
+        }
+        
+        // Type filter
+        if (typeFilter && type !== typeFilter) {
+            showRow = false;
+        }
+        
+        // IP version filter
+        if (ipFilter) {
+            const hasIPv4 = ipv4 && ipv4 !== 'n/a' && ipv4.trim() !== '';
+            const hasIPv6 = ipv6 && ipv6 !== 'n/a' && ipv6.trim() !== '';
+            
+            if (ipFilter === 'ipv4' && !hasIPv4) {
+                showRow = false;
+            } else if (ipFilter === 'ipv6' && !hasIPv6) {
+                showRow = false;
+            } else if (ipFilter === 'both' && (!hasIPv4 || !hasIPv6)) {
+                showRow = false;
+            }
+        }
+        
+        row.style.display = showRow ? '' : 'none';
+        if (showRow) visibleCount++;
+    });
+    
+    // Update count badge
+    const countBadge = document.getElementById('interfaceCount');
+    if (countBadge) {
+        countBadge.textContent = visibleCount;
+    }
+}
+
+function clearInterfaceFilters() {
+    document.getElementById('interfaceSearch').value = '';
+    document.getElementById('statusFilter').value = '';
+    document.getElementById('typeFilter').value = '';
+    document.getElementById('ipFilter').value = '';
+    filterInterfaces();
+}
+
+let interfaceSortOrder = {};
+
+function sortInterfaces(column) {
+    const table = document.getElementById('interfacesTable');
+    const tbody = table.querySelector('tbody');
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    
+    // Toggle sort order
+    interfaceSortOrder[column] = interfaceSortOrder[column] === 'asc' ? 'desc' : 'asc';
+    const isAscending = interfaceSortOrder[column] === 'asc';
+    
+    rows.sort((a, b) => {
+        let aVal, bVal;
+        
+        switch (column) {
+            case 'name':
+                aVal = a.dataset.name;
+                bVal = b.dataset.name;
+                break;
+            case 'status':
+                aVal = a.dataset.status;
+                bVal = b.dataset.status;
+                break;
+            case 'ipv4Address':
+                aVal = a.dataset.ipv4;
+                bVal = b.dataset.ipv4;
+                break;
+            case 'ipv6Address':
+                aVal = a.dataset.ipv6;
+                bVal = b.dataset.ipv6;
+                break;
+            case 'macAddress':
+                aVal = a.dataset.mac;
+                bVal = b.dataset.mac;
+                break;
+            case 'mtu':
+                aVal = parseInt(a.dataset.mtu) || 0;
+                bVal = parseInt(b.dataset.mtu) || 0;
+                return isAscending ? aVal - bVal : bVal - aVal;
+            default:
+                return 0;
+        }
+        
+        if (aVal < bVal) return isAscending ? -1 : 1;
+        if (aVal > bVal) return isAscending ? 1 : -1;
+        return 0;
+    });
+    
+    // Re-append sorted rows
+    rows.forEach(row => tbody.appendChild(row));
+    
+    // Update sort indicators
+    const headers = table.querySelectorAll('th[onclick]');
+    headers.forEach(header => {
+        const icon = header.querySelector('i');
+        if (icon) {
+            icon.className = 'fas fa-sort ms-1';
+        }
+    });
+    
+    const currentHeader = table.querySelector(`th[onclick="sortInterfaces('${column}')"]`);
+    if (currentHeader) {
+        const icon = currentHeader.querySelector('i');
+        if (icon) {
+            icon.className = `fas fa-sort-${isAscending ? 'up' : 'down'} ms-1`;
+        }
+    }
+}
+
+function exportInterfaces() {
+    const table = document.getElementById('interfacesTable');
+    if (!table) return;
+    
+    const rows = table.querySelectorAll('tr');
+    let csv = '';
+    
+    // Add headers
+    const headers = Array.from(rows[0].querySelectorAll('th')).map(th => th.textContent.trim().replace(/\s+/g, ' '));
+    csv += headers.join(',') + '\n';
+    
+    // Add data rows (only visible ones)
+    const dataRows = Array.from(rows).slice(1).filter(row => row.style.display !== 'none');
+    dataRows.forEach(row => {
+        const cells = Array.from(row.querySelectorAll('td')).map(td => {
+            // Extract text content, handling badges and code elements
+            let text = td.textContent.trim().replace(/\s+/g, ' ');
+            return `"${text}"`;
+        });
+        csv += cells.join(',') + '\n';
+    });
+    
+    // Download CSV
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `network_interfaces_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
 }
 
 </script>
