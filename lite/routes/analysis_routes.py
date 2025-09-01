@@ -407,6 +407,31 @@ def get_section_data(case_id, section):
                 'data': login_data
             })
         
+        elif section == 'triggered-tasks':
+            # Load triggered tasks data
+            import glob
+            case_dir = os.path.join('cases', case.case_id)
+            triggered_tasks_files = glob.glob(os.path.join(case_dir, 'triggered_tasks_data_*.json'))
+            
+            if triggered_tasks_files:
+                # Get the most recent file
+                latest_file = max(triggered_tasks_files, key=os.path.getctime)
+                
+                try:
+                    with open(latest_file, 'r') as f:
+                        triggered_tasks_data = json.load(f)
+                    
+                    return jsonify({
+                        'success': True,
+                        'data': triggered_tasks_data,
+                        'total': len(triggered_tasks_data) if isinstance(triggered_tasks_data, list) else 0,
+                        'file': os.path.basename(latest_file)
+                    })
+                except Exception as e:
+                    return jsonify({'error': f'Error reading triggered tasks data: {str(e)}'}), 500
+            else:
+                return jsonify({'error': 'Triggered tasks data not found'}), 404
+        
         else:
             return jsonify({'error': 'Section not found'}), 404
             
