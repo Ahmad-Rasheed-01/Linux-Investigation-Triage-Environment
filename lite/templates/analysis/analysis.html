@@ -4982,7 +4982,27 @@ function showFullPasswordHash(username, fullHash) {
 }
 
 function renderNetworkConnections(data) {
-    renderGenericData('network-connections', data);
+    const contentArea = document.getElementById('content-area');
+    
+    let html = `
+        <div class="row mb-4">
+            <div class="col-12">
+                <h2 class="h4 mb-3">
+                    <i class="fas fa-plug me-2"></i>Network Connections
+                </h2>
+            </div>
+        </div>
+        
+        <div class="card shadow">
+            <div class="card-body text-center py-5">
+                <i class="fas fa-network-wired fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted mb-3">Network Connections Analysis</h5>
+                <p class="text-muted">Network connections analysis interface will be implemented here.</p>
+            </div>
+        </div>
+    `;
+    
+    contentArea.innerHTML = html;
 }
 
 function renderLogs(data) {
