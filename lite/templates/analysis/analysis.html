@@ -113,6 +113,9 @@
                     <a href="#" class="list-group-item list-group-item-action ps-4 nav-link" data-section="network-ports">
                         <i class="fas fa-door-open me-2"></i>Open Ports
                     </a>
+                    <a href="#" class="list-group-item list-group-item-action ps-4 nav-link" data-section="network-sockets">
+                        <i class="fas fa-plug me-2"></i>Sockets
+                    </a>
                     <a href="#" class="list-group-item list-group-item-action ps-4 nav-link" data-section="network-config">
                         <i class="fas fa-network-wired me-2"></i>Configuration
                     </a>
@@ -378,6 +381,9 @@ function renderSectionContent(section, data) {
             break;
         case 'network-ports':
             renderNetworkPorts(data);
+            break;
+        case 'network-sockets':
+            renderNetworkSockets(data);
             break;
         case 'system-logs':
             renderLogs(data);
@@ -5777,6 +5783,100 @@ function exportPorts() {
     document.body.removeChild(link);
 }
 
+function filterSockets() {
+    const searchTerm = document.getElementById('socketSearch').value.toLowerCase();
+    const typeFilter = document.getElementById('socketTypeFilter').value.toLowerCase();
+    const stateFilter = document.getElementById('socketStateFilter').value.toLowerCase();
+    const processFilter = document.getElementById('socketProcessFilter').value.toLowerCase();
+    
+    const rows = document.querySelectorAll('.socket-row');
+    let visibleCount = 0;
+    
+    rows.forEach(row => {
+        const process = row.getAttribute('data-process') || '';
+        const pid = row.getAttribute('data-pid') || '';
+        const type = row.getAttribute('data-type') || '';
+        const state = row.getAttribute('data-state') || '';
+        const localAddress = row.getAttribute('data-local-address') || '';
+        const peerAddress = row.getAttribute('data-peer-address') || '';
+        
+        // Search filter
+        const matchesSearch = !searchTerm || 
+            process.includes(searchTerm) ||
+            pid.includes(searchTerm) ||
+            localAddress.includes(searchTerm) ||
+            peerAddress.includes(searchTerm);
+        
+        // Type filter (TCP/UDP)
+        const matchesType = !typeFilter || type.includes(typeFilter);
+        
+        // State filter (LISTEN/ESTAB/UNCONN)
+        const matchesState = !stateFilter || state.includes(stateFilter);
+        
+        // Process filter
+        const matchesProcess = !processFilter || process.includes(processFilter);
+        
+        if (matchesSearch && matchesType && matchesState && matchesProcess) {
+            row.style.display = '';
+            visibleCount++;
+        } else {
+            row.style.display = 'none';
+        }
+    });
+    
+    // Update count badge
+    const countBadge = document.getElementById('socketCount');
+    if (countBadge) {
+        countBadge.textContent = visibleCount;
+    }
+}
+
+function clearSocketFilters() {
+    document.getElementById('socketSearch').value = '';
+    document.getElementById('socketTypeFilter').value = '';
+    document.getElementById('socketStateFilter').value = '';
+    document.getElementById('socketProcessFilter').value = '';
+    filterSockets();
+}
+
+function exportSockets() {
+    const visibleRows = document.querySelectorAll('.socket-row:not([style*="display: none"])');
+    
+    if (visibleRows.length === 0) {
+        alert('No data to export');
+        return;
+    }
+    
+    let csvContent = 'Process,PID,Type,State,Local Address,Peer Address,Recv-Q,Send-Q\n';
+    
+    visibleRows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        const rowData = [];
+        
+        cells.forEach(cell => {
+            // Extract text content, removing HTML tags and extra whitespace
+            let cellText = cell.textContent.trim();
+            // Escape quotes and wrap in quotes if contains comma
+            if (cellText.includes(',') || cellText.includes('"')) {
+                cellText = '"' + cellText.replace(/"/g, '""') + '"';
+            }
+            rowData.push(cellText);
+        });
+        
+        csvContent += rowData.join(',') + '\n';
+    });
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'socket_statistics_data.csv');
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
 function renderNetworkPorts(data) {
     const contentArea = document.getElementById('content-area');
     
@@ -6044,6 +6144,318 @@ function renderNetworkPorts(data) {
                     <div class="alert alert-info">
                         <i class="fas fa-info-circle me-2"></i>
                         No open ports data available for this case.
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    contentArea.innerHTML = html;
+}
+
+function renderNetworkSockets(data) {
+    const contentArea = document.getElementById('content-area');
+    
+    let html = `
+        <div class="row mb-4">
+            <div class="col-12">
+                <h2 class="h4 mb-3">
+                    <i class="fas fa-plug me-2"></i>Socket Statistics
+                </h2>
+            </div>
+        </div>
+        
+        <!-- Socket Statistics Analysis Guide -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card border-info">
+                    <div class="card-header bg-info text-white py-2">
+                        <h6 class="m-0">
+                            <i class="fas fa-info-circle me-2"></i>Socket Statistics Analysis Guide
+                            <button class="btn btn-sm btn-outline-light float-end" type="button" data-bs-toggle="collapse" data-bs-target="#socketsGuide" aria-expanded="false">
+                                <i class="fas fa-chevron-down"></i>
+                            </button>
+                        </h6>
+                    </div>
+                    <div class="collapse" id="socketsGuide">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6 class="text-primary"><i class="fas fa-network-wired me-2"></i>Socket States</h6>
+                                    <ul class="list-unstyled">
+                                        <li class="mb-2"><span class="badge bg-success me-2">LISTEN</span> Socket is listening for connections</li>
+                                        <li class="mb-2"><span class="badge bg-info me-2">ESTAB</span> Established connection</li>
+                                        <li class="mb-2"><span class="badge bg-warning me-2">UNCONN</span> Unconnected socket</li>
+                                        <li class="mb-2"><span class="badge bg-secondary me-2">CLOSE-WAIT</span> Waiting for close</li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6 class="text-primary"><i class="fas fa-search me-2"></i>Security Analysis Points</h6>
+                                    <ul class="list-unstyled">
+                                        <li class="mb-2"><strong>Process:</strong> Which application owns the socket</li>
+                                        <li class="mb-2"><strong>PID:</strong> Process identifier for tracking</li>
+                                        <li class="mb-2"><strong>Local Address:</strong> Interface and port binding</li>
+                                        <li class="mb-2"><strong>Peer Address:</strong> Remote connection endpoint</li>
+                                        <li class="mb-2"><strong>Queue Status:</strong> Send/Receive buffer usage</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="alert alert-light mt-3 mb-0">
+                                <small class="text-muted">
+                                    <i class="fas fa-lightbulb me-1"></i>
+                                    <strong>Investigation Tips:</strong> Look for unusual processes with network sockets, 
+                                    services listening on unexpected interfaces, high queue values indicating potential issues, 
+                                    and processes that shouldn't normally have network connections. Pay attention to 
+                                    established connections to unknown remote addresses.
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Find socket data
+    let socketsData = null;
+    let socketCount = 0;
+    
+    // Data is already extracted by renderSectionContent, use it directly
+    const dataSource = data || {};
+    
+    console.log('Socket statistics data received:', dataSource); // Debug log
+    console.log('Data type:', typeof dataSource);
+    console.log('Is array:', Array.isArray(dataSource));
+    console.log('Data keys:', Object.keys(dataSource || {}));
+    
+    // Try to find sockets data in various possible structures
+    // The backend returns: {success: true, data: {'socketStatistics_20250825_231413.json': [socket_array]}}
+    
+    // First check if data is directly an array (from socketStatistics_20250825_231413.json)
+    if (Array.isArray(dataSource)) {
+        socketsData = dataSource;
+        socketCount = socketsData.length;
+        console.log('Using direct array, count:', socketCount);
+        console.log('First socket sample:', socketsData[0]);
+    } else if (dataSource.sockets && Array.isArray(dataSource.sockets)) {
+        socketsData = dataSource.sockets;
+        socketCount = socketsData.length;
+        console.log('Using dataSource.sockets, count:', socketCount);
+    } else if (dataSource.socketStatistics && Array.isArray(dataSource.socketStatistics)) {
+        socketsData = dataSource.socketStatistics;
+        socketCount = socketsData.length;
+        console.log('Using dataSource.socketStatistics, count:', socketCount);
+    } else {
+        // Try to find in nested structure from backend response
+        console.log('Searching through keys...');
+        for (const key in dataSource) {
+            console.log('Checking key:', key, 'type:', typeof dataSource[key], 'isArray:', Array.isArray(dataSource[key]));
+            if (dataSource[key] && Array.isArray(dataSource[key])) {
+                socketsData = dataSource[key];
+                socketCount = socketsData.length;
+                console.log('Found array in key:', key, 'count:', socketCount);
+                break;
+            } else if (dataSource[key] && typeof dataSource[key] === 'object' && dataSource[key].sockets && Array.isArray(dataSource[key].sockets)) {
+                socketsData = dataSource[key].sockets;
+                socketCount = socketsData.length;
+                console.log('Found nested sockets in key:', key, 'count:', socketCount);
+                break;
+            }
+            // Check for socketStatistics_*.json files containing arrays
+            else if (key.includes('socketStatistics') && dataSource[key] && Array.isArray(dataSource[key])) {
+                socketsData = dataSource[key];
+                socketCount = socketsData.length;
+                console.log('Found socket statistics array in key:', key, 'count:', socketCount);
+                break;
+            }
+        }
+    }
+    
+    if (socketsData && socketCount > 0) {
+        // Calculate statistics
+        const tcpSockets = socketsData.filter(s => s.netid && s.netid.toLowerCase() === 'tcp').length;
+        const udpSockets = socketsData.filter(s => s.netid && s.netid.toLowerCase() === 'udp').length;
+        const listeningSockets = socketsData.filter(s => s.state && s.state.toLowerCase() === 'listen').length;
+        const establishedSockets = socketsData.filter(s => s.state && s.state.toLowerCase() === 'estab').length;
+        const unconnnectedSockets = socketsData.filter(s => s.state && s.state.toLowerCase() === 'unconn').length;
+        
+        html += `
+            <div class="row mb-4">
+                <div class="col-md-2">
+                    <div class="card bg-primary text-white">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">${socketCount}</h5>
+                            <p class="card-text">Total Sockets</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="card bg-success text-white">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">${tcpSockets}</h5>
+                            <p class="card-text">TCP</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="card bg-info text-white">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">${udpSockets}</h5>
+                            <p class="card-text">UDP</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="card bg-warning text-white">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">${listeningSockets}</h5>
+                            <p class="card-text">Listening</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="card bg-secondary text-white">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">${establishedSockets}</h5>
+                            <p class="card-text">Established</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="card bg-dark text-white">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">${unconnnectedSockets}</h5>
+                            <p class="card-text">Unconnected</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Filters -->
+            <div class="row mb-3">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-3">
+                                    <label for="socketSearch" class="form-label">Search</label>
+                                    <input type="text" class="form-control" id="socketSearch" placeholder="Search by process, PID, address, or port..." oninput="filterSockets()">
+                                </div>
+                                <div class="col-md-2">
+                                    <label for="socketTypeFilter" class="form-label">Type</label>
+                                    <select class="form-select" id="socketTypeFilter" onchange="filterSockets()">
+                                        <option value="">All Types</option>
+                                        <option value="tcp">TCP</option>
+                                        <option value="udp">UDP</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <label for="socketStateFilter" class="form-label">State</label>
+                                    <select class="form-select" id="socketStateFilter" onchange="filterSockets()">
+                                        <option value="">All States</option>
+                                        <option value="listen">LISTEN</option>
+                                        <option value="estab">ESTAB</option>
+                                        <option value="unconn">UNCONN</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <label for="socketProcessFilter" class="form-label">Process</label>
+                                    <input type="text" class="form-control" id="socketProcessFilter" placeholder="Process name..." oninput="filterSockets()">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">&nbsp;</label>
+                                    <div class="d-flex gap-2">
+                                        <button class="btn btn-outline-secondary" onclick="clearSocketFilters()">
+                                            <i class="fas fa-times me-1"></i>Clear
+                                        </button>
+                                        <button class="btn btn-outline-primary" onclick="exportSockets()">
+                                            <i class="fas fa-download me-1"></i>Export
+                                        </button>
+                                        <span class="badge bg-primary align-self-center ms-2" id="socketCount">${socketCount}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Sockets Table -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-striped table-hover">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th>Process</th>
+                                            <th>PID</th>
+                                            <th>Type</th>
+                                            <th>State</th>
+                                            <th>Local Address</th>
+                                            <th>Peer Address</th>
+                                            <th>Recv-Q</th>
+                                            <th>Send-Q</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="socketsTableBody">
+        `;
+        
+        // Generate table rows
+        socketsData.forEach((socket, index) => {
+            // Extract process name from the process field
+            let processName = 'N/A';
+            if (socket.process && socket.process.includes('"')) {
+                const match = socket.process.match(/"([^"]+)"/); 
+                if (match) {
+                    processName = match[1];
+                }
+            }
+            
+            const stateClass = socket.state ? {
+                'LISTEN': 'bg-success',
+                'ESTAB': 'bg-info', 
+                'UNCONN': 'bg-warning',
+                'CLOSE-WAIT': 'bg-secondary'
+            }[socket.state] || 'bg-light' : 'bg-light';
+            
+            html += `
+                <tr class="socket-row" 
+                    data-process="${processName.toLowerCase()}" 
+                    data-pid="${socket.pid || ''}" 
+                    data-type="${(socket.netid || '').toLowerCase()}" 
+                    data-state="${(socket.state || '').toLowerCase()}" 
+                    data-local-address="${(socket.localAddress || '').toLowerCase()}" 
+                    data-peer-address="${(socket.peerAddress || '').toLowerCase()}">
+                    <td><span class="badge bg-secondary me-1">${processName}</span></td>
+                    <td>${socket.pid || 'N/A'}</td>
+                    <td><span class="badge ${socket.netid && socket.netid.toLowerCase() === 'tcp' ? 'bg-success' : 'bg-info'}">${socket.netid || 'N/A'}</span></td>
+                    <td><span class="badge ${stateClass}">${socket.state || 'N/A'}</span></td>
+                    <td><code>${socket.localAddress || 'N/A'}</code></td>
+                    <td><code>${socket.peerAddress || 'N/A'}</code></td>
+                    <td><span class="badge bg-primary">${socket.recvQ || '0'}</span></td>
+                    <td><span class="badge bg-warning">${socket.sendQ || '0'}</span></td>
+                </tr>
+            `;
+        });
+        
+        html += `
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    } else {
+        html += `
+            <div class="row">
+                <div class="col-12">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        No socket statistics data available for this case.
                     </div>
                 </div>
             </div>

@@ -72,6 +72,7 @@ def analysis_page(case_id):
                 'Network Interfaces': 'network-interfaces',
                 'Connections': 'network-connections',
                 'Open Ports': 'network-ports',
+                'Sockets': 'network-sockets',
                 'Routing Table': 'network-routing',
                 'DNS Configuration': 'network-dns'
             }
@@ -432,6 +433,52 @@ def get_section_data(case_id, section):
             return jsonify({
                 'success': True,
                 'data': ports_data
+            })
+        
+        elif section == 'network-sockets':
+            # Load specific socket statistics JSON file
+            if case.folder_path:
+                # Construct absolute path from relative folder_path
+                # Go up two levels from lite/routes/ to get to project root
+                base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+                socket_stats_file = os.path.join(
+                    base_dir, 
+                    case.folder_path, 
+                    'socketStatistics_20250825_231413.json'
+                )
+            else:
+                socket_stats_file = None
+            
+            sockets_data = {}
+            file_found = False
+            
+            if socket_stats_file and os.path.exists(socket_stats_file):
+                data = json_parser.load_json_file(socket_stats_file)
+                if data:
+                    sockets_data['socketStatistics_20250825_231413.json'] = data
+                    file_found = True
+            
+            # Also check for other socket-related artifacts as fallback
+            socket_artifacts = _get_artifacts_by_keywords(case.artifacts, 
+                ['socket', 'socketstatistics', 'ss', 'netstat'])
+            
+            for artifact in socket_artifacts:
+                data = json_parser.load_json_file(artifact.file_path)
+                if data:
+                    sockets_data[artifact.filename] = data
+                    file_found = True
+            
+            # If no socket data found, provide a helpful message
+            if not file_found:
+                return jsonify({
+                    'success': False,
+                    'message': 'No socket statistics data found. The socketStatistics_20250825_231413.json file was not found in the case directory. Please ensure socket artifacts have been collected and are available in the case folder.',
+                    'data': None
+                })
+            
+            return jsonify({
+                'success': True,
+                'data': sockets_data
             })
         
         elif section == 'processes-running':
