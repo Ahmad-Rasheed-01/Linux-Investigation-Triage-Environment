@@ -330,6 +330,85 @@ def get_section_data(case_id, section):
                 'data': network_data
             })
         
+        elif section == 'network-routing':
+            # Load specific routing table JSON file
+            if case.folder_path:
+                # Construct absolute path from relative folder_path
+                base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                routing_table_file = os.path.join(
+                    base_dir, 
+                    case.folder_path, 
+                    'routingTableRaw_20250825_231426.json'
+                )
+            else:
+                routing_table_file = None
+            
+            network_data = {}
+            file_found = False
+            
+            # Load routing table data
+            if routing_table_file and os.path.exists(routing_table_file):
+                data = json_parser.load_json_file(routing_table_file)
+                if data:
+                    network_data['routingTableRaw_20250825_231426.json'] = data
+                    file_found = True
+            
+            # Also check for other routing table artifacts as fallback
+            routing_artifacts = _get_artifacts_by_keywords(case.artifacts, 
+                ['route', 'routing', 'ip_route'])
+            
+            for artifact in routing_artifacts:
+                data = json_parser.load_json_file(artifact.file_path)
+                if data:
+                    network_data[artifact.filename] = data
+                    file_found = True
+            
+            # If no routing data found, provide a helpful message
+            if not file_found:
+                return jsonify({
+                    'success': False,
+                    'message': 'No routing table data found. The routingTableRaw_20250825_231426.json file was not found in the case directory. Please ensure routing table artifacts have been collected and are available in the case folder.',
+                    'data': None
+                })
+            
+            # Parse routing table data for frontend
+            routing_table = []
+            try:
+                for filename, data in network_data.items():
+                    if 'stdout' in data and data['stdout']:
+                        # Parse the stdout content which contains the routing table
+                        lines = data['stdout'].strip().split('\n')
+                        # Skip the header lines
+                        for line in lines[2:]:  # Skip 'Kernel IP routing table' and header row
+                            if line.strip():
+                                parts = line.split()
+                                if len(parts) >= 8:
+                                    routing_table.append({
+                                        'destination': parts[0],
+                                        'gateway': parts[1],
+                                        'genmask': parts[2],
+                                        'flags': parts[3],
+                                        'metric': parts[4],
+                                        'ref': parts[5],
+                                        'use': parts[6],
+                                        'iface': parts[7]
+                                    })
+            except Exception as e:
+                print(f"Error parsing routing table data: {str(e)}")
+                return jsonify({
+                    'success': False,
+                    'message': f'Error parsing routing table data: {str(e)}',
+                    'data': None
+                })
+            
+            return jsonify({
+                'success': True,
+                'data': {
+                    'routing_table': routing_table,
+                    'raw_data': network_data
+                }
+            })
+        
         elif section == 'network-connections':
             # Load specific network connections JSON file
             if case.folder_path:
