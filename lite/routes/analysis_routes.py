@@ -831,6 +831,76 @@ def get_section_data(case_id, section):
             else:
                 return jsonify({'error': 'Triggered tasks data not found'}), 404
         
+        elif section == 'software-installed':
+            # Load installed packages data
+            import glob
+            case_dir = os.path.join('cases', case.case_id)
+            
+            # Look for dpkg packages file
+            dpkg_files = glob.glob(os.path.join(case_dir, 'dpkgPackages_*.json'))
+            
+            if dpkg_files:
+                # Get the most recent file
+                latest_file = max(dpkg_files, key=os.path.getctime)
+                
+                try:
+                    with open(latest_file, 'r', encoding='utf-8') as f:
+                        packages_data = json.load(f)
+                    
+                    # Process the packages data
+                    packages_list = []
+                    if isinstance(packages_data, dict) and 'packages' in packages_data:
+                        packages_list = packages_data['packages']
+                    elif isinstance(packages_data, list):
+                        packages_list = packages_data
+                    
+                    if packages_list:
+                        processed_packages = []
+                        for pkg in packages_list:
+                            if isinstance(pkg, dict):
+                                # Handle nested status object
+                                status_info = pkg.get('status', {})
+                                if isinstance(status_info, dict):
+                                    status = status_info.get('package_status', 'N/A')
+                                    priority = 'normal'  # Default priority since it's not in the status object
+                                else:
+                                    status = str(status_info) if status_info else 'N/A'
+                                    priority = 'normal'
+                                
+                                processed_packages.append({
+                                    'name': pkg.get('name', 'N/A'),
+                                    'version': pkg.get('version', 'N/A'),
+                                    'architecture': pkg.get('architecture', 'N/A'),
+                                    'status': status,
+                                    'priority': priority,
+                                    'description': pkg.get('description', 'No description available')
+                                })
+                        
+                        return jsonify({
+                            'success': True,
+                            'data': {
+                                'packages': processed_packages,
+                                'total': len(processed_packages),
+                                'file': os.path.basename(latest_file)
+                            }
+                        })
+                    else:
+                        return jsonify({
+                            'success': False,
+                            'error': 'Invalid packages data format'
+                        }), 500
+                        
+                except Exception as e:
+                    return jsonify({
+                        'success': False,
+                        'error': f'Error reading packages data: {str(e)}'
+                    }), 500
+            else:
+                return jsonify({
+                    'success': False,
+                    'error': 'Installed packages data not found'
+                }), 404
+        
         else:
             return jsonify({'error': 'Section not found'}), 404
             
