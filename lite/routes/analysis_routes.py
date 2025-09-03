@@ -616,14 +616,50 @@ def get_section_data(case_id, section):
             for artifact in log_artifacts:
                 data = json_parser.load_json_file(artifact.file_path)
                 if data:
-                    # Limit log entries for performance
-                    if isinstance(data, list) and len(data) > 1000:
-                        data = data[:1000]  # Show first 1000 entries
-                    log_data[artifact.filename] = data
+                    # Process logs from JSON structure
+                    if isinstance(data, dict) and 'entries' in data:
+                        # Limit log entries for performance
+                        if len(data['entries']) > 1000:
+                            data['entries'] = data['entries'][:1000]  # Show first 1000 entries
+                        log_data[artifact.filename] = data
+                    # Handle list format (backward compatibility)
+                    elif isinstance(data, list):
+                        # Limit log entries for performance
+                        if len(data) > 1000:
+                            data = data[:1000]  # Show first 1000 entries
+                        log_data[artifact.filename] = data
             
             return jsonify({
                 'success': True,
                 'data': log_data
+            })
+            
+        elif section == 'auth-logs':
+            # Get authentication log artifacts
+            auth_artifacts = _get_artifacts_by_keywords(case.artifacts, ['auth'])
+            login_data = {'auth_logs': {'entries': []}}
+            
+            for artifact in auth_artifacts:
+                data = json_parser.load_json_file(artifact.file_path)
+                if data:
+                    # Process auth logs from JSON structure
+                    if isinstance(data, dict) and 'entries' in data:
+                        # Limit auth logs for performance (they can be very large)
+                        if len(data['entries']) > 2000:
+                            data['entries'] = data['entries'][:2000]  # Show first 2000 entries
+                        login_data['auth_logs'] = data
+                        break  # Use the first valid auth log file found
+                    # Handle list format (backward compatibility)
+                    elif isinstance(data, list) and len(data) > 0:
+                        # Limit auth logs for performance (they can be very large)
+                        if len(data) > 2000:
+                            data = data[:2000]  # Show first 2000 entries
+                        login_data['auth_logs'] = {'entries': data}
+                        break  # Use the first valid auth log file found
+            
+            return jsonify({
+                'success': True,
+                'data': login_data
             })
         
         elif section == 'collection-logs':
@@ -658,10 +694,21 @@ def get_section_data(case_id, section):
                     elif 'lastlog' in artifact.filename.lower():
                         login_data['lastlog_logs'] = data
                     elif 'auth' in artifact.filename.lower():
-                        # Limit auth logs for performance (they can be very large)
-                        if isinstance(data, list) and len(data) > 2000:
-                            data = data[:2000]  # Show first 2000 entries
-                        login_data['auth_logs'] = data
+                        # Process auth logs from JSON structure
+                        if isinstance(data, dict) and 'entries' in data:
+                            # Limit auth logs for performance (they can be very large)
+                            if len(data['entries']) > 2000:
+                                data['entries'] = data['entries'][:2000]  # Show first 2000 entries
+                            login_data['auth_logs'] = data
+                        # Handle list format (backward compatibility)
+                        elif isinstance(data, list) and len(data) > 0:
+                            # Limit auth logs for performance (they can be very large)
+                            if len(data) > 2000:
+                                data = data[:2000]  # Show first 2000 entries
+                            login_data['auth_logs'] = {'entries': data}
+                        else:
+                            # Empty or invalid format
+                            login_data['auth_logs'] = {'entries': []}
             
             return jsonify({
                 'success': True,

@@ -394,6 +394,9 @@ function renderSectionContent(section, data) {
         case 'system-logs':
             renderLogs(data);
             break;
+        case 'auth-logs':
+            renderAuthentication(data);
+            break;
         default:
             renderGenericData(section, data);
     }
@@ -2390,109 +2393,7 @@ function renderLoginHistory(data) {
     `;
     
     if (data && Object.keys(data).length > 0) {
-        // Summary Statistics
-        let totalLogins = 0;
-        let uniqueUsers = new Set();
-        let failedLogins = 0;
-        let remoteLogins = 0;
-        
-        // Process auth logs for statistics
-        if (data.auth_logs && data.auth_logs.entries && Array.isArray(data.auth_logs.entries)) {
-            data.auth_logs.entries.forEach(entry => {
-                if (entry.event_type === 'login') {
-                    totalLogins++;
-                    if (entry.username) uniqueUsers.add(entry.username);
-                }
-                if (entry.auth_result === 'failed') {
-                    failedLogins++;
-                }
-                if (entry.hostname && entry.hostname !== 'localhost') {
-                    remoteLogins++;
-                }
-            });
-        }
-        
-        // Add wtmp login statistics
-        if (data.wtmp_logs && data.wtmp_logs.logs && Array.isArray(data.wtmp_logs.logs)) {
-            data.wtmp_logs.logs.forEach(entry => {
-                if (entry.record_type === 'USER_PROCESS' && entry.username) {
-                    uniqueUsers.add(entry.username);
-                }
-            });
-        }
-        
-        html += `
-            <div class="row mb-4">
-                <div class="col-lg-3 col-md-6 mb-3">
-                    <div class="card border-left-primary shadow h-100 py-2">
-                        <div class="card-body">
-                            <div class="row no-gutters align-items-center">
-                                <div class="col mr-2">
-                                    <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
-                                        Total Login Events
-                                    </div>
-                                    <div class="h5 mb-0 font-weight-bold text-gray-800">${totalLogins}</div>
-                                </div>
-                                <div class="col-auto">
-                                    <i class="fas fa-sign-in-alt fa-2x text-primary"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-lg-3 col-md-6 mb-3">
-                    <div class="card border-left-success shadow h-100 py-2">
-                        <div class="card-body">
-                            <div class="row no-gutters align-items-center">
-                                <div class="col mr-2">
-                                    <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                                        Unique Users
-                                    </div>
-                                    <div class="h5 mb-0 font-weight-bold text-gray-800">${uniqueUsers.size}</div>
-                                </div>
-                                <div class="col-auto">
-                                    <i class="fas fa-users fa-2x text-success"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-lg-3 col-md-6 mb-3">
-                    <div class="card border-left-warning shadow h-100 py-2">
-                        <div class="card-body">
-                            <div class="row no-gutters align-items-center">
-                                <div class="col mr-2">
-                                    <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
-                                        Failed Attempts
-                                    </div>
-                                    <div class="h5 mb-0 font-weight-bold text-gray-800">${failedLogins}</div>
-                                </div>
-                                <div class="col-auto">
-                                    <i class="fas fa-exclamation-triangle fa-2x text-warning"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-lg-3 col-md-6 mb-3">
-                    <div class="card border-left-info shadow h-100 py-2">
-                        <div class="card-body">
-                            <div class="row no-gutters align-items-center">
-                                <div class="col mr-2">
-                                    <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
-                                        Remote Logins
-                                    </div>
-                                    <div class="h5 mb-0 font-weight-bold text-gray-800">${remoteLogins}</div>
-                                </div>
-                                <div class="col-auto">
-                                    <i class="fas fa-globe fa-2x text-info"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
+        // Statistics calculation and cards removed - now handled in Authentication section under Logs menu
         
         // Current Sessions (UTMP Logs)
         if (data.utmp_logs && Array.isArray(data.utmp_logs) && data.utmp_logs.length > 0) {
@@ -2506,7 +2407,7 @@ function renderLoginHistory(data) {
                                 </h6>
                             </div>
                             <div class="card-body" style="padding: 0;">
-                                <div class="table-responsive" style="overflow-x: auto; overflow-y: auto; max-height: 400px; width: 100%; position: relative; margin: 0; padding: 1rem;">
+                                <div class="table-responsive" style="overflow-x: auto; overflow-y: auto; max-height: 1000px; width: 100%; position: relative; margin: 0; padding: 1rem;">
                                     <table class="table table-hover" style="min-width: 1000px; margin: 0;">
                                         <thead class="table-light" style="position: sticky; top: 0; z-index: 10; background-color: #f8f9fa !important;">
                                             <tr>
@@ -2657,64 +2558,7 @@ function renderLoginHistory(data) {
             `;
         }
         
-        // Authentication Events (Auth Logs)
-        if (data.auth_logs && data.auth_logs.entries && Array.isArray(data.auth_logs.entries) && data.auth_logs.entries.length > 0) {
-            html += `
-                <div class="row mb-4">
-                    <div class="col-12">
-                        <div class="card shadow">
-                            <div class="card-header py-3">
-                                <h6 class="m-0 font-weight-bold text-primary">
-                                    <i class="fas fa-shield-alt me-2"></i>Authentication Events (${data.auth_logs.entries.length})
-                                </h6>
-                            </div>
-                            <div class="card-body" style="padding: 0;">
-                                <div class="table-responsive" style="overflow-x: auto; overflow-y: auto; max-height: 400px; width: 100%; position: relative; margin: 0; padding: 1rem;">
-                                    <table class="table table-hover" style="min-width: 1200px; margin: 0;">
-                                        <thead class="table-light" style="position: sticky; top: 0; z-index: 10; background-color: #f8f9fa !important;">
-                                            <tr>
-                                                <th style="min-width: 180px;">Timestamp</th>
-                                                <th style="min-width: 120px;">Event Type</th>
-                                                <th style="min-width: 120px;">Username</th>
-                                                <th style="min-width: 120px;">Service</th>
-                                                <th style="min-width: 100px;">Result</th>
-                                                <th style="min-width: 150px;">Hostname</th>
-                                                <th style="min-width: 400px;">Message</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            ${data.auth_logs.entries.slice(0, 500).map(entry => {
-                                                const timestamp = entry.timestamp ? new Date(entry.timestamp).toLocaleString() : '-';
-                                                const eventType = entry.event_type || '-';
-                                                const username = entry.username || '-';
-                                                const service = entry.service || '-';
-                                                const result = entry.auth_result || '-';
-                                                const hostname = entry.hostname || '-';
-                                                const message = entry.message || '-';
-                                                const resultBadge = result === 'success' ? 'bg-success' : result === 'failed' ? 'bg-danger' : 'bg-secondary';
-                                                const eventBadge = eventType === 'login' ? 'bg-primary' : eventType === 'sudo' ? 'bg-warning' : 'bg-info';
-                                                
-                                                return `
-                                                    <tr>
-                                                        <td>${timestamp}</td>
-                                                        <td><span class="badge ${eventBadge}">${eventType}</span></td>
-                                                        <td><strong>${username}</strong></td>
-                                                        <td>${service}</td>
-                                                        <td><span class="badge ${resultBadge}">${result}</span></td>
-                                                        <td>${hostname}</td>
-                                                        <td style="max-width: 400px; word-wrap: break-word;">${message}</td>
-                                                    </tr>
-                                                `;
-                                            }).join('')}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
+        // Note: Authentication Events are now handled in the Authentication section under Logs menu
         
     } else {
         html += `
@@ -2729,6 +2573,514 @@ function renderLoginHistory(data) {
     }
     
     contentArea.innerHTML = html;
+}
+
+function parseAuthLogEntry(entry) {
+    // Parse raw authentication log entry and extract structured information
+    let timestamp = 'N/A';
+    let event_type = 'unknown';
+    let username = 'N/A';
+    let result = 'N/A';
+    let source = 'N/A';
+    let details = 'N/A';
+    
+    // Handle different entry formats
+    let message = '';
+    if (typeof entry === 'string') {
+        message = entry;
+    } else if (entry && typeof entry === 'object') {
+        // If entry is already structured, use it directly
+        if (entry.timestamp) timestamp = entry.timestamp;
+        if (entry.event_type) event_type = entry.event_type;
+        if (entry.username) username = entry.username;
+        if (entry.result) result = entry.result;
+        if (entry.source) source = entry.source;
+        if (entry.details) details = entry.details;
+        if (entry.message) message = entry.message;
+        
+        // If already structured, return as is
+        if (entry.event_type && entry.username) {
+            return {
+                timestamp: timestamp,
+                event_type: event_type,
+                username: username,
+                result: result,
+                source: source,
+                details: details || message || 'N/A'
+            };
+        }
+        
+        // Otherwise, parse the message field
+        message = entry.message || entry.details || JSON.stringify(entry);
+    }
+    
+    // Parse timestamp if it's a Unix timestamp at the beginning
+    const timestampMatch = message.match(/^(\d{10})\s*(.*)$/);
+    if (timestampMatch) {
+        const unixTimestamp = parseInt(timestampMatch[1]);
+        timestamp = new Date(unixTimestamp * 1000).toLocaleString();
+        message = timestampMatch[2].trim();
+    } else {
+        // Try to extract timestamp from standard syslog format
+        const syslogMatch = message.match(/^(\w{3}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2})\s+(.*)$/);
+        if (syslogMatch) {
+            timestamp = syslogMatch[1];
+            message = syslogMatch[2].trim();
+        }
+    }
+    
+    // Parse sudo events
+    if (message.includes('sudo') || message.includes('pam_unix(sudo')) {
+        event_type = 'sudo';
+        
+        // Extract username from sudo session messages
+        const sudoSessionMatch = message.match(/pam_unix\(sudo:session\): session (opened|closed) for user (\w+)(?:\(uid=\d+\))?(?: by (\w+)\(uid=\d+\))?/);
+        if (sudoSessionMatch) {
+            result = sudoSessionMatch[1];
+            username = sudoSessionMatch[2];
+            if (sudoSessionMatch[3]) {
+                source = `by ${sudoSessionMatch[3]}`;
+            }
+            details = message;
+        }
+        
+        // Extract command from sudo command messages
+        const sudoCommandMatch = message.match(/(\w+) : TTY=([^;]+) ; PWD=([^;]+) ; USER=([^;]+) ; COMMAND=(.+)/);
+        if (sudoCommandMatch) {
+            username = sudoCommandMatch[1];
+            source = sudoCommandMatch[2];
+            result = 'command';
+            details = `Command: ${sudoCommandMatch[5]}`;
+        }
+    }
+    // Parse PAM authentication events
+    else if (message.includes('pam_unix')) {
+        event_type = 'pam';
+        
+        // Extract session events
+        const pamSessionMatch = message.match(/pam_unix\(([^)]+):session\): session (opened|closed) for user (\w+)(?:\(uid=\d+\))?(?: by (\w+)\(uid=\d+\))?/);
+        if (pamSessionMatch) {
+            source = pamSessionMatch[1];
+            result = pamSessionMatch[2];
+            username = pamSessionMatch[3];
+            if (pamSessionMatch[4]) {
+                source += ` (by ${pamSessionMatch[4]})`;
+            }
+            details = message;
+        }
+        
+        // Extract authentication events
+        const pamAuthMatch = message.match(/pam_unix\(([^)]+)\): authentication (failure|success) for (\w+)/);
+        if (pamAuthMatch) {
+            source = pamAuthMatch[1];
+            result = pamAuthMatch[2];
+            username = pamAuthMatch[3];
+            details = message;
+        }
+    }
+    // Parse login events
+    else if (message.includes('login') || message.includes('LOGIN')) {
+        event_type = 'login';
+        details = message;
+        
+        // Try to extract username
+        const loginUserMatch = message.match(/(?:user|for)\s+(\w+)/);
+        if (loginUserMatch) {
+            username = loginUserMatch[1];
+        }
+    }
+    // Parse SSH events
+    else if (message.includes('ssh') || message.includes('SSH')) {
+        event_type = 'ssh';
+        details = message;
+        
+        // Try to extract username and result
+        const sshMatch = message.match(/(Accepted|Failed|Invalid).*?for\s+(\w+)/);
+        if (sshMatch) {
+            result = sshMatch[1].toLowerCase();
+            username = sshMatch[2];
+        }
+    }
+    // Parse cron events
+    else if (message.includes('cron')) {
+        event_type = 'cron';
+        details = message;
+        
+        const cronMatch = message.match(/pam_unix\(cron:session\): session (opened|closed) for user (\w+)(?:\(uid=\d+\))?(?: by (\w+)\(uid=\d+\))?/);
+        if (cronMatch) {
+            result = cronMatch[1];
+            username = cronMatch[2];
+            if (cronMatch[3]) {
+                source = `by ${cronMatch[3]}`;
+            }
+        }
+    }
+    // Default case - try to extract any username and determine event type
+    else {
+        details = message;
+        
+        // Try to extract username from various patterns
+        const userMatch = message.match(/(?:user|for|by)\s+(\w+)/);
+        if (userMatch) {
+            username = userMatch[1];
+        }
+        
+        // Determine event type from message content
+        if (message.includes('session')) {
+            event_type = 'session';
+        } else if (message.includes('auth')) {
+            event_type = 'auth';
+        } else if (message.includes('TTY=') && message.includes('COMMAND=')) {
+            event_type = 'sudo';
+            // Try to parse sudo command format that wasn't caught earlier
+            const sudoMatch = message.match(/(\w+) : TTY=([^;]+) ; PWD=([^;]+) ; USER=([^;]+) ; COMMAND=(.+)/);
+            if (sudoMatch) {
+                username = sudoMatch[1];
+                source = sudoMatch[2];
+                result = 'command';
+                details = `Command: ${sudoMatch[5]}`;
+            }
+        }
+    }
+    
+    return {
+        timestamp: timestamp,
+        event_type: event_type,
+        username: username,
+        result: result,
+        source: source,
+        details: details
+    };
+}
+
+function renderAuthentication(data) {
+    const contentArea = document.getElementById('content-area');
+    
+    let html = `
+        <div class="row mb-4">
+            <div class="col-12">
+                <h2 class="h4 mb-3">
+                    <i class="fas fa-shield-alt me-2"></i>Authentication Logs
+                </h2>
+            </div>
+        </div>
+    `;
+    
+    if (data && Object.keys(data).length > 0) {
+        // Calculate authentication statistics
+        const authLogs = data.auth_logs || {};
+        const wtmpLogs = data.wtmp_logs || [];
+        
+        let totalLogins = 0;
+        let uniqueUsers = new Set();
+        let failedLogins = 0;
+        let remoteLogins = 0;
+        
+        // Process auth logs
+        if (authLogs.entries && Array.isArray(authLogs.entries)) {
+            authLogs.entries.forEach(entry => {
+                // Count all authentication events, not just login
+                totalLogins++;
+                if (entry.username) uniqueUsers.add(entry.username);
+                
+                // Check for failed authentication using auth_result field
+                const authResult = entry.auth_result || entry.session_info || '';
+                if (authResult.toLowerCase().includes('fail') || authResult.toLowerCase().includes('denied')) {
+                    failedLogins++;
+                }
+                
+                // Check for remote logins using source_ip or hostname
+                if (entry.source_ip || (entry.hostname && entry.hostname !== 'localhost' && entry.hostname !== '127.0.0.1')) {
+                    remoteLogins++;
+                }
+            });
+        }
+        
+        // Remote logins are already counted in the auth logs processing above
+        
+        // Statistics Cards
+        const statisticsCards = `
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card bg-primary text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h6 class="card-title">Total Login Events</h6>
+                                    <h3 class="mb-0">${totalLogins}</h3>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-sign-in-alt fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-success text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h6 class="card-title">Unique Users</h6>
+                                    <h3 class="mb-0">${uniqueUsers.size}</h3>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-users fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-danger text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h6 class="card-title">Failed Attempts</h6>
+                                    <h3 class="mb-0">${failedLogins}</h3>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-exclamation-triangle fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-info text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h6 class="card-title">Remote Logins</h6>
+                                    <h3 class="mb-0">${remoteLogins}</h3>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-globe fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        html += statisticsCards;
+        
+        // Authentication Analysis Guide
+        html += `
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card border-info">
+                        <div class="card-header bg-info text-white py-2">
+                            <h6 class="m-0">
+                                <i class="fas fa-info-circle me-2"></i>Authentication Analysis Guide
+                                <button class="btn btn-sm btn-outline-light float-end" type="button" data-bs-toggle="collapse" data-bs-target="#authGuide" aria-expanded="false">
+                                    <i class="fas fa-chevron-down"></i>
+                                </button>
+                            </h6>
+                        </div>
+                        <div class="collapse" id="authGuide">
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h6 class="text-primary"><i class="fas fa-key me-2"></i>Authentication Events</h6>
+                                        <ul class="list-unstyled">
+                                            <li class="mb-2"><span class="badge bg-success me-2">Successful</span> Valid login attempts</li>
+                                            <li class="mb-2"><span class="badge bg-danger me-2">Failed</span> Invalid credentials or blocked</li>
+                                            <li class="mb-2"><span class="badge bg-warning me-2">Session</span> Session start/end events</li>
+                                            <li class="mb-2"><span class="badge bg-info me-2">Remote</span> SSH or network logins</li>
+                                        </ul>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <h6 class="text-primary"><i class="fas fa-shield-alt me-2"></i>Security Indicators</h6>
+                                        <ul class="list-unstyled">
+                                            <li class="mb-2"><strong>Multiple Failures:</strong> Potential brute force attacks</li>
+                                            <li class="mb-2"><strong>Unusual Times:</strong> Off-hours login attempts</li>
+                                            <li class="mb-2"><strong>Remote Access:</strong> External connection attempts</li>
+                                            <li class="mb-2"><strong>Privilege Escalation:</strong> Su/sudo events</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <div class="alert alert-light mt-3 mb-0">
+                                    <small class="text-muted">
+                                        <i class="fas fa-lightbulb me-1"></i>
+                                        <strong>Investigation Tips:</strong> Look for patterns in failed logins, unusual source IPs, 
+                                        off-hours access, and privilege escalation attempts. Cross-reference with network logs.
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Authentication Events (Auth Logs)
+        if (authLogs.entries && Array.isArray(authLogs.entries) && authLogs.entries.length > 0) {
+            // Generate unique values for filters
+            const eventTypes = [...new Set(authLogs.entries.map(entry => entry.event_type).filter(Boolean))];
+            const results = [...new Set(authLogs.entries.map(entry => entry.result).filter(Boolean))];
+            const usernames = [...new Set(authLogs.entries.map(entry => entry.username).filter(Boolean))];
+            
+            html += `
+                <!-- Authentication Filters -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card border-primary">
+                            <div class="card-header bg-primary text-white py-2">
+                                <h6 class="m-0">
+                                    <i class="fas fa-filter me-2"></i>Authentication Filters
+                                    <button class="btn btn-sm btn-outline-light float-end" type="button" data-bs-toggle="collapse" data-bs-target="#authFilters" aria-expanded="true">
+                                        <i class="fas fa-chevron-down"></i>
+                                    </button>
+                                </h6>
+                            </div>
+                            <div class="collapse show" id="authFilters">
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-3">
+                                            <label for="authSearch" class="form-label">Search Events</label>
+                                            <input type="text" class="form-control" id="authSearch" placeholder="Search events..." onkeyup="filterAuthEvents()">
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label for="eventTypeFilter" class="form-label">Event Type</label>
+                                            <select class="form-select" id="eventTypeFilter" onchange="filterAuthEvents()">
+                                                <option value="">All Types</option>
+                                                ${eventTypes.map(type => `<option value="${type}">${type}</option>`).join('')}
+                                            </select>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label for="resultFilter" class="form-label">Result</label>
+                                            <select class="form-select" id="resultFilter" onchange="filterAuthEvents()">
+                                                <option value="">All Results</option>
+                                                ${results.map(result => `<option value="${result}">${result}</option>`).join('')}
+                                            </select>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label for="usernameFilter" class="form-label">Username</label>
+                                            <select class="form-select" id="usernameFilter" onchange="filterAuthEvents()">
+                                                <option value="">All Users</option>
+                                                ${usernames.map(user => `<option value="${user}">${user}</option>`).join('')}
+                                            </select>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label">&nbsp;</label>
+                                            <div class="d-flex gap-2">
+                                                <span class="badge bg-secondary align-self-center" id="authEventsCount">${authLogs.entries.length} events</span>
+                                                <button class="btn btn-outline-secondary" onclick="clearAuthFilters()">
+                                                    <i class="fas fa-times me-1"></i>Clear
+                                                </button>
+                                                <button class="btn btn-outline-info" onclick="exportAuthEvents()">
+                                                    <i class="fas fa-download me-1"></i>Export
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header py-2">
+                                <h6 class="m-0">
+                                    <i class="fas fa-list me-2"></i>Authentication Events
+                                </h6>
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="table-responsive">
+                                    <table class="table table-hover mb-0" id="authEventsTable">
+                                        <thead class="table-dark">
+                                            <tr>
+                                                <th>Timestamp</th>
+                                                <th>Event Type</th>
+                                                <th>Username</th>
+                                                <th>Result</th>
+                                                <th>Source</th>
+                                                <th>Details</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+            `;
+            
+            authLogs.entries.forEach((entry, index) => {
+                // Use structured data directly from JSON
+                const timestamp = entry.timestamp ? new Date(entry.timestamp * 1000).toLocaleString() : 'N/A';
+                const eventType = entry.event_type || 'unknown';
+                const username = entry.username || 'N/A';
+                const authResult = entry.auth_result || entry.session_info || 'unknown';
+                const sourceInfo = entry.source_ip || entry.hostname || (entry.message && entry.message.includes('TTY=') ? entry.message.match(/TTY=([^\s;]+)/)?.[1] : null) || 'N/A';
+                const details = entry.command ? `Command: ${entry.command}` : entry.message || entry.session_info || 'N/A';
+                
+                const resultBadge = authResult && authResult.toLowerCase().includes('fail') ? 
+                    'bg-danger' : authResult && (authResult.toLowerCase().includes('success') || authResult.toLowerCase().includes('opened')) ? 
+                    'bg-success' : authResult && authResult.toLowerCase().includes('closed') ? 
+                    'bg-warning' : 'bg-secondary';
+                
+                const eventTypeBadge = eventType === 'sudo' ? 'bg-primary' : 
+                    eventType === 'login' ? 'bg-info' : 
+                    eventType === 'ssh' ? 'bg-success' : 
+                    eventType === 'pam' ? 'bg-warning' : 'bg-secondary';
+                
+                html += `
+                    <tr class="auth-event-row" data-index="${index}">
+                        <td><small>${timestamp}</small></td>
+                        <td><span class="badge ${eventTypeBadge}">${eventType}</span></td>
+                        <td><strong>${username}</strong></td>
+                        <td><span class="badge ${resultBadge}">${authResult}</span></td>
+                        <td><small>${sourceInfo}</small></td>
+                        <td><small class="text-truncate" style="max-width: 300px;" title="${details}">${details}</small></td>
+                    </tr>
+                `;
+            });
+            
+            html += `
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Store original data for filtering (will be set after HTML is rendered)
+        } else {
+            html += `
+                <div class="card shadow">
+                    <div class="card-body text-center py-5">
+                        <i class="fas fa-shield-alt fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted mb-3">No Authentication Events</h5>
+                        <p class="text-muted">No authentication log data found in the uploaded artifacts.</p>
+                    </div>
+                </div>
+            `;
+        }
+    } else {
+        html += `
+            <div class="card shadow">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-shield-alt fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted mb-3">No Data Available</h5>
+                    <p class="text-muted">No authentication data found in the uploaded artifacts.</p>
+                </div>
+            </div>
+        `;
+    }
+    
+    contentArea.innerHTML = html;
+    
+    // Set original data for filtering after HTML is rendered
+    if (data && data.auth_logs && data.auth_logs.entries) {
+        window.originalAuthData = data.auth_logs.entries;
+        const countElement = document.getElementById('authEventsCount');
+        if (countElement) {
+            countElement.textContent = data.auth_logs.entries.length + ' events';
+        }
+    }
 }
 
 function renderGenericData(section, data) {
@@ -8095,6 +8447,102 @@ function exportRoutingTableCSV() {
     const a = document.createElement('a');
     a.href = url;
     a.download = `routing_table_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+}
+
+// Authentication Events filtering functions
+let authOriginalData = [];
+let authSortOrder = {};
+
+function filterAuthEvents() {
+    const searchTerm = document.getElementById('authSearch').value.toLowerCase();
+    const eventTypeFilter = document.getElementById('eventTypeFilter').value;
+    const resultFilter = document.getElementById('resultFilter').value;
+    const usernameFilter = document.getElementById('usernameFilter').value;
+    
+    const rows = document.querySelectorAll('.auth-event-row');
+    let visibleCount = 0;
+    
+    rows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        const eventType = cells[1] ? cells[1].textContent.trim() : '';
+        const username = cells[2] ? cells[2].textContent.trim() : '';
+        const result = cells[3] ? cells[3].textContent.trim() : '';
+        const rowText = row.textContent.toLowerCase();
+        
+        let show = true;
+        
+        // Search filter
+        if (searchTerm && !rowText.includes(searchTerm)) {
+            show = false;
+        }
+        
+        // Event type filter
+        if (eventTypeFilter && !eventType.includes(eventTypeFilter)) {
+            show = false;
+        }
+        
+        // Result filter
+        if (resultFilter && !result.includes(resultFilter)) {
+            show = false;
+        }
+        
+        // Username filter
+        if (usernameFilter && !username.includes(usernameFilter)) {
+            show = false;
+        }
+        
+        row.style.display = show ? '' : 'none';
+        if (show) visibleCount++;
+    });
+    
+    // Update count
+    const countElement = document.getElementById('authEventsCount');
+    if (countElement) {
+        countElement.textContent = visibleCount + ' events';
+    }
+}
+
+function clearAuthFilters() {
+    document.getElementById('authSearch').value = '';
+    document.getElementById('eventTypeFilter').value = '';
+    document.getElementById('resultFilter').value = '';
+    document.getElementById('usernameFilter').value = '';
+    filterAuthEvents();
+}
+
+function exportAuthEvents() {
+    if (!window.originalAuthData || window.originalAuthData.length === 0) {
+        alert('No authentication data available to export.');
+        return;
+    }
+    
+    // Create CSV content
+    const headers = ['Timestamp', 'Event Type', 'Username', 'Result', 'Source', 'Details'];
+    let csvContent = headers.join(',') + '\n';
+    
+    window.originalAuthData.forEach(entry => {
+        const row = [
+            entry.timestamp || '',
+            entry.event_type || '',
+            entry.username || '',
+            entry.result || '',
+            entry.source || '',
+            (entry.details || entry.message || '').replace(/"/g, '""')
+        ];
+        csvContent += row.map(field => `"${field}"`).join(',') + '\n';
+    });
+    
+    // Download CSV
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `authentication_events_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
