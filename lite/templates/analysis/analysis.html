@@ -2779,9 +2779,11 @@ function renderAuthentication(data) {
         // Process auth logs
         if (authLogs.entries && Array.isArray(authLogs.entries)) {
             authLogs.entries.forEach(entry => {
-                // Count all authentication events, not just login
-                totalLogins++;
-                if (entry.username) uniqueUsers.add(entry.username);
+                // Count authentication events including sudo commands
+                if (entry.event_type && (entry.event_type.includes('login') || entry.event_type === 'ssh' || entry.event_type === 'sudo')) {
+                    totalLogins++;
+                }
+                if (entry.username && entry.username !== 'N/A') uniqueUsers.add(entry.username);
                 
                 // Check for failed authentication using auth_result field
                 const authResult = entry.auth_result || entry.session_info || '';
@@ -2789,8 +2791,10 @@ function renderAuthentication(data) {
                     failedLogins++;
                 }
                 
-                // Check for remote logins using source_ip or hostname
-                if (entry.source_ip || (entry.hostname && entry.hostname !== 'localhost' && entry.hostname !== '127.0.0.1')) {
+                // Check for remote logins - only count if there's an actual remote IP address
+                if (entry.source_ip && entry.source_ip !== 'localhost' && entry.source_ip !== '127.0.0.1' && entry.source_ip !== 'kali' && !entry.source_ip.startsWith('192.168.') && !entry.source_ip.startsWith('10.') && !entry.source_ip.startsWith('172.')) {
+                    remoteLogins++;
+                } else if (entry.event_type === 'ssh' && entry.source_ip && entry.source_ip !== 'localhost' && entry.source_ip !== '127.0.0.1') {
                     remoteLogins++;
                 }
             });

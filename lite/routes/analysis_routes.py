@@ -333,10 +333,8 @@ def get_section_data(case_id, section):
         elif section == 'network-routing':
             # Load specific routing table JSON file
             if case.folder_path:
-                # Construct absolute path from relative folder_path
-                base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                # Use absolute folder_path directly (it's already absolute from case creation)
                 routing_table_file = os.path.join(
-                    base_dir, 
                     case.folder_path, 
                     'routingTableRaw_20250825_231426.json'
                 )
