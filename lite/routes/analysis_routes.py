@@ -607,30 +607,44 @@ def get_section_data(case_id, section):
             })
         
         elif section == 'logs-system':
-            log_artifacts = _get_artifacts_by_keywords(case.artifacts, 
-                ['log', 'syslog', 'auth', 'kern', 'audit'])
-            log_data = {}
-            
-            for artifact in log_artifacts:
-                data = json_parser.load_json_file(artifact.file_path)
-                if data:
-                    # Process logs from JSON structure
-                    if isinstance(data, dict) and 'entries' in data:
-                        # Limit log entries for performance
-                        if len(data['entries']) > 1000:
-                            data['entries'] = data['entries'][:1000]  # Show first 1000 entries
-                        log_data[artifact.filename] = data
-                    # Handle list format (backward compatibility)
-                    elif isinstance(data, list):
-                        # Limit log entries for performance
-                        if len(data) > 1000:
-                            data = data[:1000]  # Show first 1000 entries
-                        log_data[artifact.filename] = data
-            
-            return jsonify({
-                'success': True,
-                'data': log_data
-            })
+            try:
+                log_artifacts = _get_artifacts_by_keywords(case.artifacts, 
+                    ['log', 'syslog', 'auth', 'kern', 'audit'])
+                log_data = {}
+                
+                for artifact in log_artifacts:
+                    try:
+                        data = json_parser.load_json_file(artifact.file_path)
+                        if data:
+                            # Process logs from JSON structure
+                            if isinstance(data, dict) and 'entries' in data:
+                                # Limit log entries for performance
+                                if len(data['entries']) > 1000:
+                                    data['entries'] = data['entries'][:1000]  # Show first 1000 entries
+                                log_data[artifact.filename] = data
+                            # Handle list format (backward compatibility)
+                            elif isinstance(data, list):
+                                # Limit log entries for performance
+                                if len(data) > 1000:
+                                    data = data[:1000]  # Show first 1000 entries
+                                log_data[artifact.filename] = data
+                            # Handle other dict formats
+                            elif isinstance(data, dict):
+                                log_data[artifact.filename] = data
+                    except Exception as file_error:
+                        print(f"Error processing log file {artifact.filename}: {str(file_error)}")
+                        continue
+                
+                return jsonify({
+                    'success': True,
+                    'data': log_data
+                })
+            except Exception as logs_error:
+                print(f"Error in logs-system section: {str(logs_error)}")
+                return jsonify({
+                    'success': False,
+                    'error': f'Error loading system logs: {str(logs_error)}'
+                }), 500
             
         elif section == 'auth-logs':
             # Get authentication log artifacts
@@ -660,6 +674,85 @@ def get_section_data(case_id, section):
                 'data': login_data
             })
         
+        elif section == 'collection-logs':
+            # Parse collection log file
+            collection_log_data = _parse_collection_logs(case)
+            if 'error' in collection_log_data:
+                return jsonify({
+                    'success': False,
+                    'message': collection_log_data.get('error', 'Failed to load collection log data'),
+                    'data': None
+                })
+            else:
+                return jsonify({
+                    'success': True,
+                    'data': collection_log_data
+                })
+        
+        elif section == 'logs-kernel':
+            try:
+                # First try to load the specific kernel log file
+                case_dir = os.path.join('cases', case.case_id)
+                kernel_file_path = os.path.join(case_dir, 'kern_20250825_231422.json')
+                
+                kernel_data = {}
+                
+                if os.path.exists(kernel_file_path):
+                    try:
+                        data = json_parser.load_json_file(kernel_file_path)
+                        if data:
+                            # Process kernel logs from JSON structure
+                            if isinstance(data, dict) and 'entries' in data:
+                                # Limit kernel log entries for performance
+                                if len(data['entries']) > 1500:
+                                    data['entries'] = data['entries'][:1500]  # Show first 1500 entries
+                                kernel_data['kern_20250825_231422.json'] = data
+                            elif isinstance(data, list):
+                                # Limit kernel log entries for performance
+                                if len(data) > 1500:
+                                    data = data[:1500]  # Show first 1500 entries
+                                kernel_data['kern_20250825_231422.json'] = {'entries': data}
+                            elif isinstance(data, dict):
+                                kernel_data['kern_20250825_231422.json'] = data
+                    except Exception as file_error:
+                        print(f"Error processing kernel file kern_20250825_231422.json: {str(file_error)}")
+                
+                # If no specific file found, search for other kernel log artifacts
+                if not kernel_data:
+                    kernel_artifacts = _get_artifacts_by_keywords(case.artifacts, ['kern', 'kernel'])
+                    
+                    for artifact in kernel_artifacts:
+                        try:
+                            data = json_parser.load_json_file(artifact.file_path)
+                            if data:
+                                # Process kernel logs from JSON structure
+                                if isinstance(data, dict) and 'entries' in data:
+                                    # Limit kernel log entries for performance
+                                    if len(data['entries']) > 1500:
+                                        data['entries'] = data['entries'][:1500]  # Show first 1500 entries
+                                    kernel_data[artifact.filename] = data
+                                elif isinstance(data, list):
+                                    # Limit kernel log entries for performance
+                                    if len(data) > 1500:
+                                        data = data[:1500]  # Show first 1500 entries
+                                    kernel_data[artifact.filename] = {'entries': data}
+                                elif isinstance(data, dict):
+                                    kernel_data[artifact.filename] = data
+                        except Exception as file_error:
+                            print(f"Error processing kernel file {artifact.filename}: {str(file_error)}")
+                            continue
+                
+                return jsonify({
+                    'success': True,
+                    'data': kernel_data
+                })
+            except Exception as kernel_error:
+                print(f"Error in logs-kernel section: {str(kernel_error)}")
+                return jsonify({
+                    'success': False,
+                    'error': f'Error loading kernel logs: {str(kernel_error)}'
+                }), 500
+            
         elif section == 'collection-logs':
             # Parse collection log file
             collection_log_data = _parse_collection_logs(case)
