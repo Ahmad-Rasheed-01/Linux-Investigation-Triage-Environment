@@ -609,7 +609,7 @@ def get_section_data(case_id, section):
         elif section == 'logs-system':
             try:
                 log_artifacts = _get_artifacts_by_keywords(case.artifacts, 
-                    ['log', 'syslog', 'auth', 'kern', 'audit'])
+                    ['syslog'])
                 log_data = {}
                 
                 for artifact in log_artifacts:
@@ -672,6 +672,39 @@ def get_section_data(case_id, section):
             return jsonify({
                 'success': True,
                 'data': login_data
+            })
+        
+        elif section == 'logs-audit':
+            # Get audit log artifacts
+            audit_artifacts = _get_artifacts_by_keywords(case.artifacts, ['audit'])
+            audit_data = {}
+            
+            for artifact in audit_artifacts:
+                try:
+                    data = json_parser.load_json_file(artifact.file_path)
+                    if data:
+                        # Process audit logs from JSON structure
+                        if isinstance(data, dict) and 'entries' in data:
+                            # Limit audit logs for performance
+                            if len(data['entries']) > 1000:
+                                data['entries'] = data['entries'][:1000]  # Show first 1000 entries
+                            audit_data[artifact.filename] = data
+                        # Handle list format (backward compatibility)
+                        elif isinstance(data, list):
+                            # Limit audit logs for performance
+                            if len(data) > 1000:
+                                data = data[:1000]  # Show first 1000 entries
+                            audit_data[artifact.filename] = data
+                        # Handle other dict formats
+                        elif isinstance(data, dict):
+                            audit_data[artifact.filename] = data
+                except Exception as file_error:
+                    print(f"Error processing audit file {artifact.filename}: {str(file_error)}")
+                    continue
+            
+            return jsonify({
+                'success': True,
+                'data': audit_data
             })
         
         elif section == 'collection-logs':
