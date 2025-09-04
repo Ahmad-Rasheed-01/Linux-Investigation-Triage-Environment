@@ -934,6 +934,62 @@ def get_section_data(case_id, section):
                     'error': 'Installed packages data not found'
                 }), 404
         
+        elif section == 'software-installations':
+            # Load installation records data
+            import glob
+            case_dir = os.path.join('cases', case.case_id)
+            
+            # Look for installRecords files
+            install_files = glob.glob(os.path.join(case_dir, 'installRecords_*.json'))
+            
+            if install_files:
+                # Get the most recent file
+                latest_file = max(install_files, key=os.path.getctime)
+                
+                try:
+                    with open(latest_file, 'r', encoding='utf-8') as f:
+                        install_data = json.load(f)
+                    
+                    # Process the installation data
+                    if isinstance(install_data, list):
+                        processed_installs = []
+                        for install in install_data:
+                            if isinstance(install, dict):
+                                processed_installs.append({
+                                    'timestamp': install.get('timestamp', 0),
+                                    'action': install.get('action', 'unknown'),
+                                    'package': install.get('package', 'unknown'),
+                                    'package_name': install.get('package_name', 'unknown'),
+                                    'architecture': install.get('architecture', 'unknown'),
+                                    'version': install.get('version', 'unknown'),
+                                    'source_file': install.get('source_file', 'unknown')
+                                })
+                        
+                        return jsonify({
+                            'success': True,
+                            'data': {
+                                'installations': processed_installs,
+                                'total': len(processed_installs),
+                                'file': os.path.basename(latest_file)
+                            }
+                        })
+                    else:
+                        return jsonify({
+                            'success': False,
+                            'error': 'Invalid installation data format'
+                        }), 500
+                        
+                except Exception as e:
+                    return jsonify({
+                        'success': False,
+                        'error': f'Error reading installation data: {str(e)}'
+                    }), 500
+            else:
+                return jsonify({
+                    'success': False,
+                    'error': 'Installation records data not found'
+                }), 404
+        
         else:
             return jsonify({'error': 'Section not found'}), 404
             
