@@ -409,7 +409,7 @@ function renderSectionContent(section, data) {
             renderNetworkSockets(data);
             break;
         case 'logs-system':
-            renderLogs(data);
+            renderSystemLogs(data);
             break;
         case 'auth-logs':
             renderAuthentication(data);
@@ -8008,15 +8008,178 @@ function parseNetworkInterfaceData(fileData) {
     return interfaces;
 }
 
-function renderLogs(data) {
+function renderSystemLogs(data) {
     const contentArea = document.getElementById('content-area');
+    
+    // Store data globally for filter functions
+    window.currentSystemLogsData = data;
     
     if (!data || Object.keys(data).length === 0) {
         contentArea.innerHTML = '<div class="alert alert-info"><i class="fas fa-info-circle me-2"></i>No system logs data available</div>';
         return;
     }
     
-    let html = '<div class="system-logs-container">';
+    let html = `
+        <div class="row mb-4">
+            <div class="col-12">
+                <h2 class="h4 mb-3">
+                    <i class="fas fa-clipboard-list me-2"></i>System Logs
+                </h2>
+            </div>
+        </div>
+        
+        <!-- System Logs Analysis Guide -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card border-info">
+                    <div class="card-header bg-info text-white py-2">
+                        <h6 class="m-0">
+                            <i class="fas fa-info-circle me-2"></i>System Logs Analysis Guide
+                            <button class="btn btn-sm btn-outline-light float-end" type="button" data-bs-toggle="collapse" data-bs-target="#systemGuide" aria-expanded="false">
+                                <i class="fas fa-chevron-down"></i>
+                            </button>
+                        </h6>
+                    </div>
+                    <div class="collapse" id="systemGuide">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6 class="text-info"><i class="fas fa-search me-2"></i>What to Look For</h6>
+                                    <ul class="list-unstyled">
+                                        <li class="mb-2"><strong>Service Failures:</strong> Look for failed service starts, crashes, or unexpected shutdowns</li>
+                                        <li class="mb-2"><strong>Authentication Events:</strong> Monitor login attempts, privilege escalations, and access violations</li>
+                                        <li class="mb-2"><strong>System Events:</strong> Check for boot messages, shutdown events, and configuration changes</li>
+                                        <li class="mb-2"><strong>Application Errors:</strong> Search for application crashes, dependency issues, or resource exhaustion</li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6 class="text-info"><i class="fas fa-shield-alt me-2"></i>Security Indicators</h6>
+                                    <ul class="list-unstyled">
+                                        <li class="mb-2"><strong>Failed Logins:</strong> Multiple authentication failures from same source</li>
+                                        <li class="mb-2"><strong>Privilege Changes:</strong> Unexpected sudo usage or permission modifications</li>
+                                        <li class="mb-2"><strong>Service Manipulation:</strong> Unauthorized service starts/stops or configuration changes</li>
+                                        <li class="mb-2"><strong>System Modifications:</strong> Changes to critical system files or configurations</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="row mt-3">
+                                <div class="col-12">
+                                    <small class="text-muted">
+                                        <i class="fas fa-lightbulb me-1"></i>
+                                        <strong>Investigation Tips:</strong> Focus on error and warning messages, correlate events across different services, 
+                                        look for patterns in failed authentication attempts, and monitor for unusual service behavior or configuration changes.
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Calculate analytics metrics
+    const metrics = calculateSystemAnalysisMetrics(data);
+    
+    // Analytics Cards
+    html += `
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card bg-primary text-white">
+                    <div class="card-body text-center">
+                        <i class="fas fa-list-alt fa-2x mb-2"></i>
+                        <h4 class="mb-1">${metrics.totalEntries.toLocaleString()}</h4>
+                        <small>Total Entries</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-danger text-white">
+                    <div class="card-body text-center">
+                        <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
+                        <h4 class="mb-1">${metrics.criticalEvents.toLocaleString()}</h4>
+                        <small>Critical Events</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-warning text-white">
+                    <div class="card-body text-center">
+                        <i class="fas fa-shield-alt fa-2x mb-2"></i>
+                        <h4 class="mb-1">${metrics.securityEvents.toLocaleString()}</h4>
+                        <small>Security Events</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-success text-white">
+                    <div class="card-body text-center">
+                        <i class="fas fa-heartbeat fa-2x mb-2"></i>
+                        <h4 class="mb-1">${metrics.systemHealth}%</h4>
+                        <small>System Health</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Filters Section
+    html += `
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="m-0"><i class="fas fa-filter me-2"></i>Filters & Search</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label for="systemLogSearch" class="form-label">Search Logs</label>
+                                <input type="text" class="form-control" id="systemLogSearch" placeholder="Search messages...">
+                            </div>
+                            <div class="col-md-2">
+                                <label for="systemLogLevel" class="form-label">Log Level</label>
+                                <select class="form-select" id="systemLogLevel">
+                                    <option value="">All Levels</option>
+                                    <option value="error">Error</option>
+                                    <option value="warning">Warning</option>
+                                    <option value="info">Info</option>
+                                    <option value="debug">Debug</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label for="systemService" class="form-label">Service</label>
+                                <select class="form-select" id="systemService">
+                                    <option value="">All Services</option>
+                                    ${generateServiceOptions(data)}
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label for="systemEntryLimit" class="form-label">Entry Limit</label>
+                                <select class="form-select" id="systemEntryLimit">
+                                    <option value="100">100</option>
+                                    <option value="250">250</option>
+                                    <option value="500">500</option>
+                                    <option value="1000">1000</option>
+                                    <option value="all">All</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">&nbsp;</label>
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-primary" onclick="applySystemFilters()">Apply Filters</button>
+                                    <button class="btn btn-secondary" onclick="clearSystemFilters()">Clear</button>
+                                    <button class="btn btn-success" onclick="exportFilteredSystemLogs()">Export CSV</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    html += '<div class="system-logs-container" id="systemLogsTable">';
     
     // Process each log file
     Object.keys(data).forEach(filename => {
@@ -8142,6 +8305,274 @@ function renderLogs(data) {
     
     html += '</div>';
     contentArea.innerHTML = html;
+}
+
+function calculateSystemAnalysisMetrics(data) {
+    let totalEntries = 0;
+    let criticalEvents = 0;
+    let securityEvents = 0;
+    
+    Object.keys(data).forEach(filename => {
+        const logData = data[filename];
+        if (!logData) return;
+        
+        const entries = logData.entries || logData;
+        if (!Array.isArray(entries)) return;
+        
+        totalEntries += entries.length;
+        
+        entries.forEach(entry => {
+            const level = (entry.level || entry.priority || entry.severity || '').toLowerCase();
+            const message = (entry.message || entry.msg || '').toLowerCase();
+            
+            // Count critical events (error, critical, emergency levels)
+            if (['error', 'err', 'crit', 'critical', 'emerg', 'emergency', 'alert'].includes(level)) {
+                criticalEvents++;
+            }
+            
+            // Count security-related events
+            const securityKeywords = ['authentication', 'login', 'failed', 'denied', 'unauthorized', 'security', 'breach', 'attack', 'intrusion', 'firewall', 'blocked'];
+            if (securityKeywords.some(keyword => message.includes(keyword))) {
+                securityEvents++;
+            }
+        });
+    });
+    
+    // Calculate system health percentage (100% - error rate)
+    const errorRate = totalEntries > 0 ? (criticalEvents / totalEntries) * 100 : 0;
+    const systemHealth = Math.max(0, 100 - errorRate);
+    
+    return {
+        totalEntries,
+        criticalEvents,
+        securityEvents,
+        systemHealth: Math.round(systemHealth)
+    };
+}
+
+function generateServiceOptions(data) {
+    const services = new Set();
+    
+    Object.keys(data).forEach(filename => {
+        const logData = data[filename];
+        if (!logData) return;
+        
+        const entries = logData.entries || logData;
+        if (!Array.isArray(entries)) return;
+        
+        entries.forEach(entry => {
+            const service = entry.service || entry.program || entry.tag || entry.ident;
+            if (service && typeof service === 'string') {
+                services.add(service.trim());
+            }
+        });
+    });
+    
+    return Array.from(services).sort().map(service => 
+        `<option value="${service}">${service}</option>`
+    ).join('');
+}
+
+function renderSystemLogsTable(data, searchTerm = '', logLevel = '', service = '', limit = 100) {
+    let html = '';
+    let totalDisplayed = 0;
+    const maxLimit = limit === 'all' ? Infinity : parseInt(limit);
+    
+    Object.keys(data).forEach(filename => {
+        const logData = data[filename];
+        if (!logData || totalDisplayed >= maxLimit) return;
+        
+        const entries = logData.entries || logData;
+        if (!Array.isArray(entries)) return;
+        
+        // Filter entries
+        let filteredEntries = entries.filter(entry => {
+            const message = (entry.message || entry.msg || '').toLowerCase();
+            const level = (entry.level || entry.priority || entry.severity || '').toLowerCase();
+            const entryService = (entry.service || entry.program || entry.tag || entry.ident || '').toLowerCase();
+            
+            // Apply filters
+            if (searchTerm && !message.includes(searchTerm.toLowerCase())) return false;
+            if (logLevel && !level.includes(logLevel.toLowerCase())) return false;
+            if (service && !entryService.includes(service.toLowerCase())) return false;
+            
+            return true;
+        });
+        
+        // Limit entries
+        const remainingLimit = maxLimit - totalDisplayed;
+        if (remainingLimit < filteredEntries.length) {
+            filteredEntries = filteredEntries.slice(0, remainingLimit);
+        }
+        
+        if (filteredEntries.length === 0) return;
+        
+        html += `
+            <div class="log-file-section mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="log-stats d-flex align-items-center">
+                        <button class="btn btn-sm btn-outline-primary me-2" onclick="showAllSystemLogs('${filename}')" title="Show all log entries">
+                            <i class="fas fa-expand-arrows-alt me-1"></i>Show All
+                        </button>
+                        <span class="badge bg-primary me-1">Showing: ${filteredEntries.length}</span>
+                        <span class="badge bg-warning text-dark me-1">Total: ${entries.length}</span>
+                    </div>
+                    <h5 class="mb-0">
+                        <i class="fas fa-file-alt text-primary me-2"></i>${filename}
+                    </h5>
+                </div>
+                
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>Level</th>
+                                <th>Service</th>
+                                <th>Message</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+        `;
+        
+        filteredEntries.forEach(entry => {
+            const timestamp = entry.timestamp || entry.time || entry.date || 'N/A';
+            const level = entry.level || entry.priority || entry.severity || 'info';
+            const entryService = entry.service || entry.program || entry.tag || entry.ident || 'system';
+            const message = entry.message || entry.msg || 'No message';
+            
+            // Color code log levels
+            let levelClass = 'secondary';
+            const levelLower = level.toLowerCase();
+            if (['error', 'err', 'crit', 'critical', 'emerg', 'emergency'].includes(levelLower)) {
+                levelClass = 'danger';
+            } else if (['warn', 'warning'].includes(levelLower)) {
+                levelClass = 'warning';
+            } else if (['info', 'notice'].includes(levelLower)) {
+                levelClass = 'info';
+            } else if (['debug'].includes(levelLower)) {
+                levelClass = 'secondary';
+            }
+            
+            html += `
+                <tr>
+                    <td><small class="text-muted">${timestamp}</small></td>
+                    <td><span class="badge bg-${levelClass}">${level}</span></td>
+                    <td><small>${entryService}</small></td>
+                    <td>${message}</td>
+                </tr>
+            `;
+        });
+        
+        html += `
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+        
+        totalDisplayed += filteredEntries.length;
+    });
+    
+    if (html === '') {
+        html = '<div class="alert alert-info"><i class="fas fa-info-circle me-2"></i>No log entries match the current filters.</div>';
+    }
+    
+    return html;
+}
+
+function applySystemFilters() {
+    const searchTerm = document.getElementById('systemLogSearch').value;
+    const logLevel = document.getElementById('systemLogLevel').value;
+    const service = document.getElementById('systemService').value;
+    const limit = document.getElementById('systemEntryLimit').value;
+    
+    // Get the current data from the global scope or re-fetch
+    const currentSection = document.querySelector('.nav-link.active').getAttribute('data-section');
+    if (currentSection === 'logs-system') {
+        // Re-render with filters
+        const tableContainer = document.getElementById('systemLogsTable');
+        if (window.currentSystemLogsData) {
+            tableContainer.innerHTML = renderSystemLogsTable(window.currentSystemLogsData, searchTerm, logLevel, service, limit);
+        }
+    }
+}
+
+function clearSystemFilters() {
+    document.getElementById('systemLogSearch').value = '';
+    document.getElementById('systemLogLevel').value = '';
+    document.getElementById('systemService').value = '';
+    document.getElementById('systemEntryLimit').value = '100';
+    applySystemFilters();
+}
+
+function exportFilteredSystemLogs() {
+    const searchTerm = document.getElementById('systemLogSearch').value;
+    const logLevel = document.getElementById('systemLogLevel').value;
+    const service = document.getElementById('systemService').value;
+    
+    if (!window.currentSystemLogsData) {
+        alert('No system log data available for export.');
+        return;
+    }
+    
+    let exportData = [];
+    
+    Object.keys(window.currentSystemLogsData).forEach(filename => {
+        const logData = window.currentSystemLogsData[filename];
+        if (!logData) return;
+        
+        const entries = logData.entries || logData;
+        if (!Array.isArray(entries)) return;
+        
+        entries.forEach(entry => {
+            const message = (entry.message || entry.msg || '').toLowerCase();
+            const entryLevel = (entry.level || entry.priority || entry.severity || '').toLowerCase();
+            const entryService = (entry.service || entry.program || entry.tag || entry.ident || '').toLowerCase();
+            
+            // Apply filters
+            if (searchTerm && !message.includes(searchTerm.toLowerCase())) return;
+            if (logLevel && !entryLevel.includes(logLevel.toLowerCase())) return;
+            if (service && !entryService.includes(service.toLowerCase())) return;
+            
+            exportData.push({
+                'File': filename,
+                'Timestamp': entry.timestamp || entry.time || entry.date || 'N/A',
+                'Level': entry.level || entry.priority || entry.severity || 'info',
+                'Service': entry.service || entry.program || entry.tag || entry.ident || 'system',
+                'Message': entry.message || entry.msg || 'No message'
+            });
+        });
+    });
+    
+    if (exportData.length === 0) {
+        alert('No data matches the current filters.');
+        return;
+    }
+    
+    const csv = convertToCSV(exportData);
+    downloadCSV(csv, 'system_logs_filtered.csv');
+}
+
+function showAllSystemLogs(filename) {
+    // Get current filter values but remove the entry limit
+    const logLevel = document.getElementById('systemLogLevel').value;
+    const service = document.getElementById('systemService').value;
+    const search = document.getElementById('systemLogSearch').value;
+    
+    const filters = {
+        logLevel: logLevel,
+        service: service,
+        search: search,
+        limit: 'all' // Show all entries
+    };
+    
+    // Re-render the table with all entries
+    const tableContainer = document.getElementById('systemLogsTable');
+    tableContainer.innerHTML = renderSystemLogsTable(window.currentSystemLogsData, search, logLevel, service, 'all');
+    
+    // Update the entry limit dropdown to reflect "All"
+    document.getElementById('systemEntryLimit').value = 'all';
 }
 
 function renderKernelLogs(data) {
