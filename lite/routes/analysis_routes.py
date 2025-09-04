@@ -990,6 +990,60 @@ def get_section_data(case_id, section):
                     'error': 'Installation records data not found'
                 }), 404
         
+        elif section == 'software-upgradations':
+            # Load upgrade records data
+            case_dir = os.path.join('cases', case.case_id)
+            upgrade_files = [f for f in os.listdir(case_dir) if f.startswith('upgradeRecords_') and f.endswith('.json')]
+            
+            if upgrade_files:
+                # Get the most recent upgrade records file
+                latest_file = os.path.join(case_dir, sorted(upgrade_files)[-1])
+                
+                try:
+                    with open(latest_file, 'r', encoding='utf-8') as f:
+                        upgrade_data = json.load(f)
+                    
+                    # Process the upgrade data
+                    if isinstance(upgrade_data, list):
+                        processed_upgrades = []
+                        for upgrade in upgrade_data:
+                            if isinstance(upgrade, dict):
+                                processed_upgrades.append({
+                                    'timestamp': upgrade.get('timestamp', 0),
+                                    'action': upgrade.get('action', 'unknown'),
+                                    'package': upgrade.get('package', 'unknown'),
+                                    'package_name': upgrade.get('package_name', 'unknown'),
+                                    'architecture': upgrade.get('architecture', 'unknown'),
+                                    'old_version': upgrade.get('old_version', 'unknown'),
+                                    'new_version': upgrade.get('new_version', 'unknown'),
+                                    'source_file': upgrade.get('source_file', 'unknown')
+                                })
+                        
+                        return jsonify({
+                            'success': True,
+                            'data': {
+                                'upgradations': processed_upgrades,
+                                'total': len(processed_upgrades),
+                                'file': os.path.basename(latest_file)
+                            }
+                        })
+                    else:
+                        return jsonify({
+                            'success': False,
+                            'error': 'Invalid upgrade data format'
+                        }), 500
+                        
+                except Exception as e:
+                    return jsonify({
+                        'success': False,
+                        'error': f'Error reading upgrade data: {str(e)}'
+                    }), 500
+            else:
+                return jsonify({
+                    'success': False,
+                    'error': 'Upgrade records data not found'
+                }), 404
+        
         else:
             return jsonify({'error': 'Section not found'}), 404
             
