@@ -1044,6 +1044,59 @@ def get_section_data(case_id, section):
                     'error': 'Upgrade records data not found'
                 }), 404
         
+        elif section == 'software-removal':
+            # Load removal records data
+            case_dir = os.path.join('cases', case.case_id)
+            removal_files = [f for f in os.listdir(case_dir) if f.startswith('removeRecords_') and f.endswith('.json')]
+            
+            if removal_files:
+                # Get the most recent removal records file
+                latest_file = os.path.join(case_dir, sorted(removal_files)[-1])
+                
+                try:
+                    with open(latest_file, 'r', encoding='utf-8') as f:
+                        removal_data = json.load(f)
+                    
+                    # Process the removal data
+                    if isinstance(removal_data, list):
+                        processed_removals = []
+                        for removal in removal_data:
+                            if isinstance(removal, dict):
+                                processed_removals.append({
+                                    'timestamp': removal.get('timestamp', 0),
+                                    'action': removal.get('action', 'unknown'),
+                                    'package': removal.get('package', 'unknown'),
+                                    'package_name': removal.get('package_name', 'unknown'),
+                                    'architecture': removal.get('architecture', 'unknown'),
+                                    'version': removal.get('version', 'unknown'),
+                                    'source_file': removal.get('source_file', 'unknown')
+                                })
+                        
+                        return jsonify({
+                            'success': True,
+                            'data': {
+                                'removals': processed_removals,
+                                'total': len(processed_removals),
+                                'file': os.path.basename(latest_file)
+                            }
+                        })
+                    else:
+                        return jsonify({
+                            'success': False,
+                            'error': 'Invalid removal data format'
+                        }), 500
+                        
+                except Exception as e:
+                    return jsonify({
+                        'success': False,
+                        'error': f'Error reading removal data: {str(e)}'
+                    }), 500
+            else:
+                return jsonify({
+                    'success': False,
+                    'error': 'Removal records data not found'
+                }), 404
+        
         else:
             return jsonify({'error': 'Section not found'}), 404
             
