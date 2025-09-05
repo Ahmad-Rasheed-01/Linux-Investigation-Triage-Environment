@@ -10974,46 +10974,54 @@ function renderSoftwareRemoval(data) {
         <!-- Statistics Cards -->
         <div class="row mb-4">
             <div class="col-md-3">
-                <div class="stat-card">
-                    <div class="stat-icon bg-danger">
-                        <i class="fas fa-trash-alt"></i>
-                    </div>
-                    <div class="stat-content">
-                        <h3>${totalRemovals.toLocaleString()}</h3>
-                        <p>Total Removals</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="stat-card">
-                    <div class="stat-icon bg-warning">
-                        <i class="fas fa-list"></i>
-                    </div>
-                    <div class="stat-content">
-                        <h3>${Object.keys(actionStats).length}</h3>
-                        <p>Action Types</p>
+                <div class="card bg-danger text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h4 class="mb-0">${totalRemovals.toLocaleString()}</h4>
+                                <small>Total Removals</small>
+                            </div>
+                            <i class="fas fa-trash-alt fa-2x opacity-50"></i>
+                        </div>
                     </div>
                 </div>
             </div>
             <div class="col-md-3">
-                <div class="stat-card">
-                    <div class="stat-icon bg-info">
-                        <i class="fas fa-file-alt"></i>
-                    </div>
-                    <div class="stat-content">
-                        <h3>1</h3>
-                        <p>Source Files</p>
+                <div class="card bg-warning text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h4 class="mb-0">${Object.keys(actionStats).length}</h4>
+                                <small>Action Types</small>
+                            </div>
+                            <i class="fas fa-list fa-2x opacity-50"></i>
+                        </div>
                     </div>
                 </div>
             </div>
             <div class="col-md-3">
-                <div class="stat-card">
-                    <div class="stat-icon bg-secondary">
-                        <i class="fas fa-clock"></i>
+                <div class="card bg-info text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h4 class="mb-0">1</h4>
+                                <small>Source Files</small>
+                            </div>
+                            <i class="fas fa-file-alt fa-2x opacity-50"></i>
+                        </div>
                     </div>
-                    <div class="stat-content">
-                        <h3>${removals.length > 0 ? new Date(removals[0].timestamp).toLocaleDateString() : 'N/A'}</h3>
-                        <p>Latest Activity</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-secondary text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h4 class="mb-0">${removals.length > 0 ? new Date(removals[0].timestamp).toLocaleDateString() : 'N/A'}</h4>
+                                <small>Latest Activity</small>
+                            </div>
+                            <i class="fas fa-clock fa-2x opacity-50"></i>
+                        </div>
                     </div>
                 </div>
             </div>
