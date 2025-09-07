@@ -100,7 +100,7 @@
             <div class="list-group-item list-group-item-action bg-light p-0">
                 <div class="nav-section-header p-3" data-bs-toggle="collapse" data-bs-target="#networkSection" aria-expanded="false">
                     <i class="fas fa-network-wired me-2"></i>
-                    <strong>Network</strong>
+                    <strong>Network Config</strong>
                     <i class="fas fa-chevron-down float-end mt-1"></i>
                 </div>
                 <div class="collapse" id="networkSection">
@@ -8240,7 +8240,7 @@ function renderSystemLogs(data) {
                         <i class="fas fa-file-alt text-primary me-2"></i>${filename}
                     </h5>
                     <div class="log-stats">
-                        <span class="badge bg-primary me-1">Total: ${statistics.total_entries || (Array.isArray(entries) ? entries.length : 0)}</span>
+                        <span class="badge bg-primary me-1">Total: ${Array.isArray(entries) ? entries.length : 0}</span>
                         ${statistics.error_entries ? `<span class="badge bg-danger me-1">Errors: ${statistics.error_entries}</span>` : ''}
                         ${statistics.warning_entries ? `<span class="badge bg-warning me-1">Warnings: ${statistics.warning_entries}</span>` : ''}
                         ${statistics.info_entries ? `<span class="badge bg-info me-1">Info: ${statistics.info_entries}</span>` : ''}
@@ -9221,7 +9221,7 @@ function renderUfwLogs(data) {
                         <i class="fas fa-file-alt text-primary me-2"></i>${filename}
                     </h5>
                     <div class="log-stats">
-                        <span class="badge bg-primary me-1">Total: ${statistics.total_entries || (Array.isArray(entries) ? entries.length : 0)}</span>
+                        <span class="badge bg-primary me-1">Total: ${Array.isArray(entries) ? entries.length : 0}</span>
                         ${statistics.blocked_entries ? `<span class="badge bg-danger me-1">Blocked: ${statistics.blocked_entries}</span>` : ''}
                         ${statistics.allowed_entries ? `<span class="badge bg-success me-1">Allowed: ${statistics.allowed_entries}</span>` : ''}
                     </div>
@@ -9409,9 +9409,10 @@ function exportFilteredUfwLogs() {
 
 function renderUfwLogsTable(data, filters = {}) {
     // This function would handle filtered rendering
-    // For now, just re-render the full table
     let html = '';
+    let totalFilteredEntries = [];
     
+    // First, collect all filtered entries from all files
     Object.keys(data).forEach(filename => {
         const logData = data[filename];
         const entries = logData.entries || logData;
@@ -9439,10 +9440,50 @@ function renderUfwLogsTable(data, filters = {}) {
             );
         }
         
-        // Apply limit
-        if (filters.limit && filters.limit !== 'all') {
-            filteredEntries = filteredEntries.slice(0, filters.limit);
+        // Add filename to each entry for display purposes
+        filteredEntries.forEach(entry => {
+            entry._filename = filename;
+        });
+        
+        totalFilteredEntries = totalFilteredEntries.concat(filteredEntries);
+    });
+    
+    // Apply global limit to all filtered entries
+    if (filters.limit && filters.limit !== 'all') {
+        totalFilteredEntries = totalFilteredEntries.slice(0, filters.limit);
+    }
+    
+    // If no entries match filters, show message
+    if (totalFilteredEntries.length === 0) {
+        return '<div class="alert alert-info"><i class="fas fa-info-circle me-2"></i>No entries match the current filters. Try adjusting your search criteria.</div>';
+    }
+    
+    // Add filter summary
+    html += `
+        <div class="alert alert-success mb-3">
+            <i class="fas fa-filter me-2"></i>
+            <strong>Filter Results:</strong> Found ${totalFilteredEntries.length} entries
+            ${filters.search ? ` matching "${filters.search}"` : ''}
+            ${filters.action ? ` with action "${filters.action}"` : ''}
+            ${filters.protocol ? ` using protocol "${filters.protocol}"` : ''}
+            ${filters.limit && filters.limit !== 'all' ? ` (limited to ${filters.limit})` : ''}
+        </div>
+    `;
+    
+    // Group entries back by filename for display
+    const groupedEntries = {};
+    totalFilteredEntries.forEach(entry => {
+        const filename = entry._filename;
+        if (!groupedEntries[filename]) {
+            groupedEntries[filename] = [];
         }
+        groupedEntries[filename].push(entry);
+    });
+    
+    // Render grouped entries
+    Object.keys(groupedEntries).forEach(filename => {
+        const filteredEntries = groupedEntries[filename];
+        const totalCount = totalFilteredEntries.length;
         
         // Render filtered entries (similar to main render function)
         html += `
@@ -9452,7 +9493,8 @@ function renderUfwLogsTable(data, filters = {}) {
                         <i class="fas fa-file-alt text-primary me-2"></i>${filename}
                     </h5>
                     <div class="log-stats">
-                        <span class="badge bg-primary me-1">Filtered: ${filteredEntries.length}</span>
+                        <span class="badge bg-primary me-1">Showing: ${filteredEntries.length}</span>
+                        <span class="badge bg-info me-1">Total Filtered: ${totalCount}</span>
                     </div>
                 </div>
                 
@@ -12098,4 +12140,4 @@ function renderChainTable(chain, rules) {
     return html;
 }
 </script>
-{% endblock %}
+{% endblock extra_scripts %}
