@@ -801,6 +801,73 @@ def get_section_data(case_id, section):
                     'data': collection_log_data
                 })
         
+        elif section == 'ufw-logs':
+            try:
+                # Load the specific UFW log file
+                case_dir = os.path.join('cases', case.case_id)
+                ufw_file_path = os.path.join(case_dir, 'ufw_20250825_231415.json')
+                
+                ufw_data = {}
+                
+                if os.path.exists(ufw_file_path):
+                    try:
+                        data = json_parser.load_json_file(ufw_file_path)
+                        if data:
+                            # Process UFW logs from JSON structure
+                            if isinstance(data, dict) and 'entries' in data:
+                                # Limit UFW log entries for performance
+                                if len(data['entries']) > 1000:
+                                    data['entries'] = data['entries'][:1000]  # Show first 1000 entries
+                                ufw_data['ufw_20250825_231415.json'] = data
+                            elif isinstance(data, list):
+                                # Limit UFW log entries for performance
+                                if len(data) > 1000:
+                                    data = data[:1000]  # Show first 1000 entries
+                                ufw_data['ufw_20250825_231415.json'] = {'entries': data}
+                            elif isinstance(data, dict):
+                                ufw_data['ufw_20250825_231415.json'] = data
+                    except Exception as file_error:
+                        print(f"Error processing UFW file ufw_20250825_231415.json: {str(file_error)}")
+                        return jsonify({
+                            'success': False,
+                            'error': f'Error loading UFW log file: {str(file_error)}'
+                        }), 500
+                else:
+                    # If specific file not found, search for other UFW artifacts
+                    ufw_artifacts = _get_artifacts_by_keywords(case.artifacts, ['ufw'])
+                    
+                    for artifact in ufw_artifacts:
+                        try:
+                            data = json_parser.load_json_file(artifact.file_path)
+                            if data:
+                                # Process UFW logs from JSON structure
+                                if isinstance(data, dict) and 'entries' in data:
+                                    # Limit UFW log entries for performance
+                                    if len(data['entries']) > 1000:
+                                        data['entries'] = data['entries'][:1000]  # Show first 1000 entries
+                                    ufw_data[artifact.filename] = data
+                                elif isinstance(data, list):
+                                    # Limit UFW log entries for performance
+                                    if len(data) > 1000:
+                                        data = data[:1000]  # Show first 1000 entries
+                                    ufw_data[artifact.filename] = {'entries': data}
+                                elif isinstance(data, dict):
+                                    ufw_data[artifact.filename] = data
+                        except Exception as file_error:
+                            print(f"Error processing UFW file {artifact.filename}: {str(file_error)}")
+                            continue
+                
+                return jsonify({
+                    'success': True,
+                    'data': ufw_data
+                })
+            except Exception as ufw_error:
+                print(f"Error in ufw-logs section: {str(ufw_error)}")
+                return jsonify({
+                    'success': False,
+                    'error': f'Error loading UFW logs: {str(ufw_error)}'
+                }), 500
+        
         elif section == 'login-history':
             # Get login history artifacts
             login_artifacts = _get_artifacts_by_keywords(case.artifacts, 

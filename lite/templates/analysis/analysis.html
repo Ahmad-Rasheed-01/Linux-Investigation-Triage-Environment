@@ -145,6 +145,9 @@
                     <a href="#" class="list-group-item list-group-item-action ps-4 nav-link" data-section="application-logs">
                         <i class="fas fa-code me-2"></i>Applications
                     </a>
+                    <a href="#" class="list-group-item list-group-item-action ps-4 nav-link" data-section="ufw-logs">
+                        <i class="fas fa-fire me-2"></i>UFW Logs
+                    </a>
                 </div>
             </div>
             
@@ -454,6 +457,9 @@ function renderSectionContent(section, data) {
             break;
         case 'firewall-config':
             renderFirewallConfig(data);
+            break;
+        case 'ufw-logs':
+            renderUfwLogs(data);
             break;
         default:
             renderGenericData(section, data);
@@ -9018,6 +9024,523 @@ function renderKernelLogsTable(data, filters = {}) {
         }
         
         html += '</div>';
+    });
+    
+    return html;
+}
+
+function renderUfwLogs(data) {
+    const contentArea = document.getElementById('content-area');
+    
+    // Store data globally for filter functions
+    window.currentUfwLogsData = data;
+    
+    if (!data || Object.keys(data).length === 0) {
+        contentArea.innerHTML = '<div class="alert alert-info"><i class="fas fa-info-circle me-2"></i>No UFW logs data available</div>';
+        return;
+    }
+    
+    let html = `
+        <div class="row mb-4">
+            <div class="col-12">
+                <h2 class="h4 mb-3">
+                    <i class="fas fa-fire me-2"></i>UFW Firewall Logs
+                </h2>
+            </div>
+        </div>
+        
+        <!-- UFW Logs Analysis Guide -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card border-info">
+                    <div class="card-header bg-info text-white py-2">
+                        <h6 class="m-0">
+                            <i class="fas fa-info-circle me-2"></i>UFW Firewall Logs Analysis Guide
+                            <button class="btn btn-sm btn-outline-light float-end" type="button" data-bs-toggle="collapse" data-bs-target="#ufwGuide" aria-expanded="false">
+                                <i class="fas fa-chevron-down"></i>
+                            </button>
+                        </h6>
+                    </div>
+                    <div class="collapse" id="ufwGuide">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6 class="text-info"><i class="fas fa-search me-2"></i>What to Look For</h6>
+                                    <ul class="list-unstyled">
+                                        <li class="mb-2"><strong>Blocked Connections:</strong> Look for BLOCK actions indicating denied traffic</li>
+                                        <li class="mb-2"><strong>Allowed Traffic:</strong> Monitor ALLOW actions for permitted connections</li>
+                                        <li class="mb-2"><strong>Port Scanning:</strong> Multiple connection attempts to different ports from same source</li>
+                                        <li class="mb-2"><strong>Suspicious IPs:</strong> Repeated attempts from external or unknown IP addresses</li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6 class="text-info"><i class="fas fa-shield-alt me-2"></i>Security Indicators</h6>
+                                    <ul class="list-unstyled">
+                                        <li class="mb-2"><strong>Brute Force Attacks:</strong> Repeated connection attempts to SSH, FTP, or web services</li>
+                                        <li class="mb-2"><strong>DDoS Patterns:</strong> High volume of requests from multiple sources</li>
+                                        <li class="mb-2"><strong>Malicious Traffic:</strong> Connections to/from known bad IP ranges</li>
+                                        <li class="mb-2"><strong>Policy Violations:</strong> Traffic that should be blocked but appears as allowed</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="row mt-3">
+                                <div class="col-12">
+                                    <small class="text-muted">
+                                        <i class="fas fa-lightbulb me-1"></i>
+                                        <strong>Investigation Tips:</strong> Focus on blocked traffic patterns, correlate source IPs with threat intelligence, 
+                                        monitor for unusual port access attempts, and check for traffic during off-hours or from unexpected geographic locations.
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Calculate analytics metrics
+    const metrics = calculateUfwAnalysisMetrics(data);
+    
+    // Analytics Cards
+    html += `
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card bg-primary text-white">
+                    <div class="card-body text-center">
+                        <i class="fas fa-list-alt fa-2x mb-2"></i>
+                        <h4 class="mb-1">${metrics.totalEntries.toLocaleString()}</h4>
+                        <small>Total Entries</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-danger text-white">
+                    <div class="card-body text-center">
+                        <i class="fas fa-ban fa-2x mb-2"></i>
+                        <h4 class="mb-1">${metrics.blockedConnections.toLocaleString()}</h4>
+                        <small>Blocked Connections</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-success text-white">
+                    <div class="card-body text-center">
+                        <i class="fas fa-check fa-2x mb-2"></i>
+                        <h4 class="mb-1">${metrics.allowedConnections.toLocaleString()}</h4>
+                        <small>Allowed Connections</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-warning text-white">
+                    <div class="card-body text-center">
+                        <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
+                        <h4 class="mb-1">${metrics.uniqueIPs.toLocaleString()}</h4>
+                        <small>Unique Source IPs</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Filters Section
+    html += `
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="m-0"><i class="fas fa-filter me-2"></i>Filters & Search</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label for="ufwLogSearch" class="form-label">Search Logs</label>
+                                <input type="text" class="form-control" id="ufwLogSearch" placeholder="Search IPs, ports...">
+                            </div>
+                            <div class="col-md-2">
+                                <label for="ufwAction" class="form-label">Action</label>
+                                <select class="form-select" id="ufwAction">
+                                    <option value="">All Actions</option>
+                                    <option value="allow">Allow</option>
+                                    <option value="block">Block</option>
+                                    <option value="audit">Audit</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label for="ufwProtocol" class="form-label">Protocol</label>
+                                <select class="form-select" id="ufwProtocol">
+                                    <option value="">All Protocols</option>
+                                    <option value="TCP">TCP</option>
+                                    <option value="UDP">UDP</option>
+                                    <option value="ICMP">ICMP</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label for="ufwEntryLimit" class="form-label">Entry Limit</label>
+                                <select class="form-select" id="ufwEntryLimit">
+                                    <option value="100">100</option>
+                                    <option value="250">250</option>
+                                    <option value="500">500</option>
+                                    <option value="1000">1000</option>
+                                    <option value="all">All</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">&nbsp;</label>
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-primary" onclick="applyUfwFilters()">Apply Filters</button>
+                                    <button class="btn btn-secondary" onclick="clearUfwFilters()">Clear</button>
+                                    <button class="btn btn-success" onclick="exportFilteredUfwLogs()">Export CSV</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    html += '<div class="ufw-logs-container" id="ufwLogsTable">';
+    
+    // Process each log file
+    Object.keys(data).forEach(filename => {
+        const logData = data[filename];
+        
+        if (!logData || (!logData.entries && !Array.isArray(logData))) {
+            return;
+        }
+        
+        const entries = logData.entries || logData;
+        const statistics = logData.statistics || {};
+        
+        html += `
+            <div class="log-file-section mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0">
+                        <i class="fas fa-file-alt text-primary me-2"></i>${filename}
+                    </h5>
+                    <div class="log-stats">
+                        <span class="badge bg-primary me-1">Total: ${statistics.total_entries || (Array.isArray(entries) ? entries.length : 0)}</span>
+                        ${statistics.blocked_entries ? `<span class="badge bg-danger me-1">Blocked: ${statistics.blocked_entries}</span>` : ''}
+                        ${statistics.allowed_entries ? `<span class="badge bg-success me-1">Allowed: ${statistics.allowed_entries}</span>` : ''}
+                    </div>
+                </div>
+                
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th style="width: 150px;">Timestamp</th>
+                                <th style="width: 80px;">Action</th>
+                                <th style="width: 120px;">Source IP</th>
+                                <th style="width: 60px;">Src Port</th>
+                                <th style="width: 120px;">Dest IP</th>
+                                <th style="width: 60px;">Dst Port</th>
+                                <th style="width: 60px;">Protocol</th>
+                                <th style="width: 80px;">Interface</th>
+                                <th>Details</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+        `;
+        
+        // Display first 100 entries for performance
+        const displayEntries = Array.isArray(entries) ? entries.slice(0, 100) : [];
+        
+        displayEntries.forEach((entry, index) => {
+            const timestamp = entry.timestamp || 'N/A';
+            const action = entry.action || 'N/A';
+            const sourceIp = entry.source_ip || entry.SRC || 'N/A';
+            const sourcePort = entry.source_port || entry.SPT || 'N/A';
+            const destIp = entry.destination_ip || entry.DST || 'N/A';
+            const destPort = entry.destination_port || entry.DPT || 'N/A';
+            const protocol = entry.protocol || entry.PROTO || 'N/A';
+            const interfaceOut = entry.interface_out || entry.OUT || 'N/A';
+            const threatLevel = entry.threat_level || 'unknown';
+            const serviceTargeted = entry.service_targeted || 'N/A';
+            
+            // Convert timestamp to readable format if it's a number
+            const formattedTimestamp = (typeof timestamp === 'number') ? 
+                new Date(timestamp * 1000).toLocaleString() : 
+                (timestamp !== 'N/A' ? timestamp : 'N/A');
+            
+            // Color code actions
+            let actionBadge = '';
+            switch(action.toLowerCase()) {
+                case 'block':
+                    actionBadge = '<span class="badge bg-danger">BLOCK</span>';
+                    break;
+                case 'allow':
+                    actionBadge = '<span class="badge bg-success">ALLOW</span>';
+                    break;
+                case 'audit':
+                    actionBadge = '<span class="badge bg-info">AUDIT</span>';
+                    break;
+                default:
+                    actionBadge = `<span class="badge bg-secondary">${action.toUpperCase()}</span>`;
+            }
+            
+            // Color code threat levels
+            let threatBadge = '';
+            switch(threatLevel.toLowerCase()) {
+                case 'high':
+                    threatBadge = '<span class="badge bg-danger">HIGH</span>';
+                    break;
+                case 'medium':
+                    threatBadge = '<span class="badge bg-warning text-dark">MEDIUM</span>';
+                    break;
+                case 'low':
+                    threatBadge = '<span class="badge bg-success">LOW</span>';
+                    break;
+                default:
+                    threatBadge = '<span class="badge bg-light text-dark">UNKNOWN</span>';
+            }
+            
+            html += `
+                <tr>
+                    <td><small>${formattedTimestamp}</small></td>
+                    <td>${actionBadge}</td>
+                    <td><small class="font-monospace">${sourceIp}</small></td>
+                    <td><small>${sourcePort}</small></td>
+                    <td><small class="font-monospace">${destIp}</small></td>
+                    <td><small>${destPort}</small></td>
+                    <td><small>${protocol}</small></td>
+                    <td><small>${interfaceOut}</small></td>
+                    <td><small>Service: ${serviceTargeted} | Threat: ${threatBadge}</small></td>
+                </tr>
+            `;
+        });
+        
+        html += `
+                        </tbody>
+                    </table>
+                </div>
+        `;
+        
+        // Show truncation notice if there are more entries
+        if (Array.isArray(entries) && entries.length > 100) {
+            html += `
+                <div class="alert alert-info mt-2">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Showing first 100 entries out of ${entries.length} total entries for performance reasons.
+                </div>
+            `;
+        }
+        
+        html += '</div>';
+    });
+    
+    html += '</div>';
+    contentArea.innerHTML = html;
+}
+
+function calculateUfwAnalysisMetrics(data) {
+    let totalEntries = 0;
+    let blockedConnections = 0;
+    let allowedConnections = 0;
+    let uniqueIPs = new Set();
+    
+    Object.keys(data).forEach(filename => {
+        const logData = data[filename];
+        const entries = logData.entries || logData;
+        
+        if (Array.isArray(entries)) {
+            totalEntries += entries.length;
+            
+            entries.forEach(entry => {
+                const action = (entry.action || '').toLowerCase();
+                const sourceIp = entry.source_ip || entry.SRC;
+                
+                if (action === 'block') {
+                    blockedConnections++;
+                } else if (action === 'allow') {
+                    allowedConnections++;
+                }
+                
+                if (sourceIp) {
+                    uniqueIPs.add(sourceIp);
+                }
+            });
+        }
+    });
+    
+    return {
+        totalEntries,
+        blockedConnections,
+        allowedConnections,
+        uniqueIPs: uniqueIPs.size
+    };
+}
+
+function applyUfwFilters() {
+    const search = document.getElementById('ufwLogSearch').value;
+    const action = document.getElementById('ufwAction').value;
+    const protocol = document.getElementById('ufwProtocol').value;
+    const limitValue = document.getElementById('ufwEntryLimit').value;
+    const limit = limitValue === 'all' ? 'all' : parseInt(limitValue);
+    
+    const filters = {
+        search: search,
+        action: action,
+        protocol: protocol,
+        limit: limit
+    };
+    
+    const displayArea = document.getElementById('ufwLogsTable');
+    displayArea.innerHTML = renderUfwLogsTable(window.currentUfwLogsData, filters);
+}
+
+function clearUfwFilters() {
+    document.getElementById('ufwLogSearch').value = '';
+    document.getElementById('ufwAction').value = '';
+    document.getElementById('ufwProtocol').value = '';
+    document.getElementById('ufwEntryLimit').value = '100';
+    
+    // Re-render with no filters
+    const displayArea = document.getElementById('ufwLogsTable');
+    displayArea.innerHTML = renderUfwLogsTable(window.currentUfwLogsData, {});
+}
+
+function exportFilteredUfwLogs() {
+    // Implementation for CSV export would go here
+    alert('UFW Logs export functionality would be implemented here');
+}
+
+function renderUfwLogsTable(data, filters = {}) {
+    // This function would handle filtered rendering
+    // For now, just re-render the full table
+    let html = '';
+    
+    Object.keys(data).forEach(filename => {
+        const logData = data[filename];
+        const entries = logData.entries || logData;
+        
+        if (!Array.isArray(entries)) return;
+        
+        let filteredEntries = entries;
+        
+        // Apply filters
+        if (filters.search) {
+            filteredEntries = filteredEntries.filter(entry => 
+                JSON.stringify(entry).toLowerCase().includes(filters.search.toLowerCase())
+            );
+        }
+        
+        if (filters.action) {
+            filteredEntries = filteredEntries.filter(entry => 
+                (entry.action || '').toLowerCase() === filters.action.toLowerCase()
+            );
+        }
+        
+        if (filters.protocol) {
+            filteredEntries = filteredEntries.filter(entry => 
+                (entry.protocol || entry.PROTO || '').toUpperCase() === filters.protocol.toUpperCase()
+            );
+        }
+        
+        // Apply limit
+        if (filters.limit && filters.limit !== 'all') {
+            filteredEntries = filteredEntries.slice(0, filters.limit);
+        }
+        
+        // Render filtered entries (similar to main render function)
+        html += `
+            <div class="log-file-section mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0">
+                        <i class="fas fa-file-alt text-primary me-2"></i>${filename}
+                    </h5>
+                    <div class="log-stats">
+                        <span class="badge bg-primary me-1">Filtered: ${filteredEntries.length}</span>
+                    </div>
+                </div>
+                
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th style="width: 150px;">Timestamp</th>
+                                <th style="width: 80px;">Action</th>
+                                <th style="width: 120px;">Source IP</th>
+                                <th style="width: 60px;">Src Port</th>
+                                <th style="width: 120px;">Dest IP</th>
+                                <th style="width: 60px;">Dst Port</th>
+                                <th style="width: 60px;">Protocol</th>
+                                <th style="width: 80px;">Interface</th>
+                                <th>Details</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+        `;
+        
+        filteredEntries.forEach((entry, index) => {
+            const timestamp = entry.timestamp || 'N/A';
+            const action = entry.action || 'N/A';
+            const sourceIp = entry.source_ip || entry.SRC || 'N/A';
+            const sourcePort = entry.source_port || entry.SPT || 'N/A';
+            const destIp = entry.destination_ip || entry.DST || 'N/A';
+            const destPort = entry.destination_port || entry.DPT || 'N/A';
+            const protocol = entry.protocol || entry.PROTO || 'N/A';
+            const interfaceOut = entry.interface_out || entry.OUT || 'N/A';
+            const threatLevel = entry.threat_level || 'unknown';
+            const serviceTargeted = entry.service_targeted || 'N/A';
+            
+            const formattedTimestamp = (typeof timestamp === 'number') ? 
+                new Date(timestamp * 1000).toLocaleString() : 
+                (timestamp !== 'N/A' ? timestamp : 'N/A');
+            
+            let actionBadge = '';
+            switch(action.toLowerCase()) {
+                case 'block':
+                    actionBadge = '<span class="badge bg-danger">BLOCK</span>';
+                    break;
+                case 'allow':
+                    actionBadge = '<span class="badge bg-success">ALLOW</span>';
+                    break;
+                case 'audit':
+                    actionBadge = '<span class="badge bg-info">AUDIT</span>';
+                    break;
+                default:
+                    actionBadge = `<span class="badge bg-secondary">${action.toUpperCase()}</span>`;
+            }
+            
+            let threatBadge = '';
+            switch(threatLevel.toLowerCase()) {
+                case 'high':
+                    threatBadge = '<span class="badge bg-danger">HIGH</span>';
+                    break;
+                case 'medium':
+                    threatBadge = '<span class="badge bg-warning text-dark">MEDIUM</span>';
+                    break;
+                case 'low':
+                    threatBadge = '<span class="badge bg-success">LOW</span>';
+                    break;
+                default:
+                    threatBadge = '<span class="badge bg-light text-dark">UNKNOWN</span>';
+            }
+            
+            html += `
+                <tr>
+                    <td><small>${formattedTimestamp}</small></td>
+                    <td>${actionBadge}</td>
+                    <td><small class="font-monospace">${sourceIp}</small></td>
+                    <td><small>${sourcePort}</small></td>
+                    <td><small class="font-monospace">${destIp}</small></td>
+                    <td><small>${destPort}</small></td>
+                    <td><small>${protocol}</small></td>
+                    <td><small>${interfaceOut}</small></td>
+                    <td><small>Service: ${serviceTargeted} | Threat: ${threatBadge}</small></td>
+                </tr>
+            `;
+        });
+        
+        html += `
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        `;
     });
     
     return html;
