@@ -190,6 +190,20 @@
                     </a>
                 </div>
             </div>
+            
+            <!-- Security Section -->
+            <div class="list-group-item list-group-item-action bg-light p-0">
+                <div class="nav-section-header p-3" data-bs-toggle="collapse" data-bs-target="#securitySection" aria-expanded="false">
+                    <i class="fas fa-shield-alt me-2"></i>
+                    <strong>Security</strong>
+                    <i class="fas fa-chevron-down float-end mt-1"></i>
+                </div>
+                <div class="collapse" id="securitySection">
+                    <a href="#" class="list-group-item list-group-item-action ps-4 nav-link" data-section="firewall-config">
+                        <i class="fas fa-firewall me-2"></i>Firewall Config
+                    </a>
+                </div>
+            </div>
         </div>
     </div>
     
@@ -437,6 +451,9 @@ function renderSectionContent(section, data) {
             break;
         case 'software-removal':
             renderSoftwareRemoval(data);
+            break;
+        case 'firewall-config':
+            renderFirewallConfig(data);
             break;
         default:
             renderGenericData(section, data);
@@ -11335,6 +11352,227 @@ function sortPackagesTable(columnIndex) {
             }
         }
     }
+}
+
+function renderFirewallConfig(data) {
+    const contentArea = document.getElementById('content-area');
+    
+    if (!data || !data.firewall_rules) {
+        contentArea.innerHTML = `
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-triangle"></i>
+                Error loading firewall configuration: No firewall data available
+            </div>
+        `;
+        return;
+    }
+
+    const firewallData = data.firewall_rules;
+    const filename = data.file || 'Unknown';
+    
+    // Parse iptables and ip6tables data
+    const iptablesData = firewallData.iptables || {};
+    const ip6tablesData = firewallData.ip6tables || {};
+    
+    contentArea.innerHTML = `
+        <div class="section-header">
+            <h2><i class="fas fa-shield-alt"></i> Firewall Configuration Analysis</h2>
+            <p class="text-muted">Analysis of iptables and ip6tables firewall rules from ${filename}</p>
+        </div>
+        
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card bg-primary text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h4 class="mb-0">${iptablesData.success ? 'Active' : 'Inactive'}</h4>
+                                <small>IPv4 Firewall</small>
+                            </div>
+                            <i class="fas fa-network-wired fa-2x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card bg-info text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h4 class="mb-0">${ip6tablesData.success ? 'Active' : 'Inactive'}</h4>
+                                <small>IPv6 Firewall</small>
+                            </div>
+                            <i class="fas fa-globe fa-2x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <ul class="nav nav-tabs card-header-tabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#iptables" type="button" role="tab">
+                                    <i class="fas fa-network-wired"></i> IPv4 Rules
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#ip6tables" type="button" role="tab">
+                                    <i class="fas fa-globe"></i> IPv6 Rules
+                                </button>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="card-body">
+                        <div class="tab-content">
+                            <div class="tab-pane fade show active" id="iptables" role="tabpanel">
+                                ${parseIptablesOutput(iptablesData.stdout || '')}
+                            </div>
+                            <div class="tab-pane fade" id="ip6tables" role="tabpanel">
+                                ${parseIptablesOutput(ip6tablesData.stdout || '')}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function parseIptablesOutput(output) {
+    if (!output || output.trim() === '') {
+        return '<div class="alert alert-info"><i class="fas fa-info-circle"></i> No firewall rules data available</div>';
+    }
+
+    const lines = output.split('\n');
+    let html = '';
+    let currentChain = '';
+    let inChainSection = false;
+    let chainRules = [];
+
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        
+        // Check if this is a chain header
+        if (line.startsWith('Chain ')) {
+            // If we have previous chain data, render it
+            if (currentChain && chainRules.length > 0) {
+                html += renderChainTable(currentChain, chainRules);
+            }
+            
+            // Parse new chain header
+            const chainMatch = line.match(/Chain (\S+) \(policy (\S+)(?: (\d+) packets, (\d+) bytes)?\)/);
+            if (chainMatch) {
+                currentChain = {
+                    name: chainMatch[1],
+                    policy: chainMatch[2],
+                    packets: chainMatch[3] || '0',
+                    bytes: chainMatch[4] || '0'
+                };
+                chainRules = [];
+                inChainSection = true;
+            }
+        }
+        // Check if this is a rule line (starts with numbers or spaces followed by numbers)
+        else if (inChainSection && line && /^\s*\d/.test(line)) {
+            const parts = line.trim().split(/\s+/);
+            if (parts.length >= 6) {
+                chainRules.push({
+                    pkts: parts[0] || '0',
+                    bytes: parts[1] || '0',
+                    target: parts[2] || '',
+                    prot: parts[3] || '',
+                    opt: parts[4] || '',
+                    input: parts[5] || '',
+                    output: parts[6] || '',
+                    source: parts[7] || '',
+                    destination: parts[8] || '',
+                    extra: parts.slice(9).join(' ') || ''
+                });
+            }
+        }
+        // Empty line might indicate end of chain
+        else if (line === '' && inChainSection) {
+            inChainSection = false;
+        }
+    }
+    
+    // Render the last chain if exists
+    if (currentChain && chainRules.length > 0) {
+        html += renderChainTable(currentChain, chainRules);
+    }
+    
+    return html || '<div class="alert alert-warning"><i class="fas fa-exclamation-triangle"></i> Unable to parse firewall rules format</div>';
+}
+
+function renderChainTable(chain, rules) {
+    let html = `
+        <div class="mb-4">
+            <h5 class="text-primary">
+                <i class="fas fa-link"></i> Chain: ${chain.name}
+                <small class="text-muted ms-2">
+                    Policy: <span class="badge ${chain.policy === 'ACCEPT' ? 'bg-success' : chain.policy === 'DROP' ? 'bg-danger' : 'bg-warning'}">${chain.policy}</span>
+                    | Packets: ${chain.packets} | Bytes: ${chain.bytes}
+                </small>
+            </h5>
+    `;
+    
+    if (rules.length === 0) {
+        html += '<div class="alert alert-info"><i class="fas fa-info-circle"></i> No rules defined for this chain</div>';
+    } else {
+        html += `
+            <div class="table-responsive">
+                <table class="table table-striped table-hover table-sm">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Packets</th>
+                            <th>Bytes</th>
+                            <th>Target</th>
+                            <th>Protocol</th>
+                            <th>Opt</th>
+                            <th>In</th>
+                            <th>Out</th>
+                            <th>Source</th>
+                            <th>Destination</th>
+                            <th>Extra</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+        
+        rules.forEach(rule => {
+            const targetClass = rule.target === 'ACCEPT' ? 'text-success' : 
+                               rule.target === 'DROP' ? 'text-danger' : 
+                               rule.target === 'REJECT' ? 'text-warning' : '';
+            
+            html += `
+                <tr>
+                    <td>${rule.pkts}</td>
+                    <td>${rule.bytes}</td>
+                    <td class="${targetClass} fw-bold">${rule.target}</td>
+                    <td>${rule.prot}</td>
+                    <td>${rule.opt}</td>
+                    <td>${rule.input}</td>
+                    <td>${rule.output}</td>
+                    <td><code>${rule.source}</code></td>
+                    <td><code>${rule.destination}</code></td>
+                    <td class="text-muted small">${rule.extra}</td>
+                </tr>
+            `;
+        });
+        
+        html += `
+                    </tbody>
+                </table>
+            </div>
+        `;
+    }
+    
+    html += '</div>';
+    return html;
 }
 </script>
 {% endblock %}

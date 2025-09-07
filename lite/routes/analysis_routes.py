@@ -1097,6 +1097,45 @@ def get_section_data(case_id, section):
                     'error': 'Removal records data not found'
                 }), 404
         
+        elif section == 'firewall-config':
+            # Load firewall rules data
+            case_dir = os.path.join('cases', case.case_id)
+            firewall_files = [f for f in os.listdir(case_dir) if f.startswith('firewallRules_') and f.endswith('.json')]
+            
+            if firewall_files:
+                # Get the most recent firewall rules file
+                latest_file = os.path.join(case_dir, sorted(firewall_files)[-1])
+                
+                try:
+                    with open(latest_file, 'r', encoding='utf-8') as f:
+                        firewall_data = json.load(f)
+                    
+                    # Process the firewall data
+                    if isinstance(firewall_data, dict):
+                        return jsonify({
+                            'success': True,
+                            'data': {
+                                'firewall_rules': firewall_data,
+                                'file': os.path.basename(latest_file)
+                            }
+                        })
+                    else:
+                        return jsonify({
+                            'success': False,
+                            'error': 'Invalid firewall data format'
+                        }), 500
+                        
+                except Exception as e:
+                    return jsonify({
+                        'success': False,
+                        'error': f'Error reading firewall data: {str(e)}'
+                    }), 500
+            else:
+                return jsonify({
+                    'success': False,
+                    'error': 'Firewall rules data not found'
+                }), 404
+        
         else:
             return jsonify({'error': 'Section not found'}), 404
             
