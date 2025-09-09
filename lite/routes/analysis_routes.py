@@ -1212,20 +1212,34 @@ def get_section_data(case_id, section):
             # Find NFS mounts file
             mounts_files = [f for f in os.listdir(case_dir) if f.startswith('nfsMounts_') and f.endswith('.json')]
             
-            nfs_data = {
-                'exports': None,
-                'mounts': None,
-                'exports_file': None,
-                'mounts_file': None
-            }
+            nfs_exports = {}
+            nfs_mounts = {}
+            exports_file = None
+            mounts_file = None
             
             # Load exports data
             if exports_files:
                 latest_exports_file = os.path.join(case_dir, sorted(exports_files)[-1])
                 try:
                     with open(latest_exports_file, 'r', encoding='utf-8') as f:
-                        nfs_data['exports'] = json.load(f)
-                        nfs_data['exports_file'] = os.path.basename(latest_exports_file)
+                        exports_data = json.load(f)
+                        exports_file = os.path.basename(latest_exports_file)
+                        
+                        # Extract exports array from the JSON structure
+                        if 'exports' in exports_data and isinstance(exports_data['exports'], list):
+                            # Convert list of exports to dictionary format expected by frontend
+                            for i, export in enumerate(exports_data['exports']):
+                                if isinstance(export, dict) and 'path' in export:
+                                    nfs_exports[export['path']] = {
+                                        'clients': export.get('clients', []),
+                                        'options': export.get('options', [])
+                                    }
+                                elif isinstance(export, str):
+                                    # Handle simple string exports
+                                    nfs_exports[export] = {
+                                        'clients': [],
+                                        'options': []
+                                    }
                 except Exception as e:
                     print(f"Error reading NFS exports: {e}")
             
@@ -1234,14 +1248,31 @@ def get_section_data(case_id, section):
                 latest_mounts_file = os.path.join(case_dir, sorted(mounts_files)[-1])
                 try:
                     with open(latest_mounts_file, 'r', encoding='utf-8') as f:
-                        nfs_data['mounts'] = json.load(f)
-                        nfs_data['mounts_file'] = os.path.basename(latest_mounts_file)
+                        mounts_data = json.load(f)
+                        mounts_file = os.path.basename(latest_mounts_file)
+                        
+                        # Extract mounts array from the JSON structure
+                        if 'mounts' in mounts_data and isinstance(mounts_data['mounts'], list):
+                            # Convert list of mounts to dictionary format expected by frontend
+                            for i, mount in enumerate(mounts_data['mounts']):
+                                if isinstance(mount, dict):
+                                    mount_point = mount.get('mount_point', f'mount_{i}')
+                                    nfs_mounts[mount_point] = {
+                                        'server': mount.get('server', 'Unknown'),
+                                        'remote_path': mount.get('remote_path', 'Unknown'),
+                                        'options': mount.get('options', []),
+                                        'status': mount.get('status', 'Unknown')
+                                    }
                 except Exception as e:
                     print(f"Error reading NFS mounts: {e}")
             
             return jsonify({
                 'success': True,
-                'data': nfs_data
+                'data': {
+                    'nfs_exports': nfs_exports,
+                    'nfs_mounts': nfs_mounts,
+                    'file': f"Exports: {exports_file or 'Not found'}, Mounts: {mounts_file or 'Not found'}"
+                }
             })
         
         else:
