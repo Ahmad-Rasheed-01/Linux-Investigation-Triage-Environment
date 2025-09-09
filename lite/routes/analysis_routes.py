@@ -1416,6 +1416,71 @@ def get_section_data(case_id, section):
                 }
             })
         
+        elif section == 'search-history':
+            # Load search history data
+            case_dir = os.path.join('cases', case.case_id)
+            
+            # Find search history file
+            search_files = [f for f in os.listdir(case_dir) if f.startswith('searchHistory_') and f.endswith('.json')]
+            
+            search_history = []
+            search_file = None
+            
+            # Load search history data
+            if search_files:
+                latest_search_file = os.path.join(case_dir, sorted(search_files)[-1])
+                try:
+                    with open(latest_search_file, 'r', encoding='utf-8') as f:
+                        search_data = json.load(f)
+                        search_file = os.path.basename(latest_search_file)
+                        
+                        # Process search history data
+                        if isinstance(search_data, list):
+                            for entry in search_data:
+                                if isinstance(entry, dict):
+                                    # Convert timestamps to readable format
+                                    first_used = 'Unknown'
+                                    last_used = 'Unknown'
+                                    
+                                    if 'firstUsed' in entry:
+                                        try:
+                                            import datetime
+                                            timestamp = float(entry['firstUsed'])
+                                            first_used = datetime.datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
+                                        except (ValueError, TypeError):
+                                            first_used = str(entry['firstUsed'])
+                                    
+                                    if 'lastUsed' in entry:
+                                        try:
+                                            timestamp = float(entry['lastUsed'])
+                                            last_used = datetime.datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
+                                        except (ValueError, TypeError):
+                                            last_used = str(entry['lastUsed'])
+                                    
+                                    search_history.append({
+                                        'fieldName': entry.get('fieldName', 'Unknown'),
+                                        'value': entry.get('value', ''),
+                                        'url': entry.get('url', ''),
+                                        'title': entry.get('title', ''),
+                                        'timesUsed': entry.get('timesUsed', 0),
+                                        'firstUsed': first_used,
+                                        'lastUsed': last_used,
+                                        'visitCount': entry.get('visitCount', 0),
+                                        'source': entry.get('source', 'Unknown'),
+                                        'sourceProfile': entry.get('sourceProfile', 'Unknown')
+                                    })
+                except Exception as e:
+                    print(f"Error reading search history: {e}")
+            
+            return jsonify({
+                'success': True,
+                'data': {
+                    'search_history': search_history,
+                    'file': search_file or 'Not found',
+                    'total_entries': len(search_history)
+                }
+            })
+        
         else:
             return jsonify({'error': 'Section not found'}), 404
             
