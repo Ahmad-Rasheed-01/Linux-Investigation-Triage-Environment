@@ -219,6 +219,23 @@
                     <a href="#" class="list-group-item list-group-item-action ps-4 nav-link" data-section="nfs">
                         <i class="fas fa-network-wired me-2"></i>NFS (Config and Mounts)
                     </a>
+                    <a href="#" class="list-group-item list-group-item-action ps-4 nav-link" data-section="samba">
+                        <i class="fas fa-server me-2"></i>Samba (Config and Shares)
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Web Browser Section -->
+            <div class="list-group-item list-group-item-action bg-light p-0">
+                <div class="nav-section-header p-3" data-bs-toggle="collapse" data-bs-target="#browserSection" aria-expanded="false">
+                    <i class="fas fa-globe me-2"></i>
+                    <strong>Web Browser</strong>
+                    <i class="fas fa-chevron-down float-end mt-1"></i>
+                </div>
+                <div class="collapse" id="browserSection">
+                    <a href="#" class="list-group-item list-group-item-action ps-4 nav-link" data-section="browsing-history">
+                        <i class="fas fa-history me-2"></i>Browsing History
+                    </a>
                 </div>
             </div>
         </div>
@@ -477,6 +494,12 @@ function renderSectionContent(section, data) {
             break;
         case 'nfs':
             renderNfs(data);
+            break;
+        case 'samba':
+            renderSamba(data);
+            break;
+        case 'browsing-history':
+            renderBrowsingHistory(data);
             break;
         default:
             renderGenericData(section, data);
@@ -12387,6 +12410,385 @@ function renderNfsMounts(mounts) {
     `;
 
     return html;
+}
+
+function renderSamba(data) {
+    const contentArea = document.getElementById('content-area');
+    
+    if (!data || (!data.cifs_mounts && !data.samba_shares)) {
+        contentArea.innerHTML = `
+            <div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle"></i>
+                No Samba data available for analysis
+            </div>
+        `;
+        return;
+    }
+
+    const cifsMounts = data.cifs_mounts || {};
+    const sambaShares = data.samba_shares || {};
+    const filename = data.file || 'Unknown';
+    
+    contentArea.innerHTML = `
+        <div class="section-header">
+            <h2><i class="fas fa-server"></i> Samba Configuration and Shares Analysis</h2>
+            <p class="text-muted">Analysis of CIFS mounts and Samba shares from ${filename}</p>
+        </div>
+        
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card bg-primary text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h4 class="mb-0">${Object.keys(cifsMounts).length || 0}</h4>
+                                <small>CIFS Mounts</small>
+                            </div>
+                            <i class="fas fa-hdd fa-2x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card bg-warning text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h4 class="mb-0">${Object.keys(sambaShares).length || 0}</h4>
+                                <small>Samba Shares</small>
+                            </div>
+                            <i class="fas fa-share-alt fa-2x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <ul class="nav nav-tabs card-header-tabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#cifs-mounts" type="button" role="tab">
+                                    <i class="fas fa-hdd me-2"></i>CIFS Mounts
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#samba-shares" type="button" role="tab">
+                                    <i class="fas fa-share-alt me-2"></i>Samba Shares
+                                </button>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="card-body">
+                        <div class="tab-content">
+                            <div class="tab-pane fade show active" id="cifs-mounts" role="tabpanel">
+                                ${renderCifsMounts(cifsMounts)}
+                            </div>
+                            <div class="tab-pane fade" id="samba-shares" role="tabpanel">
+                                ${renderSambaShares(sambaShares)}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function renderCifsMounts(mounts) {
+    if (!mounts || Object.keys(mounts).length === 0) {
+        return `
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i>
+                No CIFS mounts found on this system
+            </div>
+        `;
+    }
+
+    let html = `
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Mount Point</th>
+                        <th>Server</th>
+                        <th>Share</th>
+                        <th>Options</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+
+    for (const [mountPoint, details] of Object.entries(mounts)) {
+        const options = Array.isArray(details.options) ? details.options.join(', ') : details.options || 'None';
+        const statusClass = details.status === 'mounted' ? 'success' : 'secondary';
+        
+        html += `
+            <tr>
+                <td><code>${mountPoint}</code></td>
+                <td><strong>${details.server}</strong></td>
+                <td><code>${details.share}</code></td>
+                <td><span class="text-muted">${options}</span></td>
+                <td><span class="badge bg-${statusClass}">${details.status}</span></td>
+            </tr>
+        `;
+    }
+
+    html += `
+                </tbody>
+            </table>
+        </div>
+    `;
+
+    return html;
+}
+
+function renderSambaShares(shares) {
+    if (!shares || Object.keys(shares).length === 0) {
+        return `
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i>
+                No Samba shares configured on this system
+            </div>
+        `;
+    }
+
+    let html = `
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Share Name</th>
+                        <th>Path</th>
+                        <th>Comment</th>
+                        <th>Users</th>
+                        <th>Permissions</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+
+    for (const [shareName, details] of Object.entries(shares)) {
+        const users = Array.isArray(details.users) ? details.users.join(', ') : details.users || 'None';
+        const comment = details.comment || 'No description';
+        
+        html += `
+            <tr>
+                <td><strong>${shareName}</strong></td>
+                <td><code>${details.path}</code></td>
+                <td><span class="text-muted">${comment}</span></td>
+                <td><span class="text-info">${users}</span></td>
+                <td><span class="badge bg-primary">${details.permissions}</span></td>
+            </tr>
+        `;
+    }
+
+    html += `
+                </tbody>
+            </table>
+        </div>
+    `;
+
+    return html;
+}
+
+function renderBrowsingHistory(data) {
+    const contentArea = document.getElementById('content-area');
+    
+    if (!data || !data.browsing_history || data.browsing_history.length === 0) {
+        contentArea.innerHTML = `
+            <div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle"></i>
+                No browsing history data available for analysis
+            </div>
+        `;
+        return;
+    }
+
+    const browsingHistory = data.browsing_history || [];
+    const filename = data.file || 'Unknown';
+    const totalEntries = data.total_entries || browsingHistory.length;
+    
+    // Group entries by domain for summary
+    const domainCounts = {};
+    const uniqueUrls = new Set();
+    
+    browsingHistory.forEach(entry => {
+        try {
+            const url = new URL(entry.url.trim());
+            const domain = url.hostname;
+            domainCounts[domain] = (domainCounts[domain] || 0) + 1;
+            uniqueUrls.add(entry.url.trim());
+        } catch (e) {
+            // Handle invalid URLs
+            domainCounts['Invalid URL'] = (domainCounts['Invalid URL'] || 0) + 1;
+        }
+    });
+    
+    const topDomains = Object.entries(domainCounts)
+        .sort(([,a], [,b]) => b - a)
+        .slice(0, 5);
+    
+    contentArea.innerHTML = `
+        <div class="section-header">
+            <h2><i class="fas fa-history"></i> Browsing History Analysis</h2>
+            <p class="text-muted">Analysis of web browsing history from ${filename}</p>
+        </div>
+        
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card bg-primary text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h4 class="mb-0">${totalEntries}</h4>
+                                <small>Total Visits</small>
+                            </div>
+                            <i class="fas fa-mouse-pointer fa-2x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-success text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h4 class="mb-0">${uniqueUrls.size}</h4>
+                                <small>Unique URLs</small>
+                            </div>
+                            <i class="fas fa-link fa-2x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-warning text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h4 class="mb-0">${Object.keys(domainCounts).length}</h4>
+                                <small>Domains Visited</small>
+                            </div>
+                            <i class="fas fa-globe fa-2x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-info text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h4 class="mb-0">${browsingHistory.filter(entry => entry.typed).length}</h4>
+                                <small>Typed URLs</small>
+                            </div>
+                            <i class="fas fa-keyboard fa-2x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Top Visited Domains</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            ${topDomains.map(([domain, count]) => `
+                                <div class="col-md-2 mb-2">
+                                    <div class="text-center">
+                                        <div class="h4 text-primary">${count}</div>
+                                        <small class="text-muted">${domain}</small>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-list me-2"></i>Browsing History Details</h5>
+                        <div class="input-group" style="width: 300px;">
+                            <input type="text" class="form-control" id="historySearch" placeholder="Search URLs or titles...">
+                            <button class="btn btn-outline-secondary" type="button" onclick="filterBrowsingHistory()">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover" id="browsingHistoryTable">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>URL</th>
+                                        <th>Title</th>
+                                        <th>Visit Date</th>
+                                        <th>Last Visit</th>
+                                        <th>Visit Count</th>
+                                        <th>Typed</th>
+                                        <th>Profile</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${browsingHistory.map(entry => `
+                                        <tr>
+                                            <td>
+                                                <a href="${entry.url}" target="_blank" class="text-decoration-none">
+                                                    ${entry.url.length > 50 ? entry.url.substring(0, 50) + '...' : entry.url}
+                                                </a>
+                                            </td>
+                                            <td>${entry.title}</td>
+                                            <td>${entry.visitDate}</td>
+                                            <td>${entry.lastVisit}</td>
+                                            <td>
+                                                <span class="badge bg-primary">${entry.visitCount}</span>
+                                            </td>
+                                            <td>
+                                                ${entry.typed ? '<i class="fas fa-check text-success"></i>' : '<i class="fas fa-times text-muted"></i>'}
+                                            </td>
+                                            <td>
+                                                <small class="text-muted">${entry.sourceProfile}</small>
+                                            </td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function filterBrowsingHistory() {
+    const searchTerm = document.getElementById('historySearch').value.toLowerCase();
+    const table = document.getElementById('browsingHistoryTable');
+    const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+    
+    for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        const url = row.cells[0].textContent.toLowerCase();
+        const title = row.cells[1].textContent.toLowerCase();
+        
+        if (url.includes(searchTerm) || title.includes(searchTerm)) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    }
 }
 </script>
 {% endblock extra_scripts %}

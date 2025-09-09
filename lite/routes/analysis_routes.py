@@ -1275,6 +1275,147 @@ def get_section_data(case_id, section):
                 }
             })
         
+        elif section == 'samba':
+            # Load CIFS mounts and Samba shares data
+            case_dir = os.path.join('cases', case.case_id)
+            
+            # Find CIFS mounts file
+            cifs_files = [f for f in os.listdir(case_dir) if f.startswith('cifsMounts_') and f.endswith('.json')]
+            # Find Samba shares file
+            samba_files = [f for f in os.listdir(case_dir) if f.startswith('sambaShares_') and f.endswith('.json')]
+            
+            cifs_mounts = {}
+            samba_shares = {}
+            cifs_file = None
+            samba_file = None
+            
+            # Load CIFS mounts data
+            if cifs_files:
+                latest_cifs_file = os.path.join(case_dir, sorted(cifs_files)[-1])
+                try:
+                    with open(latest_cifs_file, 'r', encoding='utf-8') as f:
+                        cifs_data = json.load(f)
+                        cifs_file = os.path.basename(latest_cifs_file)
+                        
+                        # Extract mounts array from the JSON structure
+                        if 'mounts' in cifs_data and isinstance(cifs_data['mounts'], list):
+                            # Convert list of mounts to dictionary format expected by frontend
+                            for i, mount in enumerate(cifs_data['mounts']):
+                                if isinstance(mount, dict):
+                                    mount_point = mount.get('mount_point', f'mount_{i}')
+                                    cifs_mounts[mount_point] = {
+                                        'server': mount.get('server', 'Unknown'),
+                                        'share': mount.get('share', 'Unknown'),
+                                        'options': mount.get('options', []),
+                                        'status': mount.get('status', 'Unknown')
+                                    }
+                except Exception as e:
+                    print(f"Error reading CIFS mounts: {e}")
+            
+            # Load Samba shares data
+            if samba_files:
+                latest_samba_file = os.path.join(case_dir, sorted(samba_files)[-1])
+                try:
+                    with open(latest_samba_file, 'r', encoding='utf-8') as f:
+                        samba_data = json.load(f)
+                        samba_file = os.path.basename(latest_samba_file)
+                        
+                        # Extract shares array from the JSON structure
+                        if 'shares' in samba_data and isinstance(samba_data['shares'], list):
+                            # Convert list of shares to dictionary format expected by frontend
+                            for i, share in enumerate(samba_data['shares']):
+                                if isinstance(share, dict) and 'name' in share:
+                                    samba_shares[share['name']] = {
+                                        'path': share.get('path', 'Unknown'),
+                                        'comment': share.get('comment', ''),
+                                        'users': share.get('users', []),
+                                        'permissions': share.get('permissions', 'Unknown')
+                                    }
+                                elif isinstance(share, str):
+                                    # Handle simple string shares
+                                    samba_shares[share] = {
+                                        'path': 'Unknown',
+                                        'comment': '',
+                                        'users': [],
+                                        'permissions': 'Unknown'
+                                    }
+                except Exception as e:
+                    print(f"Error reading Samba shares: {e}")
+            
+            return jsonify({
+                'success': True,
+                'data': {
+                    'cifs_mounts': cifs_mounts,
+                    'samba_shares': samba_shares,
+                    'file': f"CIFS: {cifs_file or 'Not found'}, Shares: {samba_file or 'Not found'}"
+                }
+            })
+        
+        elif section == 'browsing-history':
+            # Load browsing history data
+            case_dir = os.path.join('cases', case.case_id)
+            
+            # Find browsing history file
+            history_files = [f for f in os.listdir(case_dir) if f.startswith('browsingHistory_') and f.endswith('.json')]
+            
+            browsing_history = []
+            history_file = None
+            
+            # Load browsing history data
+            if history_files:
+                latest_history_file = os.path.join(case_dir, sorted(history_files)[-1])
+                try:
+                    with open(latest_history_file, 'r', encoding='utf-8') as f:
+                        history_data = json.load(f)
+                        history_file = os.path.basename(latest_history_file)
+                        
+                        # Process browsing history data
+                        if isinstance(history_data, list):
+                            for entry in history_data:
+                                if isinstance(entry, dict):
+                                    # Convert timestamp to readable format
+                                    visit_date = 'Unknown'
+                                    if 'visitDate' in entry:
+                                        try:
+                                            # Convert Unix timestamp to readable date
+                                            import datetime
+                                            timestamp = float(entry['visitDate'])
+                                            visit_date = datetime.datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
+                                        except (ValueError, TypeError):
+                                            visit_date = str(entry['visitDate'])
+                                    
+                                    last_visit = 'Unknown'
+                                    if 'lastVisit' in entry:
+                                        try:
+                                            timestamp = float(entry['lastVisit'])
+                                            last_visit = datetime.datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
+                                        except (ValueError, TypeError):
+                                            last_visit = str(entry['lastVisit'])
+                                    
+                                    browsing_history.append({
+                                        'url': entry.get('url', '').strip(),
+                                        'title': entry.get('title', 'No Title'),
+                                        'visitDate': visit_date,
+                                        'lastVisit': last_visit,
+                                        'visitCount': entry.get('visitCount', 0),
+                                        'typed': entry.get('typed', False),
+                                        'hidden': entry.get('hidden', False),
+                                        'frecency': entry.get('frecency', 0),
+                                        'visitType': entry.get('visitType', 0),
+                                        'sourceProfile': entry.get('sourceProfile', 'Unknown')
+                                    })
+                except Exception as e:
+                    print(f"Error reading browsing history: {e}")
+            
+            return jsonify({
+                'success': True,
+                'data': {
+                    'browsing_history': browsing_history,
+                    'file': history_file or 'Not found',
+                    'total_entries': len(browsing_history)
+                }
+            })
+        
         else:
             return jsonify({'error': 'Section not found'}), 404
             
