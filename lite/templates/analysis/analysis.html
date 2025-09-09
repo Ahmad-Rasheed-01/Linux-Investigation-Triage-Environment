@@ -207,6 +207,20 @@
                     </a>
                 </div>
             </div>
+            
+            <!-- Shares and Mounts Section -->
+            <div class="list-group-item list-group-item-action bg-light p-0">
+                <div class="nav-section-header p-3" data-bs-toggle="collapse" data-bs-target="#sharesSection" aria-expanded="false">
+                    <i class="fas fa-share-alt me-2"></i>
+                    <strong>Shares and Mounts</strong>
+                    <i class="fas fa-chevron-down float-end mt-1"></i>
+                </div>
+                <div class="collapse" id="sharesSection">
+                    <a href="#" class="list-group-item list-group-item-action ps-4 nav-link" data-section="nfs">
+                        <i class="fas fa-network-wired me-2"></i>NFS (Config and Mounts)
+                    </a>
+                </div>
+            </div>
         </div>
     </div>
     
@@ -460,6 +474,9 @@ function renderSectionContent(section, data) {
             break;
         case 'ufw-logs':
             renderUfwLogs(data);
+            break;
+        case 'nfs':
+            renderNfs(data);
             break;
         default:
             renderGenericData(section, data);
@@ -12137,6 +12154,238 @@ function renderChainTable(chain, rules) {
     }
     
     html += '</div>';
+    return html;
+}
+
+function renderNfs(data) {
+    const contentArea = document.getElementById('content-area');
+    
+    if (!data || (!data.nfs_exports && !data.nfs_mounts)) {
+        contentArea.innerHTML = `
+            <div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle"></i>
+                No NFS data available for analysis
+            </div>
+        `;
+        return;
+    }
+
+    const exports = data.nfs_exports || {};
+    const mounts = data.nfs_mounts || {};
+    const filename = data.file || 'Unknown';
+    
+    contentArea.innerHTML = `
+        <div class="section-header">
+            <h2><i class="fas fa-network-wired"></i> NFS Configuration and Mounts Analysis</h2>
+            <p class="text-muted">Analysis of NFS exports and mount configurations from ${filename}</p>
+        </div>
+        
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card bg-success text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h4 class="mb-0">${Object.keys(exports).length || 0}</h4>
+                                <small>NFS Exports</small>
+                            </div>
+                            <i class="fas fa-share-alt fa-2x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card bg-info text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h4 class="mb-0">${Object.keys(mounts).length || 0}</h4>
+                                <small>NFS Mounts</small>
+                            </div>
+                            <i class="fas fa-hdd fa-2x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <ul class="nav nav-tabs card-header-tabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#nfs-exports" type="button" role="tab">
+                                    <i class="fas fa-share-alt me-2"></i>NFS Exports
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#nfs-mounts" type="button" role="tab">
+                                    <i class="fas fa-hdd me-2"></i>NFS Mounts
+                                </button>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="card-body">
+                        <div class="tab-content">
+                            <div class="tab-pane fade show active" id="nfs-exports" role="tabpanel">
+                                ${renderNfsExports(exports)}
+                            </div>
+                            <div class="tab-pane fade" id="nfs-mounts" role="tabpanel">
+                                ${renderNfsMounts(mounts)}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function renderNfsExports(exports) {
+    if (!exports || Object.keys(exports).length === 0) {
+        return `
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i>
+                No NFS exports configured on this system
+            </div>
+        `;
+    }
+
+    let html = `
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th><i class="fas fa-folder"></i> Export Path</th>
+                        <th><i class="fas fa-users"></i> Allowed Clients</th>
+                        <th><i class="fas fa-cog"></i> Options</th>
+                        <th><i class="fas fa-shield-alt"></i> Security</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+
+    Object.entries(exports).forEach(([path, config]) => {
+        const clients = config.clients || [];
+        const options = config.options || [];
+        
+        // Determine security level based on options
+        let securityLevel = 'Medium';
+        let securityClass = 'warning';
+        
+        if (options.includes('ro')) {
+            securityLevel = 'High (Read-Only)';
+            securityClass = 'success';
+        } else if (options.includes('rw') && options.includes('no_root_squash')) {
+            securityLevel = 'Low (Root Access)';
+            securityClass = 'danger';
+        } else if (options.includes('rw')) {
+            securityLevel = 'Medium (Read-Write)';
+            securityClass = 'warning';
+        }
+
+        html += `
+            <tr>
+                <td>
+                    <code class="text-primary">${path}</code>
+                </td>
+                <td>
+                    ${clients.length > 0 ? 
+                        clients.map(client => `<span class="badge bg-secondary me-1">${client}</span>`).join('') : 
+                        '<span class="text-muted">No specific clients</span>'
+                    }
+                </td>
+                <td>
+                    ${options.length > 0 ? 
+                        options.map(opt => `<span class="badge bg-light text-dark me-1">${opt}</span>`).join('') : 
+                        '<span class="text-muted">Default options</span>'
+                    }
+                </td>
+                <td>
+                    <span class="badge bg-${securityClass}">${securityLevel}</span>
+                </td>
+            </tr>
+        `;
+    });
+
+    html += `
+                </tbody>
+            </table>
+        </div>
+    `;
+
+    return html;
+}
+
+function renderNfsMounts(mounts) {
+    if (!mounts || Object.keys(mounts).length === 0) {
+        return `
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i>
+                No NFS mounts found on this system
+            </div>
+        `;
+    }
+
+    let html = `
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th><i class="fas fa-server"></i> NFS Server</th>
+                        <th><i class="fas fa-folder"></i> Remote Path</th>
+                        <th><i class="fas fa-hdd"></i> Local Mount Point</th>
+                        <th><i class="fas fa-cog"></i> Mount Options</th>
+                        <th><i class="fas fa-info-circle"></i> Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+
+    Object.entries(mounts).forEach(([mountPoint, config]) => {
+        const server = config.server || 'Unknown';
+        const remotePath = config.remote_path || 'Unknown';
+        const options = config.options || [];
+        const status = config.status || 'Unknown';
+        
+        let statusClass = 'secondary';
+        if (status.toLowerCase().includes('mounted') || status.toLowerCase().includes('active')) {
+            statusClass = 'success';
+        } else if (status.toLowerCase().includes('error') || status.toLowerCase().includes('failed')) {
+            statusClass = 'danger';
+        }
+
+        html += `
+            <tr>
+                <td>
+                    <code class="text-info">${server}</code>
+                </td>
+                <td>
+                    <code class="text-primary">${remotePath}</code>
+                </td>
+                <td>
+                    <code class="text-success">${mountPoint}</code>
+                </td>
+                <td>
+                    ${options.length > 0 ? 
+                        options.map(opt => `<span class="badge bg-light text-dark me-1">${opt}</span>`).join('') : 
+                        '<span class="text-muted">Default options</span>'
+                    }
+                </td>
+                <td>
+                    <span class="badge bg-${statusClass}">${status}</span>
+                </td>
+            </tr>
+        `;
+    });
+
+    html += `
+                </tbody>
+            </table>
+        </div>
+    `;
+
     return html;
 }
 </script>

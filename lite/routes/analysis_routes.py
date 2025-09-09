@@ -1203,6 +1203,47 @@ def get_section_data(case_id, section):
                     'error': 'Firewall rules data not found'
                 }), 404
         
+        elif section == 'nfs':
+            # Load NFS exports and mounts data
+            case_dir = os.path.join('cases', case.case_id)
+            
+            # Find NFS exports file
+            exports_files = [f for f in os.listdir(case_dir) if f.startswith('nfsExports_') and f.endswith('.json')]
+            # Find NFS mounts file
+            mounts_files = [f for f in os.listdir(case_dir) if f.startswith('nfsMounts_') and f.endswith('.json')]
+            
+            nfs_data = {
+                'exports': None,
+                'mounts': None,
+                'exports_file': None,
+                'mounts_file': None
+            }
+            
+            # Load exports data
+            if exports_files:
+                latest_exports_file = os.path.join(case_dir, sorted(exports_files)[-1])
+                try:
+                    with open(latest_exports_file, 'r', encoding='utf-8') as f:
+                        nfs_data['exports'] = json.load(f)
+                        nfs_data['exports_file'] = os.path.basename(latest_exports_file)
+                except Exception as e:
+                    print(f"Error reading NFS exports: {e}")
+            
+            # Load mounts data
+            if mounts_files:
+                latest_mounts_file = os.path.join(case_dir, sorted(mounts_files)[-1])
+                try:
+                    with open(latest_mounts_file, 'r', encoding='utf-8') as f:
+                        nfs_data['mounts'] = json.load(f)
+                        nfs_data['mounts_file'] = os.path.basename(latest_mounts_file)
+                except Exception as e:
+                    print(f"Error reading NFS mounts: {e}")
+            
+            return jsonify({
+                'success': True,
+                'data': nfs_data
+            })
+        
         else:
             return jsonify({'error': 'Section not found'}), 404
             
