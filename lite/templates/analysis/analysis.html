@@ -13148,20 +13148,18 @@ function renderDownloads(data) {
                                         const filePath = entry.filePath || 'N/A';
                                         const downloadDate = entry.downloadDate || 'Unknown';
                                         
-                                        const displayUrl = sourceUrl.length > 50 ? 
-                                            `<a href="${sourceUrl}" target="_blank" class="text-decoration-none" title="${sourceUrl}">${sourceUrl.substring(0, 50)}...</a>` : 
-                                            `<a href="${sourceUrl}" target="_blank" class="text-decoration-none">${sourceUrl}</a>`;
+                                        const displayUrl = sourceUrl !== 'N/A' ? 
+                                            `<a href="${sourceUrl}" target="_blank" class="text-decoration-none" title="${sourceUrl}" style="word-break: break-all;">${sourceUrl}</a>` : 
+                                            sourceUrl;
                                         
-                                        const displayPath = filePath.length > 40 ? 
-                                            `<span title="${filePath}">${filePath.substring(0, 40)}...</span>` : 
-                                            filePath;
+                                        const displayPath = `<span title="${filePath}" style="word-break: break-all;">${filePath}</span>`;
                                         
                                         return `
                                             <tr>
-                                                <td style="width: 25%; word-wrap: break-word; overflow-wrap: break-word;"><span class="fw-bold">${fileName}</span></td>
-                                                <td style="width: 35%; word-wrap: break-word; overflow-wrap: break-word;">${displayUrl}</td>
-                                                <td style="width: 25%; word-wrap: break-word; overflow-wrap: break-word;"><small class="text-muted">${displayPath}</small></td>
-                                                <td style="width: 15%;"><small class="text-muted">${downloadDate}</small></td>
+                                                <td style="width: 25%; word-wrap: break-word; overflow-wrap: break-word; max-width: 0;"><span class="fw-bold">${fileName}</span></td>
+                                                <td style="width: 35%; word-wrap: break-word; overflow-wrap: break-word; word-break: break-all; max-width: 0;">${displayUrl}</td>
+                                                <td style="width: 25%; word-wrap: break-word; overflow-wrap: break-word; word-break: break-all; max-width: 0;"><small class="text-muted">${displayPath}</small></td>
+                                                <td style="width: 15%; max-width: 0;"><small class="text-muted">${downloadDate}</small></td>
                                             </tr>
                                         `;
                                     }).join('')}
