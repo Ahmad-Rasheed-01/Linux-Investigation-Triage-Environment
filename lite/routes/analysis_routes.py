@@ -1481,6 +1481,58 @@ def get_section_data(case_id, section):
                 }
             })
         
+        elif section == 'downloads':
+            # Load downloads data
+            case_dir = os.path.join('cases', case.case_id)
+            
+            # Find downloads file
+            downloads_files = [f for f in os.listdir(case_dir) if f.startswith('downloads_data_') and f.endswith('.json')]
+            
+            downloads = []
+            downloads_file = None
+            
+            # Load downloads data
+            if downloads_files:
+                latest_downloads_file = os.path.join(case_dir, sorted(downloads_files)[-1])
+                try:
+                    with open(latest_downloads_file, 'r', encoding='utf-8') as f:
+                        downloads_data = json.load(f)
+                        downloads_file = os.path.basename(latest_downloads_file)
+                        
+                        # Process downloads data
+                        if isinstance(downloads_data, list):
+                            for entry in downloads_data:
+                                if isinstance(entry, dict) and entry.get('annotationType') == 'downloads/destinationFileURI':
+                                    # Convert timestamp to readable format
+                                    download_date = 'Unknown'
+                                    
+                                    if 'downloadDate' in entry:
+                                        try:
+                                            import datetime
+                                            timestamp = float(entry['downloadDate'])
+                                            download_date = datetime.datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
+                                        except (ValueError, TypeError):
+                                            download_date = str(entry['downloadDate'])
+                                    
+                                    downloads.append({
+                                        'title': entry.get('title', 'Unknown'),
+                                        'sourceUrl': entry.get('sourceUrl', ''),
+                                        'filePath': entry.get('filePath', ''),
+                                        'downloadDate': download_date,
+                                        'sourceProfile': entry.get('sourceProfile', 'Unknown')
+                                    })
+                except Exception as e:
+                    print(f"Error reading downloads: {e}")
+            
+            return jsonify({
+                'success': True,
+                'data': {
+                    'downloads': downloads,
+                    'file': downloads_file or 'Not found',
+                    'total_entries': len(downloads)
+                }
+            })
+        
         else:
             return jsonify({'error': 'Section not found'}), 404
             

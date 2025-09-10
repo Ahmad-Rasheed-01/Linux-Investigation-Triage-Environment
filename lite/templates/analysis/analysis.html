@@ -239,6 +239,9 @@
                     <a href="#" class="list-group-item list-group-item-action ps-4 nav-link" data-section="search-history">
                         <i class="fas fa-search me-2"></i>Search History
                     </a>
+                    <a href="#" class="list-group-item list-group-item-action ps-4 nav-link" data-section="downloads">
+                        <i class="fas fa-download me-2"></i>Downloads
+                    </a>
                 </div>
             </div>
         </div>
@@ -506,6 +509,9 @@ function renderSectionContent(section, data) {
             break;
         case 'search-history':
             renderSearchHistory(data);
+            break;
+        case 'downloads':
+            renderDownloads(data);
             break;
         default:
             renderGenericData(section, data);
@@ -12976,6 +12982,202 @@ function renderSearchHistory(data) {
 function filterSearchHistory() {
     const searchTerm = document.getElementById('searchHistoryFilter').value.toLowerCase();
     const table = document.getElementById('searchHistoryTable');
+    const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+    
+    for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        const cells = row.getElementsByTagName('td');
+        let found = false;
+        
+        for (let j = 0; j < cells.length; j++) {
+            const cellText = cells[j].textContent || cells[j].innerText;
+            if (cellText.toLowerCase().indexOf(searchTerm) > -1) {
+                found = true;
+                break;
+            }
+        }
+        
+        row.style.display = found ? '' : 'none';
+    }
+}
+
+function renderDownloads(data) {
+    const contentArea = document.getElementById('content-area');
+    
+    if (!data || !data.downloads || data.downloads.length === 0) {
+        contentArea.innerHTML = `
+            <div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle"></i>
+                No downloads data available for analysis
+            </div>
+        `;
+        return;
+    }
+
+    const downloads = data.downloads || [];
+    const filename = data.file || 'Unknown';
+    const totalEntries = data.total_entries || downloads.length;
+    
+    // Calculate statistics
+    const uniqueUrls = [...new Set(downloads.map(entry => entry.sourceUrl))].length;
+    const uniqueProfiles = [...new Set(downloads.map(entry => entry.sourceProfile))].length;
+    const totalFileSize = downloads.length; // Placeholder for file size calculation
+    
+    // Get file extensions
+    const extensions = {};
+    downloads.forEach(entry => {
+        const title = entry.title || '';
+        const ext = title.includes('.') ? title.split('.').pop().toLowerCase() : 'unknown';
+        extensions[ext] = (extensions[ext] || 0) + 1;
+    });
+    
+    const topExtensions = Object.entries(extensions)
+        .sort(([,a], [,b]) => b - a)
+        .slice(0, 5);
+    
+    contentArea.innerHTML = `
+        <div class="section-header">
+            <h2><i class="fas fa-download"></i> Downloads Analysis</h2>
+            <p class="text-muted">Analysis of download history from ${filename}</p>
+        </div>
+        
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card bg-primary text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h4 class="mb-0">${totalEntries}</h4>
+                                <small>Total Downloads</small>
+                            </div>
+                            <i class="fas fa-download fa-2x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-success text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h4 class="mb-0">${uniqueUrls}</h4>
+                                <small>Unique Sources</small>
+                            </div>
+                            <i class="fas fa-globe fa-2x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-info text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h4 class="mb-0">${topExtensions.length}</h4>
+                                <small>File Types</small>
+                            </div>
+                            <i class="fas fa-file fa-2x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-warning text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h4 class="mb-0">${uniqueProfiles}</h4>
+                                <small>Browser Profiles</small>
+                            </div>
+                            <i class="fas fa-user fa-2x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Top File Types</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            ${topExtensions.map(([ext, count]) => `
+                                <div class="col-md-2 mb-2">
+                                    <div class="text-center">
+                                        <div class="h4 text-primary">${count}</div>
+                                        <small class="text-muted">.${ext}</small>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-list me-2"></i>Downloads Details</h5>
+                        <div class="input-group" style="width: 300px;">
+                            <input type="text" class="form-control" id="downloadsFilter" placeholder="Search files or URLs...">
+                            <button class="btn btn-outline-secondary" type="button" onclick="filterDownloads()">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover" id="downloadsTable" style="table-layout: fixed; width: 100%;">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th style="width: 25%;">File Name</th>
+                                        <th style="width: 35%;">Source URL</th>
+                                        <th style="width: 25%;">File Path</th>
+                                        <th style="width: 15%;">Download Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${downloads.map(entry => {
+                                        const fileName = entry.title || 'Unknown';
+                                        const sourceUrl = entry.sourceUrl || 'N/A';
+                                        const filePath = entry.filePath || 'N/A';
+                                        const downloadDate = entry.downloadDate || 'Unknown';
+                                        
+                                        const displayUrl = sourceUrl.length > 50 ? 
+                                            `<a href="${sourceUrl}" target="_blank" class="text-decoration-none" title="${sourceUrl}">${sourceUrl.substring(0, 50)}...</a>` : 
+                                            `<a href="${sourceUrl}" target="_blank" class="text-decoration-none">${sourceUrl}</a>`;
+                                        
+                                        const displayPath = filePath.length > 40 ? 
+                                            `<span title="${filePath}">${filePath.substring(0, 40)}...</span>` : 
+                                            filePath;
+                                        
+                                        return `
+                                            <tr>
+                                                <td style="width: 25%; word-wrap: break-word; overflow-wrap: break-word;"><span class="fw-bold">${fileName}</span></td>
+                                                <td style="width: 35%; word-wrap: break-word; overflow-wrap: break-word;">${displayUrl}</td>
+                                                <td style="width: 25%; word-wrap: break-word; overflow-wrap: break-word;"><small class="text-muted">${displayPath}</small></td>
+                                                <td style="width: 15%;"><small class="text-muted">${downloadDate}</small></td>
+                                            </tr>
+                                        `;
+                                    }).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function filterDownloads() {
+    const searchTerm = document.getElementById('downloadsFilter').value.toLowerCase();
+    const table = document.getElementById('downloadsTable');
     const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
     
     for (let i = 0; i < rows.length; i++) {
