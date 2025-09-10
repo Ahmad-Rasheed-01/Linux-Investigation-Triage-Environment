@@ -1533,6 +1533,74 @@ def get_section_data(case_id, section):
                 }
             })
         
+        elif section == 'extensions':
+            # Load extensions data
+            case_dir = os.path.join('cases', case.case_id)
+            
+            # Find extensions file
+            extensions_files = [f for f in os.listdir(case_dir) if f.startswith('extensions_data_') and f.endswith('.json')]
+            
+            extensions = []
+            extensions_file = None
+            
+            # Load extensions data
+            if extensions_files:
+                latest_extensions_file = os.path.join(case_dir, sorted(extensions_files)[-1])
+                try:
+                    with open(latest_extensions_file, 'r', encoding='utf-8') as f:
+                        extensions_data = json.load(f)
+                        extensions_file = os.path.basename(latest_extensions_file)
+                        
+                        # Process extensions data
+                        if isinstance(extensions_data, list):
+                            for entry in extensions_data:
+                                if isinstance(entry, dict):
+                                    # Convert timestamps to readable format
+                                    install_date = 'Unknown'
+                                    update_date = 'Unknown'
+                                    
+                                    if 'installDate' in entry and entry['installDate']:
+                                        try:
+                                            import datetime
+                                            timestamp = float(entry['installDate']) / 1000  # Convert from milliseconds
+                                            install_date = datetime.datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
+                                        except (ValueError, TypeError):
+                                            install_date = str(entry['installDate'])
+                                    
+                                    if 'updateDate' in entry and entry['updateDate']:
+                                        try:
+                                            import datetime
+                                            timestamp = float(entry['updateDate']) / 1000  # Convert from milliseconds
+                                            update_date = datetime.datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
+                                        except (ValueError, TypeError):
+                                            update_date = str(entry['updateDate'])
+                                    
+                                    extensions.append({
+                                        'id': entry.get('id', 'Unknown'),
+                                        'name': entry.get('name', 'Unknown'),
+                                        'version': entry.get('version', 'Unknown'),
+                                        'type': entry.get('type', 'Unknown'),
+                                        'enabled': entry.get('enabled', False),
+                                        'installDate': install_date,
+                                        'updateDate': update_date,
+                                        'description': entry.get('description', ''),
+                                        'permissions': entry.get('permissions', []),
+                                        'origins': entry.get('origins', []),
+                                        'source': entry.get('source', 'Unknown'),
+                                        'sourceProfile': entry.get('sourceProfile', 'Unknown')
+                                    })
+                except Exception as e:
+                    print(f"Error reading extensions: {e}")
+            
+            return jsonify({
+                'success': True,
+                'data': {
+                    'extensions': extensions,
+                    'file': extensions_file or 'Not found',
+                    'total_entries': len(extensions)
+                }
+            })
+        
         else:
             return jsonify({'error': 'Section not found'}), 404
             
