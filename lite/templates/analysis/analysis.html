@@ -3391,8 +3391,8 @@ function renderProcesses(data) {
     const dataSource = data || {};
     
     for (const [filename, fileData] of Object.entries(dataSource)) {
-        // Look specifically for processes_*.json files (running processes), not process_hunting_data
-        if (filename.startsWith('processes_') && filename.endsWith('.json') && fileData) {
+        // Look specifically for processes_*.json files or processes.json (running processes), not process_hunting_data
+        if ((filename.startsWith('processes_') || filename === 'processes.json') && filename.endsWith('.json') && fileData) {
             // Handle different data structures
             if (Array.isArray(fileData)) {
                 processesData = fileData;

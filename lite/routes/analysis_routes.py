@@ -293,7 +293,7 @@ def get_section_data(case_id, section):
                 network_interfaces_file = os.path.join(
                     base_dir, 
                     case.folder_path, 
-                    'networkInterfaces_20250825_231424.json'
+                    'networkInterfaces.json'
                 )
             else:
                 network_interfaces_file = None
@@ -304,7 +304,7 @@ def get_section_data(case_id, section):
             if network_interfaces_file and os.path.exists(network_interfaces_file):
                 data = json_parser.load_json_file(network_interfaces_file)
                 if data:
-                    network_data['networkInterfaces_20250825_231424.json'] = data
+                    network_data['networkInterfaces.json'] = data
                     file_found = True
             
             # Also check for other network interface artifacts as fallback
@@ -321,7 +321,7 @@ def get_section_data(case_id, section):
             if not file_found:
                 return jsonify({
                     'success': False,
-                    'message': 'No network interface data found. The networkInterfaces_20250825_231424.json file was not found in the case directory. Please ensure network interface artifacts have been collected and are available in the case folder.',
+                    'message': 'No network interface data found. The networkInterfaces.json file was not found in the case directory. Please ensure network interface artifacts have been collected and are available in the case folder.',
                     'data': None
                 })
             
@@ -336,7 +336,7 @@ def get_section_data(case_id, section):
                 # Use absolute folder_path directly (it's already absolute from case creation)
                 routing_table_file = os.path.join(
                     case.folder_path, 
-                    'routingTableRaw_20250825_231426.json'
+                    'routingTableRaw.json'
                 )
             else:
                 routing_table_file = None
@@ -348,7 +348,7 @@ def get_section_data(case_id, section):
             if routing_table_file and os.path.exists(routing_table_file):
                 data = json_parser.load_json_file(routing_table_file)
                 if data:
-                    network_data['routingTableRaw_20250825_231426.json'] = data
+                    network_data['routingTableRaw.json'] = data
                     file_found = True
             
             # Also check for other routing table artifacts as fallback
@@ -365,7 +365,7 @@ def get_section_data(case_id, section):
             if not file_found:
                 return jsonify({
                     'success': False,
-                    'message': 'No routing table data found. The routingTableRaw_20250825_231426.json file was not found in the case directory. Please ensure routing table artifacts have been collected and are available in the case folder.',
+                    'message': 'No routing table data found. The routingTableRaw.json file was not found in the case directory. Please ensure routing table artifacts have been collected and are available in the case folder.',
                     'data': None
                 })
             
@@ -415,13 +415,13 @@ def get_section_data(case_id, section):
                 network_connections_file = os.path.join(
                     base_dir, 
                     case.folder_path, 
-                    'networkConnections_20250825_231424.json'
+                    'networkConnections.json'
                 )
                 # Also load connection tracking data
                 connection_tracking_file = os.path.join(
                     base_dir, 
                     case.folder_path, 
-                    'connectionTracking_20250825_231418.json'
+                    'connectionTracking.json'
                 )
             else:
                 network_connections_file = None
@@ -433,14 +433,14 @@ def get_section_data(case_id, section):
             if network_connections_file and os.path.exists(network_connections_file):
                 data = json_parser.load_json_file(network_connections_file)
                 if data:
-                    network_data['networkConnections_20250825_231424.json'] = data
+                    network_data['networkConnections.json'] = data
                     file_found = True
             
             # Load connection tracking data
             if connection_tracking_file and os.path.exists(connection_tracking_file):
                 data = json_parser.load_json_file(connection_tracking_file)
                 if data:
-                    network_data['connectionTracking_20250825_231418.json'] = data
+                    network_data['connectionTracking.json'] = data
                     file_found = True
             
             # Also check for other network artifacts as fallback
@@ -457,7 +457,7 @@ def get_section_data(case_id, section):
             if not file_found:
                 return jsonify({
                     'success': False,
-                    'message': 'No network connection data found. The networkConnections_20250825_231424.json file was not found in the case directory. Please ensure network connection artifacts have been collected and are available in the case folder.',
+                    'message': 'No network connection data found. The networkConnections.json file was not found in the case directory. Please ensure network connection artifacts have been collected and are available in the case folder.',
                     'data': None
                 })
             
@@ -475,7 +475,7 @@ def get_section_data(case_id, section):
                 open_ports_file = os.path.join(
                     base_dir, 
                     case.folder_path, 
-                    'openPorts_20250825_231425.json'
+                    'openPorts.json'
                 )
             else:
                 open_ports_file = None
@@ -486,7 +486,7 @@ def get_section_data(case_id, section):
             if open_ports_file and os.path.exists(open_ports_file):
                 data = json_parser.load_json_file(open_ports_file)
                 if data:
-                    ports_data['openPorts_20250825_231425.json'] = data
+                    ports_data['openPorts.json'] = data
                     file_found = True
             
             # Also check for other port-related artifacts as fallback
@@ -503,7 +503,7 @@ def get_section_data(case_id, section):
             if not file_found:
                 return jsonify({
                     'success': False,
-                    'message': 'No open ports data found. The openPorts_20250825_231425.json file was not found in the case directory. Please ensure open ports artifacts have been collected and are available in the case folder.',
+                    'message': 'No open ports data found. The openPorts.json file was not found in the case directory. Please ensure open ports artifacts have been collected and are available in the case folder.',
                     'data': None
                 })
             
@@ -521,7 +521,7 @@ def get_section_data(case_id, section):
                 socket_stats_file = os.path.join(
                     base_dir, 
                     case.folder_path, 
-                    'socketStatistics_20250825_231413.json'
+                    'socketStatistics.json'
                 )
             else:
                 socket_stats_file = None
@@ -532,7 +532,7 @@ def get_section_data(case_id, section):
             if socket_stats_file and os.path.exists(socket_stats_file):
                 data = json_parser.load_json_file(socket_stats_file)
                 if data:
-                    sockets_data['socketStatistics_20250825_231413.json'] = data
+                    sockets_data['socketStatistics.json'] = data
                     file_found = True
             
             # Also check for other socket-related artifacts as fallback
@@ -549,7 +549,7 @@ def get_section_data(case_id, section):
             if not file_found:
                 return jsonify({
                     'success': False,
-                    'message': 'No socket statistics data found. The socketStatistics_20250825_231413.json file was not found in the case directory. Please ensure socket artifacts have been collected and are available in the case folder.',
+                    'message': 'No socket statistics data found. The socketStatistics.json file was not found in the case directory. Please ensure socket artifacts have been collected and are available in the case folder.',
                     'data': None
                 })
             
@@ -559,14 +559,66 @@ def get_section_data(case_id, section):
             })
         
         elif section == 'processes-running':
-            process_artifacts = _get_artifacts_by_keywords(case.artifacts, 
-                ['process', 'processes', 'service', 'systemd'])
-            process_data = {}
+            # Load process data directly from case directory
+            case_dir = os.path.join('cases', case.case_id)
+            print(f"DEBUG: Looking for processes in case directory: {case_dir}")
             
-            for artifact in process_artifacts:
-                data = json_parser.load_json_file(artifact.file_path)
-                if data:
-                    process_data[artifact.filename] = data
+            process_data = {}
+            file_found = False
+            
+            # Check for processes.json file directly in case directory
+            processes_file = os.path.join(case_dir, 'processes.json')
+            print(f"DEBUG: Checking for processes file: {processes_file}")
+            print(f"DEBUG: File exists: {os.path.exists(processes_file)}")
+            
+            if os.path.exists(processes_file):
+                try:
+                    print(f"DEBUG: Attempting to load processes.json")
+                    data = json_parser.load_json_file(processes_file)
+                    print(f"DEBUG: Loaded data type: {type(data)}, length: {len(data) if isinstance(data, (list, dict)) else 'N/A'}")
+                    if data:
+                        process_data['processes.json'] = data
+                        file_found = True
+                        print(f"DEBUG: Successfully loaded processes.json with {len(data) if isinstance(data, list) else 'dict'} items")
+                except Exception as e:
+                    print(f"ERROR loading processes.json: {e}")
+            
+            # Also check for other process-related files
+            try:
+                for filename in os.listdir(case_dir):
+                    if any(keyword in filename.lower() for keyword in ['process', 'ps_', 'top_', 'htop']):
+                        file_path = os.path.join(case_dir, filename)
+                        if os.path.isfile(file_path) and filename.endswith('.json'):
+                            try:
+                                data = json_parser.load_json_file(file_path)
+                                if data:
+                                    process_data[filename] = data
+                                    file_found = True
+                            except Exception as e:
+                                print(f"Error loading {filename}: {e}")
+            except Exception as e:
+                print(f"Error listing case directory: {e}")
+            
+            # Fallback to artifacts database if no files found directly
+            if not file_found:
+                process_artifacts = _get_artifacts_by_keywords(case.artifacts, 
+                    ['process', 'processes', 'service', 'systemd'])
+                
+                for artifact in process_artifacts:
+                    data = json_parser.load_json_file(artifact.file_path)
+                    if data:
+                        process_data[artifact.filename] = data
+                        file_found = True
+            
+            # If no process data found, provide a helpful message
+            if not file_found:
+                return jsonify({
+                    'success': False,
+                    'message': 'No Process Data Available',
+                    'description': 'No running processes data found in the uploaded artifacts.',
+                    'expected': 'Expected Data: Upload artifacts containing process information (ps, top, htop output) to view running processes.',
+                    'data': None
+                })
             
             return jsonify({
                 'success': True,
@@ -726,7 +778,7 @@ def get_section_data(case_id, section):
             try:
                 # First try to load the specific kernel log file
                 case_dir = os.path.join('cases', case.case_id)
-                kernel_file_path = os.path.join(case_dir, 'kern_20250825_231422.json')
+                kernel_file_path = os.path.join(case_dir, 'kern.json')
                 
                 kernel_data = {}
                 
@@ -739,16 +791,16 @@ def get_section_data(case_id, section):
                                 # Limit kernel log entries for performance
                                 if len(data['entries']) > 1500:
                                     data['entries'] = data['entries'][:1500]  # Show first 1500 entries
-                                kernel_data['kern_20250825_231422.json'] = data
+                                kernel_data['kern.json'] = data
                             elif isinstance(data, list):
                                 # Limit kernel log entries for performance
                                 if len(data) > 1500:
                                     data = data[:1500]  # Show first 1500 entries
-                                kernel_data['kern_20250825_231422.json'] = {'entries': data}
+                                kernel_data['kern.json'] = {'entries': data}
                             elif isinstance(data, dict):
-                                kernel_data['kern_20250825_231422.json'] = data
+                                kernel_data['kern.json'] = data
                     except Exception as file_error:
-                        print(f"Error processing kernel file kern_20250825_231422.json: {str(file_error)}")
+                        print(f"Error processing kernel file kern.json: {str(file_error)}")
                 
                 # If no specific file found, search for other kernel log artifacts
                 if not kernel_data:
@@ -805,7 +857,7 @@ def get_section_data(case_id, section):
             try:
                 # Load the specific UFW log file
                 case_dir = os.path.join('cases', case.case_id)
-                ufw_file_path = os.path.join(case_dir, 'ufw_20250825_231415.json')
+                ufw_file_path = os.path.join(case_dir, 'ufw.json')
                 
                 ufw_data = {}
                 
@@ -818,16 +870,16 @@ def get_section_data(case_id, section):
                                 # Limit UFW log entries for performance
                                 if len(data['entries']) > 1000:
                                     data['entries'] = data['entries'][:1000]  # Show first 1000 entries
-                                ufw_data['ufw_20250825_231415.json'] = data
+                                ufw_data['ufw.json'] = data
                             elif isinstance(data, list):
                                 # Limit UFW log entries for performance
                                 if len(data) > 1000:
                                     data = data[:1000]  # Show first 1000 entries
-                                ufw_data['ufw_20250825_231415.json'] = {'entries': data}
+                                ufw_data['ufw.json'] = {'entries': data}
                             elif isinstance(data, dict):
-                                ufw_data['ufw_20250825_231415.json'] = data
+                                ufw_data['ufw.json'] = data
                     except Exception as file_error:
-                        print(f"Error processing UFW file ufw_20250825_231415.json: {str(file_error)}")
+                        print(f"Error processing UFW file ufw.json: {str(file_error)}")
                         return jsonify({
                             'success': False,
                             'error': f'Error loading UFW log file: {str(file_error)}'
@@ -910,7 +962,7 @@ def get_section_data(case_id, section):
             # Load triggered tasks data
             import glob
             case_dir = os.path.join('cases', case.case_id)
-            triggered_tasks_files = glob.glob(os.path.join(case_dir, 'triggered_tasks_data_*.json'))
+            triggered_tasks_files = glob.glob(os.path.join(case_dir, 'triggered_tasks_data.json'))
             
             if triggered_tasks_files:
                 # Get the most recent file
@@ -937,7 +989,7 @@ def get_section_data(case_id, section):
             case_dir = os.path.join('cases', case.case_id)
             
             # Look for dpkg packages file
-            dpkg_files = glob.glob(os.path.join(case_dir, 'dpkgPackages_*.json'))
+            dpkg_files = glob.glob(os.path.join(case_dir, 'dpkgPackages.json'))
             
             if dpkg_files:
                 # Get the most recent file
@@ -1007,7 +1059,7 @@ def get_section_data(case_id, section):
             case_dir = os.path.join('cases', case.case_id)
             
             # Look for installRecords files
-            install_files = glob.glob(os.path.join(case_dir, 'installRecords_*.json'))
+            install_files = glob.glob(os.path.join(case_dir, 'installRecords.json'))
             
             if install_files:
                 # Get the most recent file
@@ -1060,7 +1112,7 @@ def get_section_data(case_id, section):
         elif section == 'software-upgradations':
             # Load upgrade records data
             case_dir = os.path.join('cases', case.case_id)
-            upgrade_files = [f for f in os.listdir(case_dir) if f.startswith('upgradeRecords_') and f.endswith('.json')]
+            upgrade_files = [f for f in os.listdir(case_dir) if f.startswith('upgradeRecords') and f.endswith('.json')]
             
             if upgrade_files:
                 # Get the most recent upgrade records file
@@ -1114,7 +1166,7 @@ def get_section_data(case_id, section):
         elif section == 'software-removal':
             # Load removal records data
             case_dir = os.path.join('cases', case.case_id)
-            removal_files = [f for f in os.listdir(case_dir) if f.startswith('removeRecords_') and f.endswith('.json')]
+            removal_files = [f for f in os.listdir(case_dir) if f.startswith('removeRecords') and f.endswith('.json')]
             
             if removal_files:
                 # Get the most recent removal records file
@@ -1167,7 +1219,7 @@ def get_section_data(case_id, section):
         elif section == 'firewall-config':
             # Load firewall rules data
             case_dir = os.path.join('cases', case.case_id)
-            firewall_files = [f for f in os.listdir(case_dir) if f.startswith('firewallRules_') and f.endswith('.json')]
+            firewall_files = [f for f in os.listdir(case_dir) if f.startswith('firewallRules') and f.endswith('.json')]
             
             if firewall_files:
                 # Get the most recent firewall rules file
@@ -1208,9 +1260,9 @@ def get_section_data(case_id, section):
             case_dir = os.path.join('cases', case.case_id)
             
             # Find NFS exports file
-            exports_files = [f for f in os.listdir(case_dir) if f.startswith('nfsExports_') and f.endswith('.json')]
+            exports_files = [f for f in os.listdir(case_dir) if f.startswith('nfsExports') and f.endswith('.json')]
             # Find NFS mounts file
-            mounts_files = [f for f in os.listdir(case_dir) if f.startswith('nfsMounts_') and f.endswith('.json')]
+            mounts_files = [f for f in os.listdir(case_dir) if f.startswith('nfsMounts') and f.endswith('.json')]
             
             nfs_exports = {}
             nfs_mounts = {}
@@ -1280,9 +1332,9 @@ def get_section_data(case_id, section):
             case_dir = os.path.join('cases', case.case_id)
             
             # Find CIFS mounts file
-            cifs_files = [f for f in os.listdir(case_dir) if f.startswith('cifsMounts_') and f.endswith('.json')]
+            cifs_files = [f for f in os.listdir(case_dir) if f.startswith('cifsMounts') and f.endswith('.json')]
             # Find Samba shares file
-            samba_files = [f for f in os.listdir(case_dir) if f.startswith('sambaShares_') and f.endswith('.json')]
+            samba_files = [f for f in os.listdir(case_dir) if f.startswith('sambaShares') and f.endswith('.json')]
             
             cifs_mounts = {}
             samba_shares = {}
@@ -1356,7 +1408,7 @@ def get_section_data(case_id, section):
             case_dir = os.path.join('cases', case.case_id)
             
             # Find browsing history file
-            history_files = [f for f in os.listdir(case_dir) if f.startswith('browsingHistory_') and f.endswith('.json')]
+            history_files = [f for f in os.listdir(case_dir) if f.startswith('browsingHistory') and f.endswith('.json')]
             
             browsing_history = []
             history_file = None
@@ -1421,7 +1473,7 @@ def get_section_data(case_id, section):
             case_dir = os.path.join('cases', case.case_id)
             
             # Find search history file
-            search_files = [f for f in os.listdir(case_dir) if f.startswith('searchHistory_') and f.endswith('.json')]
+            search_files = [f for f in os.listdir(case_dir) if f.startswith('searchHistory') and f.endswith('.json')]
             
             search_history = []
             search_file = None
@@ -1486,7 +1538,7 @@ def get_section_data(case_id, section):
             case_dir = os.path.join('cases', case.case_id)
             
             # Find downloads file
-            downloads_files = [f for f in os.listdir(case_dir) if f.startswith('downloads_data_') and f.endswith('.json')]
+            downloads_files = [f for f in os.listdir(case_dir) if f.startswith('downloads_data') and f.endswith('.json')]
             
             downloads = []
             downloads_file = None

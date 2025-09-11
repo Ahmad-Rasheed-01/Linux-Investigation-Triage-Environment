@@ -28,10 +28,15 @@ class FileService:
             original_filename = file.filename
             filename = secure_filename(original_filename)
             
-            # Ensure unique filename
-            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-            name, ext = os.path.splitext(filename)
-            unique_filename = f"{name}_{timestamp}{ext}"
+            # Handle filename conflicts by checking if file exists
+            base_name, ext = os.path.splitext(filename)
+            unique_filename = filename
+            counter = 1
+            
+            # Check if file already exists and create unique name if needed
+            while os.path.exists(os.path.join(case.folder_path, unique_filename)):
+                unique_filename = f"{base_name}_{counter}{ext}"
+                counter += 1
             
             # Create file path
             file_path = os.path.join(case.folder_path, unique_filename)
