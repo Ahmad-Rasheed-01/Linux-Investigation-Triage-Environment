@@ -838,6 +838,74 @@ def get_section_data(case_id, section):
                     'error': f'Error loading kernel logs: {str(kernel_error)}'
                 }), 500
             
+        elif section == 'application-logs':
+            try:
+                # Load application log files
+                case_dir = os.path.join('cases', case.case_id)
+                app_data = {}
+                
+                # Look for common application log files
+                app_log_files = ['application.json', 'app.json', 'applications.json', 'app_logs.json', 'syslog.json']
+                
+                for log_file in app_log_files:
+                    app_file_path = os.path.join(case_dir, log_file)
+                    if os.path.exists(app_file_path):
+                        try:
+                            data = json_parser.load_json_file(app_file_path)
+                            if data:
+                                # Process application logs from JSON structure
+                                if isinstance(data, dict) and 'entries' in data:
+                                    # Limit application log entries for performance
+                                    if len(data['entries']) > 1000:
+                                        data['entries'] = data['entries'][:1000]  # Show first 1000 entries
+                                    app_data[log_file] = data
+                                elif isinstance(data, list):
+                                    # Limit application log entries for performance
+                                    if len(data) > 1000:
+                                        data = data[:1000]  # Show first 1000 entries
+                                    app_data[log_file] = {'entries': data}
+                                elif isinstance(data, dict):
+                                    app_data[log_file] = data
+                        except Exception as file_error:
+                            print(f"Error processing application log file {log_file}: {str(file_error)}")
+                            continue
+                
+                # If no specific files found, search for application-related artifacts
+                if not app_data:
+                    app_artifacts = _get_artifacts_by_keywords(case.artifacts, ['application', 'app', 'service', 'syslog'])
+                    
+                    for artifact in app_artifacts:
+                        try:
+                            data = json_parser.load_json_file(artifact.file_path)
+                            if data:
+                                # Process application logs from JSON structure
+                                if isinstance(data, dict) and 'entries' in data:
+                                    # Limit application log entries for performance
+                                    if len(data['entries']) > 1000:
+                                        data['entries'] = data['entries'][:1000]  # Show first 1000 entries
+                                    app_data[artifact.filename] = data
+                                elif isinstance(data, list):
+                                    # Limit application log entries for performance
+                                    if len(data) > 1000:
+                                        data = data[:1000]  # Show first 1000 entries
+                                    app_data[artifact.filename] = {'entries': data}
+                                elif isinstance(data, dict):
+                                    app_data[artifact.filename] = data
+                        except Exception as file_error:
+                            print(f"Error processing application file {artifact.filename}: {str(file_error)}")
+                            continue
+                
+                return jsonify({
+                    'success': True,
+                    'data': app_data
+                })
+            except Exception as app_error:
+                print(f"Error in application-logs section: {str(app_error)}")
+                return jsonify({
+                    'success': False,
+                    'error': f'Error loading application logs: {str(app_error)}'
+                }), 500
+            
         elif section == 'collection-logs':
             # Parse collection log file
             collection_log_data = _parse_collection_logs(case)
