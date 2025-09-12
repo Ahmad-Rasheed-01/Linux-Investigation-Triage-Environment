@@ -1764,6 +1764,104 @@ def get_section_data(case_id, section):
                 'data': file_data
             })
         
+        elif section == 'file-permissions':
+            # Load file permissions data
+            case_dir = os.path.join('cases', case.case_id)
+            permissions_data = {}
+            
+            # Look for permission-related files
+            permission_files = ['criticalFiles.json', 'filePermissions.json', 'permissions.json']
+            
+            for file_name in permission_files:
+                file_path = os.path.join(case_dir, file_name)
+                if os.path.exists(file_path):
+                    try:
+                        data = json_parser.load_json_file(file_path)
+                        if data:
+                            # Filter for files with interesting permissions
+                            if isinstance(data, list):
+                                # Focus on files with unusual permissions (setuid, setgid, world-writable, etc.)
+                                interesting_files = []
+                                for item in data:
+                                    if isinstance(item, dict):
+                                        permissions = item.get('permissions') or item.get('mode', '')
+                                        # Look for potentially interesting permissions
+                                        if any(perm in str(permissions) for perm in ['4', '2', '7', 's', 't']):
+                                            interesting_files.append(item)
+                                
+                                # If we have interesting files, use them; otherwise use all (limited)
+                                if interesting_files:
+                                    permissions_data[file_name] = interesting_files[:500]
+                                else:
+                                    permissions_data[file_name] = data[:500] if len(data) > 500 else data
+                            else:
+                                permissions_data[file_name] = data
+                    except Exception as file_error:
+                        print(f"Error processing permissions file {file_name}: {str(file_error)}")
+                        continue
+            
+            # If no specific files found, search for file-related artifacts
+            if not permissions_data:
+                file_artifacts = _get_artifacts_by_keywords(case.artifacts, ['file', 'critical', 'permission'])
+                
+                for artifact in file_artifacts:
+                    try:
+                        data = json_parser.load_json_file(artifact.file_path)
+                        if data and isinstance(data, list):
+                            # Filter for files with permissions data
+                            files_with_perms = []
+                            for item in data:
+                                if isinstance(item, dict) and ('permissions' in item or 'mode' in item):
+                                    files_with_perms.append(item)
+                            
+                            if files_with_perms:
+                                permissions_data[artifact.filename] = files_with_perms[:500]
+                    except Exception as file_error:
+                        print(f"Error processing permissions artifact {artifact.filename}: {str(file_error)}")
+                        continue
+            
+            return jsonify({
+                'success': True,
+                'data': permissions_data
+            })
+        
+        elif section == 'mount-points':
+            # Load mount points data
+            case_dir = os.path.join('cases', case.case_id)
+            mount_data = {}
+            
+            # Look for mount-related files
+            mount_files = ['mountPoints.json', 'mounts.json', 'fstab.json', 'diskUsage.json']
+            
+            for file_name in mount_files:
+                file_path = os.path.join(case_dir, file_name)
+                if os.path.exists(file_path):
+                    try:
+                        data = json_parser.load_json_file(file_path)
+                        if data:
+                            mount_data[file_name] = data
+                    except Exception as file_error:
+                        print(f"Error processing mount file {file_name}: {str(file_error)}")
+                        continue
+            
+            # If no specific files found, search for mount-related artifacts
+            if not mount_data:
+                mount_artifacts = _get_artifacts_by_keywords(case.artifacts, ['mount', 'disk', 'filesystem', 'fstab'])
+                
+                for artifact in mount_artifacts:
+                    try:
+                        data = json_parser.load_json_file(artifact.file_path)
+                        if data:
+                            mount_data[artifact.filename] = data
+                    except Exception as file_error:
+                        print(f"Error processing mount artifact {artifact.filename}: {str(file_error)}")
+                        continue
+            
+            return jsonify({
+                'success': True,
+                'data': mount_data
+            })
+        
         else:
             return jsonify({'error': 'Section not found'}), 404
             

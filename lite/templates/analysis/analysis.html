@@ -525,6 +525,9 @@ function renderSectionContent(section, data) {
         case 'file-listing':
             renderFileListing(data);
             break;
+        case 'file-permissions':
+            renderPermissions(data);
+            break;
         default:
             renderGenericData(section, data);
     }
@@ -13147,6 +13150,273 @@ function filterSearchHistory() {
         
         row.style.display = found ? '' : 'none';
     }
+}
+
+function renderPermissions(data) {
+    const contentArea = document.getElementById('content-area');
+    
+    if (!data || Object.keys(data).length === 0) {
+        contentArea.innerHTML = `
+            <div class="row">
+                <div class="col-12">
+                    <h2 class="h4 mb-3">
+                        <i class="fas fa-lock me-2"></i>File Permissions
+                    </h2>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        No file permissions data available for this case.
+                    </div>
+                </div>
+            </div>
+        `;
+        return;
+    }
+    
+    // Process all files from different sources
+    let allFiles = [];
+    let totalFiles = 0;
+    let suspiciousFiles = 0;
+    let executableFiles = 0;
+    let worldWritableFiles = 0;
+    
+    Object.entries(data).forEach(([source, files]) => {
+        if (Array.isArray(files)) {
+            files.forEach(file => {
+                if (file && typeof file === 'object') {
+                    const permissions = file.permissions || file.mode || '';
+                    const permStr = String(permissions);
+                    
+                    // Count different types of files
+                    totalFiles++;
+                    
+                    // Check for suspicious permissions
+                    if (permStr.includes('4') || permStr.includes('2') || permStr.includes('s') || permStr.includes('t')) {
+                        suspiciousFiles++;
+                    }
+                    
+                    // Check for executable files
+                    if (permStr.includes('x') || permStr.includes('7') || permStr.includes('5') || permStr.includes('1')) {
+                        executableFiles++;
+                    }
+                    
+                    // Check for world-writable files
+                    if (permStr.endsWith('7') || permStr.endsWith('6') || permStr.endsWith('3') || permStr.endsWith('2')) {
+                        worldWritableFiles++;
+                    }
+                    
+                    allFiles.push({
+                        ...file,
+                        source: source,
+                        permissions: permissions
+                    });
+                }
+            });
+        }
+    });
+    
+    // Sort files by suspiciousness (setuid, setgid, world-writable first)
+    allFiles.sort((a, b) => {
+        const aPerms = String(a.permissions || '');
+        const bPerms = String(b.permissions || '');
+        
+        const aSuspicious = aPerms.includes('4') || aPerms.includes('2') || aPerms.includes('s') || aPerms.includes('t');
+        const bSuspicious = bPerms.includes('4') || bPerms.includes('2') || bPerms.includes('s') || bPerms.includes('t');
+        
+        if (aSuspicious && !bSuspicious) return -1;
+        if (!aSuspicious && bSuspicious) return 1;
+        
+        return (a.path || a.name || '').localeCompare(b.path || b.name || '');
+    });
+    
+    contentArea.innerHTML = `
+        <div class="row mb-4">
+            <div class="col-12">
+                <h2 class="h4 mb-3">
+                    <i class="fas fa-lock me-2"></i>File Permissions Analysis
+                </h2>
+            </div>
+        </div>
+        
+        <!-- Statistics Cards -->
+        <div class="row mb-4">
+            <div class="col-xl-3 col-md-6 mb-3">
+                <div class="card border-left-primary shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total Files</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">${totalFiles.toLocaleString()}</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-file fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-xl-3 col-md-6 mb-3">
+                <div class="card border-left-warning shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Suspicious Files</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">${suspiciousFiles.toLocaleString()}</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-exclamation-triangle fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-xl-3 col-md-6 mb-3">
+                <div class="card border-left-success shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Executable Files</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">${executableFiles.toLocaleString()}</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-play fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-xl-3 col-md-6 mb-3">
+                <div class="card border-left-danger shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">World Writable</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">${worldWritableFiles.toLocaleString()}</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-unlock fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- File Permissions Table -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                        <h6 class="m-0 font-weight-bold text-primary">File Permissions Details</h6>
+                        <div class="d-flex align-items-center">
+                            <input type="text" id="permissionsSearch" class="form-control form-control-sm me-2" 
+                                   placeholder="Search files..." style="width: 200px;" onkeyup="filterPermissions()">
+                            <small class="text-muted">${allFiles.length} files</small>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
+                            <table class="table table-bordered table-hover" id="permissionsTable">
+                                <thead class="table-dark sticky-top">
+                                    <tr>
+                                        <th style="width: 40%;">File Path</th>
+                                        <th style="width: 10%;">Permissions</th>
+                                        <th style="width: 10%;">Owner</th>
+                                        <th style="width: 10%;">Group</th>
+                                        <th style="width: 15%;">Size</th>
+                                        <th style="width: 15%;">Modified</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${allFiles.map(file => {
+                                        const path = file.path || file.name || 'Unknown';
+                                        const permissions = file.permissions || file.mode || 'N/A';
+                                        const owner = file.owner !== undefined ? file.owner : (file.uid || 'N/A');
+                                        const group = file.group !== undefined ? file.group : (file.gid || 'N/A');
+                                        const size = file.fileSize || file.size || 0;
+                                        const modified = file.dateModified ? new Date(file.dateModified * 1000).toLocaleString() : (file.modified || 'N/A');
+                                        
+                                        // Format file size
+                                        const formatSize = (bytes) => {
+                                            if (!bytes || bytes === 0) return '0 B';
+                                            const k = 1024;
+                                            const sizes = ['B', 'KB', 'MB', 'GB'];
+                                            const i = Math.floor(Math.log(bytes) / Math.log(k));
+                                            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+                                        };
+                                        
+                                        // Color code based on permissions
+                                        let rowClass = '';
+                                        const permStr = String(permissions);
+                                        if (permStr.includes('4') || permStr.includes('s')) {
+                                            rowClass = 'table-danger'; // setuid files
+                                        } else if (permStr.includes('2') || permStr.includes('t')) {
+                                            rowClass = 'table-warning'; // setgid or sticky bit files
+                                        } else if (permStr.endsWith('7') || permStr.endsWith('6') || permStr.endsWith('3') || permStr.endsWith('2')) {
+                                            rowClass = 'table-info'; // world-writable files
+                                        } else if (permStr.includes('x') || permStr.includes('7') || permStr.includes('5') || permStr.includes('1')) {
+                                            rowClass = 'table-light'; // executable files
+                                        }
+                                        
+                                        return `
+                                            <tr class="${rowClass} permissions-row" data-path="${path.toLowerCase()}">
+                                                <td style="width: 40%; word-break: break-all;"><code class="small">${path}</code></td>
+                                                <td style="width: 10%;"><span class="badge bg-secondary">${permissions}</span></td>
+                                                <td style="width: 10%;"><span class="badge bg-outline-secondary">${owner}</span></td>
+                                                <td style="width: 10%;"><span class="badge bg-outline-secondary">${group}</span></td>
+                                                <td style="width: 15%;">${formatSize(size)}</td>
+                                                <td style="width: 15%;"><small>${modified}</small></td>
+                                            </tr>
+                                        `;
+                                    }).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Legend -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card shadow">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-primary">Color Legend</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-3 mb-2">
+                                <span class="badge bg-danger me-2">Red</span> SetUID files (potential security risk)
+                            </div>
+                            <div class="col-md-3 mb-2">
+                                <span class="badge bg-warning me-2">Yellow</span> SetGID or Sticky bit files
+                            </div>
+                            <div class="col-md-3 mb-2">
+                                <span class="badge bg-info me-2">Blue</span> World-writable files
+                            </div>
+                            <div class="col-md-3 mb-2">
+                                <span class="badge bg-light text-dark me-2">Light</span> Executable files
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function filterPermissions() {
+    const searchTerm = document.getElementById('permissionsSearch').value.toLowerCase();
+    const rows = document.querySelectorAll('.permissions-row');
+    
+    rows.forEach(row => {
+        const path = row.dataset.path;
+        const found = path.includes(searchTerm);
+        row.style.display = found ? '' : 'none';
+    });
 }
 
 function renderDownloads(data) {
