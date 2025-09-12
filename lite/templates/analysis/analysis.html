@@ -522,6 +522,9 @@ function renderSectionContent(section, data) {
         case 'extensions':
             renderExtensions(data);
             break;
+        case 'file-listing':
+            renderFileListing(data);
+            break;
         default:
             renderGenericData(section, data);
     }
@@ -13524,6 +13527,230 @@ function renderExtensions(data) {
 function filterExtensions() {
     const searchTerm = document.getElementById('extensionsFilter').value.toLowerCase();
     const table = document.getElementById('extensionsTable');
+    const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+    
+    for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        const cells = row.getElementsByTagName('td');
+        let found = false;
+        
+        for (let j = 0; j < cells.length; j++) {
+            const cellText = cells[j].textContent || cells[j].innerText;
+            if (cellText.toLowerCase().indexOf(searchTerm) > -1) {
+                found = true;
+                break;
+            }
+        }
+        
+        row.style.display = found ? '' : 'none';
+    }
+}
+
+function renderFileListing(data) {
+    const contentArea = document.getElementById('content-area');
+    
+    if (!data || Object.keys(data).length === 0) {
+        contentArea.innerHTML = `
+            <div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle"></i>
+                No file listing data available for analysis
+            </div>
+        `;
+        return;
+    }
+
+    let allFiles = [];
+    let totalFiles = 0;
+    let sourceFiles = [];
+    
+    // Process all file data sources
+    Object.entries(data).forEach(([filename, fileData]) => {
+        if (Array.isArray(fileData)) {
+            allFiles = allFiles.concat(fileData.map(file => ({...file, source: filename})));
+            totalFiles += fileData.length;
+            sourceFiles.push({name: filename, count: fileData.length});
+        }
+    });
+    
+    // Calculate statistics
+    const uniqueOwners = [...new Set(allFiles.map(file => file.owner !== undefined ? file.owner : file.uid).filter(val => val !== undefined && val !== null))].length;
+    const uniqueGroups = [...new Set(allFiles.map(file => file.group !== undefined ? file.group : file.gid).filter(val => val !== undefined && val !== null))].length;
+    const totalSize = allFiles.reduce((sum, file) => sum + (parseInt(file.fileSize || file.size) || 0), 0);
+    
+    // Format file size
+    function formatFileSize(bytes) {
+        if (bytes === 0) return '0 B';
+        const k = 1024;
+        const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+    
+    // Get file type distribution
+    const fileTypes = {};
+    allFiles.forEach(file => {
+        const path = file.path || file.name || '';
+        const ext = path.split('.').pop().toLowerCase();
+        const type = ext || 'no extension';
+        fileTypes[type] = (fileTypes[type] || 0) + 1;
+    });
+    
+    const topTypes = Object.entries(fileTypes)
+        .sort(([,a], [,b]) => b - a)
+        .slice(0, 6);
+    
+    contentArea.innerHTML = `
+        <div class="section-header">
+            <h2><i class="fas fa-folder-open"></i> File Listing Analysis</h2>
+            <p class="text-muted">Analysis of critical files and directories from ${sourceFiles.map(f => f.name).join(', ')}</p>
+        </div>
+        
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card bg-primary text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h4 class="mb-0">${totalFiles}</h4>
+                                <small>Total Files</small>
+                            </div>
+                            <i class="fas fa-file fa-2x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-success text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h4 class="mb-0">${uniqueOwners}</h4>
+                                <small>Unique Owners</small>
+                            </div>
+                            <i class="fas fa-user fa-2x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-info text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h4 class="mb-0">${uniqueGroups}</h4>
+                                <small>Unique Groups</small>
+                            </div>
+                            <i class="fas fa-users fa-2x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-warning text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h4 class="mb-0">${formatFileSize(totalSize)}</h4>
+                                <small>Total Size</small>
+                            </div>
+                            <i class="fas fa-hdd fa-2x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>File Types Distribution</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            ${topTypes.map(([type, count]) => `
+                                <div class="col-md-2 mb-2">
+                                    <div class="text-center">
+                                        <div class="h4 text-primary">${count}</div>
+                                        <small class="text-muted">${type}</small>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-list me-2"></i>File Details</h5>
+                        <div class="input-group" style="width: 300px;">
+                            <input type="text" class="form-control" id="fileListingFilter" placeholder="Search files...">
+                            <button class="btn btn-outline-secondary" type="button" onclick="filterFileListing()">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover" id="fileListingTable" style="table-layout: fixed; width: 100%;">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th style="width: 35%;">Path</th>
+                                        <th style="width: 10%;">Size</th>
+                                        <th style="width: 15%;">Permissions</th>
+                                        <th style="width: 10%;">Owner</th>
+                                        <th style="width: 10%;">Group</th>
+                                        <th style="width: 20%;">Modified</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${allFiles.slice(0, 1000).map(file => {
+                                        const path = file.path || file.name || 'Unknown';
+                                        const size = file.fileSize || file.size ? formatFileSize(parseInt(file.fileSize || file.size)) : 'N/A';
+                                        const permissions = file.permissions || file.mode || 'N/A';
+                                        const owner = file.owner !== undefined ? file.owner : (file.uid || 'N/A');
+                                        const group = file.group !== undefined ? file.group : (file.gid || 'N/A');
+                                        const modified = file.dateModified ? new Date(file.dateModified * 1000).toLocaleString() : (file.mtime || file.modified || file.lastModified || 'N/A');
+                                        
+                                        // Color code based on file type or permissions
+                                        let rowClass = '';
+                                        if (permissions.includes('x') || permissions.includes('7') || permissions.includes('5')) {
+                                            rowClass = 'table-warning'; // Executable files
+                                        } else if (path.includes('/etc/') || path.includes('/root/')) {
+                                            rowClass = 'table-danger'; // System files
+                                        } else if (path.includes('/home/')) {
+                                            rowClass = 'table-info'; // User files
+                                        }
+                                        
+                                        return `
+                                            <tr class="${rowClass}">
+                                                <td style="width: 35%; word-wrap: break-word; overflow-wrap: break-word; max-width: 0;"><span class="fw-bold" title="${path}">${path}</span></td>
+                                                <td style="width: 10%; max-width: 0;"><small class="text-muted">${size}</small></td>
+                                                <td style="width: 15%; max-width: 0;"><code class="small">${permissions}</code></td>
+                                                <td style="width: 10%; max-width: 0;"><small class="text-muted">${owner}</small></td>
+                                                <td style="width: 10%; max-width: 0;"><small class="text-muted">${group}</small></td>
+                                                <td style="width: 20%; max-width: 0;"><small class="text-muted">${modified}</small></td>
+                                            </tr>
+                                        `;
+                                    }).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                        ${allFiles.length > 1000 ? `<div class="alert alert-info mt-3"><i class="fas fa-info-circle"></i> Showing first 1000 files out of ${allFiles.length} total files.</div>` : ''}
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function filterFileListing() {
+    const searchTerm = document.getElementById('fileListingFilter').value.toLowerCase();
+    const table = document.getElementById('fileListingTable');
     const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
     
     for (let i = 0; i < rows.length; i++) {

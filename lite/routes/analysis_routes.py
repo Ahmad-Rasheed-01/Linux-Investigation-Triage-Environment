@@ -1721,6 +1721,49 @@ def get_section_data(case_id, section):
                 }
             })
         
+        elif section == 'file-listing':
+            # Load file listing data
+            case_dir = os.path.join('cases', case.case_id)
+            file_data = {}
+            
+            # Look for file listing related files
+            file_listing_files = ['criticalFiles.json', 'homeDirectories.json', 'user_home_directories.json']
+            
+            for file_name in file_listing_files:
+                file_path = os.path.join(case_dir, file_name)
+                if os.path.exists(file_path):
+                    try:
+                        data = json_parser.load_json_file(file_path)
+                        if data:
+                            # Limit entries for performance
+                            if isinstance(data, list) and len(data) > 1000:
+                                data = data[:1000]  # Show first 1000 entries
+                            file_data[file_name] = data
+                    except Exception as file_error:
+                        print(f"Error processing file listing file {file_name}: {str(file_error)}")
+                        continue
+            
+            # If no specific files found, search for file-related artifacts
+            if not file_data:
+                file_artifacts = _get_artifacts_by_keywords(case.artifacts, ['file', 'directory', 'critical', 'home'])
+                
+                for artifact in file_artifacts:
+                    try:
+                        data = json_parser.load_json_file(artifact.file_path)
+                        if data:
+                            # Limit entries for performance
+                            if isinstance(data, list) and len(data) > 1000:
+                                data = data[:1000]  # Show first 1000 entries
+                            file_data[artifact.filename] = data
+                    except Exception as file_error:
+                        print(f"Error processing file artifact {artifact.filename}: {str(file_error)}")
+                        continue
+            
+            return jsonify({
+                'success': True,
+                'data': file_data
+            })
+        
         else:
             return jsonify({'error': 'Section not found'}), 404
             
