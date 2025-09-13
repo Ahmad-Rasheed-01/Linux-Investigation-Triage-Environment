@@ -528,6 +528,9 @@ function renderSectionContent(section, data) {
         case 'file-permissions':
             renderPermissions(data);
             break;
+        case 'mount-points':
+            renderMountPoints(data);
+            break;
         default:
             renderGenericData(section, data);
     }
@@ -13150,6 +13153,264 @@ function filterSearchHistory() {
         
         row.style.display = found ? '' : 'none';
     }
+}
+
+function renderMountPoints(data) {
+    const contentArea = document.getElementById('content-area');
+    
+    if (!data || Object.keys(data).length === 0) {
+        contentArea.innerHTML = `
+            <div class="row">
+                <div class="col-12">
+                    <h2 class="h4 mb-3">
+                        <i class="fas fa-hdd me-2"></i>Mount Points
+                    </h2>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        No mount points data available for this case.
+                    </div>
+                </div>
+            </div>
+        `;
+        return;
+    }
+    
+    // Process all mount points from different sources
+    let allMounts = [];
+    let totalMounts = 0;
+    let rootMounts = 0;
+    let networkMounts = 0;
+    let tmpMounts = 0;
+    
+    Object.entries(data).forEach(([source, mounts]) => {
+        if (Array.isArray(mounts)) {
+            mounts.forEach(mount => {
+                if (mount && typeof mount === 'object') {
+                    const mountPoint = mount.mountPoint || mount.mount_point || mount.target || '';
+                    const device = mount.device || mount.source || mount.filesystem || '';
+                    const fsType = mount.fsType || mount.type || mount.fs_type || '';
+                    
+                    totalMounts++;
+                    
+                    // Count different types of mounts
+                    if (mountPoint === '/' || mountPoint === '/root') {
+                        rootMounts++;
+                    }
+                    if (fsType.includes('nfs') || fsType.includes('cifs') || fsType.includes('smb') || device.includes('://')) {
+                        networkMounts++;
+                    }
+                    if (mountPoint.includes('/tmp') || fsType === 'tmpfs') {
+                        tmpMounts++;
+                    }
+                    
+                    allMounts.push({
+                        ...mount,
+                        source: source,
+                        mountPoint: mountPoint,
+                        device: device,
+                        fsType: fsType
+                    });
+                }
+            });
+        }
+    });
+    
+    // Sort mounts by mount point
+    allMounts.sort((a, b) => {
+        const aPoint = a.mountPoint || '';
+        const bPoint = b.mountPoint || '';
+        return aPoint.localeCompare(bPoint);
+    });
+    
+    contentArea.innerHTML = `
+        <div class="row mb-4">
+            <div class="col-12">
+                <h2 class="h4 mb-3">
+                    <i class="fas fa-hdd me-2"></i>Mount Points Analysis
+                </h2>
+            </div>
+        </div>
+        
+        <!-- Statistics Cards -->
+        <div class="row mb-4">
+            <div class="col-xl-3 col-md-6 mb-3">
+                <div class="card border-left-primary shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total Mounts</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">${totalMounts.toLocaleString()}</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-hdd fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-xl-3 col-md-6 mb-3">
+                <div class="card border-left-success shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Root Mounts</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">${rootMounts.toLocaleString()}</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-folder-open fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-xl-3 col-md-6 mb-3">
+                <div class="card border-left-warning shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Network Mounts</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">${networkMounts.toLocaleString()}</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-network-wired fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-xl-3 col-md-6 mb-3">
+                <div class="card border-left-info shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Temp Mounts</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">${tmpMounts.toLocaleString()}</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-clock fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Mount Points Table -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                        <h6 class="m-0 font-weight-bold text-primary">Mount Points Details</h6>
+                        <div class="d-flex align-items-center">
+                            <input type="text" id="mountsSearch" class="form-control form-control-sm me-2" 
+                                   placeholder="Search mounts..." style="width: 200px;" onkeyup="filterMounts()">
+                            <small class="text-muted">${allMounts.length} mounts</small>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
+                            <table class="table table-bordered table-hover" id="mountsTable">
+                                <thead class="table-dark sticky-top">
+                                    <tr>
+                                        <th style="width: 25%;">Mount Point</th>
+                                        <th style="width: 25%;">Device/Source</th>
+                                        <th style="width: 15%;">File System</th>
+                                        <th style="width: 15%;">Options</th>
+                                        <th style="width: 10%;">Used</th>
+                                        <th style="width: 10%;">Available</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${allMounts.map(mount => {
+                                        const mountPoint = mount.mountPoint || mount.mount_point || mount.target || 'N/A';
+                                        const device = mount.device || mount.source || mount.filesystem || 'N/A';
+                                        const fsType = mount.fsType || mount.type || mount.fs_type || 'N/A';
+                                        const options = mount.options || mount.opts || 'N/A';
+                                        const used = mount.used || mount.usedSpace || 'N/A';
+                                        const available = mount.available || mount.availableSpace || mount.free || 'N/A';
+                                        
+                                        // Format sizes
+                                        const formatSize = (bytes) => {
+                                            if (!bytes || bytes === 'N/A' || bytes === 0) return 'N/A';
+                                            if (typeof bytes === 'string' && bytes.includes('%')) return bytes;
+                                            const k = 1024;
+                                            const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+                                            const i = Math.floor(Math.log(bytes) / Math.log(k));
+                                            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+                                        };
+                                        
+                                        // Color code based on mount type
+                                        let rowClass = '';
+                                        if (mountPoint === '/') {
+                                            rowClass = 'table-primary'; // root filesystem
+                                        } else if (fsType.includes('nfs') || fsType.includes('cifs') || fsType.includes('smb')) {
+                                            rowClass = 'table-warning'; // network mounts
+                                        } else if (fsType === 'tmpfs' || mountPoint.includes('/tmp')) {
+                                            rowClass = 'table-info'; // temporary mounts
+                                        } else if (mountPoint.startsWith('/proc') || mountPoint.startsWith('/sys') || mountPoint.startsWith('/dev')) {
+                                            rowClass = 'table-light'; // system mounts
+                                        }
+                                        
+                                        return `
+                                            <tr class="${rowClass} mounts-row" data-mount="${mountPoint.toLowerCase()}">
+                                                <td style="width: 25%; word-break: break-all;"><code class="small">${mountPoint}</code></td>
+                                                <td style="width: 25%; word-break: break-all;"><code class="small">${device}</code></td>
+                                                <td style="width: 15%;"><span class="badge bg-secondary">${fsType}</span></td>
+                                                <td style="width: 15%;"><small>${options}</small></td>
+                                                <td style="width: 10%;">${formatSize(used)}</td>
+                                                <td style="width: 10%;">${formatSize(available)}</td>
+                                            </tr>
+                                        `;
+                                    }).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Legend -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card shadow">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-primary">Color Legend</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-3 mb-2">
+                                <span class="badge bg-primary me-2">Blue</span> Root filesystem (/)
+                            </div>
+                            <div class="col-md-3 mb-2">
+                                <span class="badge bg-warning me-2">Yellow</span> Network mounts (NFS, CIFS, SMB)
+                            </div>
+                            <div class="col-md-3 mb-2">
+                                <span class="badge bg-info me-2">Light Blue</span> Temporary mounts (tmpfs)
+                            </div>
+                            <div class="col-md-3 mb-2">
+                                <span class="badge bg-light text-dark me-2">Light</span> System mounts (/proc, /sys, /dev)
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function filterMounts() {
+    const searchTerm = document.getElementById('mountsSearch').value.toLowerCase();
+    const rows = document.querySelectorAll('.mounts-row');
+    
+    rows.forEach(row => {
+        const mount = row.dataset.mount;
+        const found = mount.includes(searchTerm);
+        row.style.display = found ? '' : 'none';
+    });
 }
 
 function renderPermissions(data) {
