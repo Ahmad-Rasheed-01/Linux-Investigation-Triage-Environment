@@ -1839,7 +1839,12 @@ def get_section_data(case_id, section):
                     try:
                         data = json_parser.load_json_file(file_path)
                         if data:
-                            mount_data[file_name] = data
+                            # Parse stdout content for mount command output
+                            if 'stdout' in data and data['stdout']:
+                                parsed_mounts = _parse_mount_stdout(data['stdout'])
+                                mount_data[file_name] = parsed_mounts
+                            else:
+                                mount_data[file_name] = data
                     except Exception as file_error:
                         print(f"Error processing mount file {file_name}: {str(file_error)}")
                         continue
@@ -1852,7 +1857,12 @@ def get_section_data(case_id, section):
                     try:
                         data = json_parser.load_json_file(artifact.file_path)
                         if data:
-                            mount_data[artifact.filename] = data
+                            # Parse stdout content for mount command output
+                            if 'stdout' in data and data['stdout']:
+                                parsed_mounts = _parse_mount_stdout(data['stdout'])
+                                mount_data[artifact.filename] = parsed_mounts
+                            else:
+                                mount_data[artifact.filename] = data
                     except Exception as file_error:
                         print(f"Error processing mount artifact {artifact.filename}: {str(file_error)}")
                         continue
@@ -2360,3 +2370,63 @@ def _detect_hash_type(password_hash):
         return 'LDAP Format'
     else:
         return 'Unknown/Other'
+
+def _parse_mount_stdout(stdout_content):
+    """Parse mount command stdout output into structured data"""
+    mounts = []
+    
+    if not stdout_content:
+        return mounts
+    
+    lines = stdout_content.strip().split('\n')
+    
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+            
+        # Parse mount line format: device on mountpoint type filesystem (options)
+        # Example: /dev/sda1 on / type ext4 (rw,relatime,errors=remount-ro)
+        try:
+            # Split by ' on ' to separate device and rest
+            if ' on ' in line:
+                parts = line.split(' on ', 1)
+                device = parts[0].strip()
+                
+                # Split the rest by ' type ' to get mountpoint and filesystem info
+                if ' type ' in parts[1]:
+                    mount_and_fs = parts[1].split(' type ', 1)
+                    mountpoint = mount_and_fs[0].strip()
+                    
+                    # Split filesystem and options
+                    fs_and_opts = mount_and_fs[1]
+                    if ' (' in fs_and_opts and fs_and_opts.endswith(')'):
+                        fs_parts = fs_and_opts.split(' (', 1)
+                        filesystem = fs_parts[0].strip()
+                        options = fs_parts[1].rstrip(')').strip()
+                    else:
+                        # No options in parentheses
+                        filesystem = fs_and_opts.strip()
+                        options = ''
+                    
+                    mount_entry = {
+                        'device': device,
+                        'mountPoint': mountpoint,
+                        'mount_point': mountpoint,  # Alternative field name
+                        'fsType': filesystem,
+                        'type': filesystem,  # Alternative field name
+                        'fs_type': filesystem,  # Alternative field name
+                        'options': options,
+                        'opts': options,  # Alternative field name
+                        'source': device,  # Alternative field name
+                        'target': mountpoint,  # Alternative field name
+                        'filesystem': device  # Alternative field name
+                    }
+                    
+                    mounts.append(mount_entry)
+                    
+        except Exception as e:
+            print(f"Error parsing mount line '{line}': {e}")
+            continue
+    
+    return mounts
