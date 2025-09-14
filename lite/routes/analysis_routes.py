@@ -1658,7 +1658,7 @@ def get_section_data(case_id, section):
             case_dir = os.path.join('cases', case.case_id)
             
             # Find extensions file
-            extensions_files = [f for f in os.listdir(case_dir) if f.startswith('extensions_data_') and f.endswith('.json')]
+            extensions_files = [f for f in os.listdir(case_dir) if f.startswith('extensions_data') and f.endswith('.json')]
             
             extensions = []
             extensions_file = None
