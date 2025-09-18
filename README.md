@@ -178,17 +178,7 @@ LITE/
 - **Recent Activity**: Latest case updates
 - **System Health**: Application performance metrics
 
-## Testing with Sample Data
 
-The application includes sample data creation for testing:
-
-1. During database initialization, choose to create sample data
-2. Use the provided test dataset at:
-   ```
-   C:\Users\Machine\OneDrive - Higher Education Commission\Github\Linux-Investigation-Triage-Environment\sea_collection_kali_20250814_035525\
-   ```
-3. Create a new case and upload files from this directory
-4. Test all functionality with realistic data
 
 ## Configuration
 
